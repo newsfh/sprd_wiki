@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>sysdump调试步骤</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">工具</a>
+<li><a href="#toc_0.0.2">调试步骤</a>
+<ul>
+<li><a href="#toc_0.0.2.1">获得kernel</a>
+<li><a href="#toc_0.0.2.2">获得寄存器</a>
+<li><a href="#toc_0.0.2.3">trace32调试</a>
+</ul>
+<li><a href="#toc_0.0.3">附件</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">工具</h3>
+<p>
+可以通过trace32 simulator或crash来调试sysdump问题。trace32 simulator是可视化界面，更友好点，建议用这个工具。</BR>
+</BR>
+工具安装使用
+</p>
+<ul>
+<li>
+trace32</BR>
+ 请参考<a href="Trace32使用.html">Trace32使用</a>
+
+<li>
+crash</BR>
+ 请参考<a href="http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/sprd_tool">crash tool</a>和<a href="crash command.html">crash command</a>
+
+</ul>
+
+<hr />
+<h3 id="toc_0.0.2">调试步骤</h3>
+<h4 id="toc_0.0.2.1">获得kernel</h4>
+<p>
+ 如果sysdump时没有slog或抓到串口log，可以通过工具来获得kernel里的log buffer
+</p>
+<ul>
+<li>
+GED版本</BR>
+ 请参考<a href="http://10.0.64.31/AP-Android/wiki/parse_log">parse log</a>
+
+<li>
+TW版本</BR>
+ 用<a href="SS Tool.html">SS Tool</a>的GetLog工具，只要把sysdump文件拖进去就可以得到log文件
+
+</ul>
+<h4 id="toc_0.0.2.2">获得寄存器</h4>
+<p>
+ 用附件gen_trace_reg.sh脚本，通过它来解析kernel log来得到寄存器
+</p>
+<pre>
+$ gen_trace_reg.sh kernel.log
+r.set cpsr 0xa0000193
+r.set pc 0xc0384384
+r.set r14 0xee317df0
+r.set r13 0xee317df0
+r.set r12 0xee317df0
+r.set r11 0xee317e14
+r.set r10 0xf004c000
+r.set r9 0x00000000
+r.set r8 0xf5370004
+
+r.set r7 0x00000008
+r.set r6 0xc0b154f0
+r.set r5 0xeeb6ec00
+r.set r4 0xc0a1b3e8
+r.set r3 0x79774cb0
+r.set r2 0xdc62fbe0
+r.set r1 0x00000018
+r.set r0 0x00002301
+</pre>
+<h4 id="toc_0.0.2.3">trace32调试</h4>
+<p>
+ 把上述得到的寄存器设到trace32里，就可以得到死机时的现场
+</p>
+
+<hr />
+<h3 id="toc_0.0.3">附件</h3>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/gen_trace_reg.sh">gen_trace_reg.sh</a></BR>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/Shark Memory Dump--Implementation &amp; Analysis.ppt">Shark Memory Dump--Implementation &amp; Analysis.ppt</a></BR>
+</p>
+
+</body>
+</html>

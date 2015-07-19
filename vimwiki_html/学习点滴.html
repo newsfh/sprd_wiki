@@ -1,0 +1,1539 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>学习点滴</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<hr />
+<h2 id="toc_0.1">20130820</h2>
+<h3 id="toc_0.1.1">抓log命令</h3>
+<pre>
+makesure all log output：
+	adb shell slogctl off
+kernel log:
+	adb shell cat /proc/kmsg | tee kernel.txt
+user log:
+	adb shell logcat -v time | tee user.txt
+kernel log level:
+        cat /proc/sys/kernel/printk
+        可以修改这里面的值
+</pre>
+
+<h3 id="toc_0.1.2">push到system/bin下</h3>
+<pre>
+adb root
+adb remount
+adb push xxx system/bin
+</pre>
+
+<h3 id="toc_0.1.3">CP－AP交互</h3>
+<pre>
+以下是7710发送AT命令的行走路径：
+工具 =&gt; pcclient =&gt; engservice =&gt; modemclient =&gt; phoneserver =&gt; MUX(AP) =&gt; MUX(CP) =&gt; CP侧处理
+
+AP侧相关文件：
+MUX： kernel/drivers/char/ts0710_mux.c   ==&gt;  ts0710_recv_data
+phoneserver: /vendor/sprd/proprietories-source/phoneserver
+modemclient: /device/sprd/common/apps/engineeringmodel/engcs/eng_modemclient.c
+pcclient: /device/sprd/common/apps/engineeringmodel/engcs/eng_pcclient.c
+engserver: /device/sprd/common/apps/engineeringmodel/engcs/engservice.c
+
+CP侧相关文件：
+MUX: PS/atc/source/c/atc_mux.c     ==&gt;  ATC_Write
+     PS/stack/was/wdt_mgr\wdt_mux\src\data_mga_sdio_carrier_dl.c    ==&gt;  DTMGR_Do_Sido_transfer
+</pre>
+
+<h3 id="toc_0.1.4">eng_modemclient.c</h3>
+<pre>
+/device/sprd/common/apps/engineeringmodel/engcs/eng_modemclient.c
+eng_modem2server  从phonserver读取内容
+其中一个是从"/dev/CHNPTYT13"读取内容，该通道在engclient.h里定义
+</pre>
+
+<h3 id="toc_0.1.5">logcat -b radio</h3>
+<pre>
+查看ril相关的打印
+</pre>
+
+<hr />
+<h2 id="toc_0.2">20130905</h2>
+<h3 id="toc_0.2.1">sprdroid4.3 open</h3>
+<pre>
+如果open以O_CREAT方式找开，后面需要加权限，如0660
+</pre>
+
+<h3 id="toc_0.2.2">samsung kernel base</h3>
+<pre>
+http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/cai_20130807_logan_tw_make_boot
+</pre>
+
+<h3 id="toc_0.2.3">MHC版本地址</h3>
+<pre>
+smb://yongjungepc/samsung/6820i/Kernel/0823_MHC%20SDK
+</pre>
+
+<hr />
+<h2 id="toc_0.3">20130906</h2>
+<h3 id="toc_0.3.1">LCD分频计算方式</h3>
+<pre>
+原始频率为384M，dpi使用时需要分频
+假设需要的帧率为fps，则1s传输的像素为(hsync+hbp+hfp+width)*(vsync+vbp+vfp+height)*fps
+分频比dividor=384M/((hsync+hbp+hfp+width)*(vsync+vbp+vfp+height)*fps)
+信息都在lcd_xxx.c里定义
+</pre>
+
+<hr />
+<h2 id="toc_0.4">20130909</h2>
+<h3 id="toc_0.4.1">lookat命令</h3>
+<pre>
+查看内存、寄存器的内容，如
+lookat -l2 0x20900220
+-l2：显示的个数
+0x20900220：地址
+</pre>
+
+<h3 id="toc_0.4.2">LCD寄存器</h3>
+<pre>
+0x20900220 ： 分频值
+0x21000000 - 0x21000110 ： DISPC寄存器
+0x60100000 - 0x60100070 ： DSI寄存器
+</pre>
+
+<hr />
+<h2 id="toc_0.5">20130911</h2>
+<h3 id="toc_0.5.1">编译器对齐问题</h3>
+<pre>
+现有数据结构如下
+typedef struct bmp_header {
+	/* Header */
+	char signature[2];
+	__u32	file_size;
+	__u32	reserved;
+	__u32	data_offset;
+	/* InfoHeader */
+	__u32	size;
+	__u32	width;
+	__u32	height;
+	__u16	planes;
+	__u16	bit_count;
+	__u32	compression;
+	__u32	image_size;
+	__u32	x_pixels_per_m;
+	__u32	y_pixels_per_m;
+	__u32	colors_used;
+	__u32	colors_important;
+	/* ColorTable */
+
+} __attribute__ ((packed)) bmp_header_t;
+
+typedef struct bmp_image {
+	bmp_header_t header;
+	/* We use a zero sized array just as a placeholder for variable
+	   sized array */
+	bmp_color_table_entry_t color_table[0];
+} bmp_image_t;
+
+这是lcd.c里lcd_display_bitmap出错的代码
+	width = le32_to_cpu (bmp-&gt;header.width);
+
+以下是在4.1环境下的反汇编代码
+8f80bbe0:	e5d02013 	ldrb	r2, [r0, #19]
+8f80bbe4:	e3a04001 	mov	r4, #1	; 0x1
+8f80bbe8:	e5d01012 	ldrb	r1, [r0, #18]
+8f80bbec:	e5d0a017 	ldrb	sl, [r0, #23]
+8f80bbf0:	e5dc5004 	ldrb	r5, [ip, #4]
+8f80bbf4:	e1811402 	orr	r1, r1, r2, lsl #8
+其中r0为数据结构bmp_image_t的地址
+
+以下是4.3的反汇编代码
+8f80b87c:	e5935012 	ldr	r5, [r3, #18]
+其中r3为数据结构bmp_image_t的地址
+可见，ldr取的是非4字节对齐地址，alignment出错
+
+然后进行一些测试，发现用4.7编译器时，如果加上-march=armv7-a这个编译选项时，就不会进行优化
+</pre>
+
+<h3 id="toc_0.5.2">android工具链</h3>
+<pre>
+4.1版本：
+/prebuilt/linux-x86/toolchain/arm-eabi-4.4.3/bin/
+ 
+4.3版本：
+/prebuilts/gcc/linux-x86/arm/arm-eabi-4.7/bin
+ 
+反编译，要用上面对应的工具链进行，
+反编译u-boot，可以用arm-eabi-objdump -D u-boot
+</pre>
+
+<h2 id="toc_0.6">20130916</h2>
+<h3 id="toc_0.6.1">git更新仓库</h3>
+<pre>
+git pull
+</pre>
+
+<h3 id="toc_0.6.2">抓取LCD framebuffer内容</h3>
+<pre>
+adb shell gsnap /data/1.jpg /dev/graphics/fb0
+</pre>
+
+<hr />
+<h2 id="toc_0.7">20130918</h2>
+<h3 id="toc_0.7.1">add board</h3>
+<pre>
+http://wikiserver.spreadtrum.com/SoftwareSystem/wiki/add_board-renwei-4%E6%9C%887
+</pre>
+
+<h3 id="toc_0.7.2">调试工具和方法汇总</h3>
+<pre>
+http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/mengya_130423_debug
+</pre>
+
+<hr />
+<h2 id="toc_0.8">20130923</h2>
+<h3 id="toc_0.8.1">service list</h3>
+<pre>
+列举手机启动的服务
+</pre>
+
+<h3 id="toc_0.8.2">getprop xxx</h3>
+<pre>
+获取某个属性值
+</pre>
+
+<h2 id="toc_0.9">20130929</h2>
+<h3 id="toc_0.9.1">FPGA启动</h3>
+<pre>
+1、开电源
+2、下载ap和cp端的bitfile。下载完时，会亮各自的灯
+3、按reset键
+4、开trace32，运行AP脚本，如果要切到CP，刚运行CP的脚本
+</pre>
+
+<h2 id="toc_0.10">20131001</h2>
+<h3 id="toc_0.10.1">gpio配置</h3>
+<pre>
+http://10.0.64.31/AP-Android/wiki/PinGpioUserGuide
+</pre>
+
+<h2 id="toc_0.11">20131009</h2>
+<h3 id="toc_0.11.1">board配置</h3>
+<pre>
+u-boot: http://review.source.spreadtrum.com/gerrit/#/c/70198/
+device: http://review.source.spreadtrum.com/gerrit/#/c/70197/
+kernel: http://review.source.spreadtrum.com/gerrit/#/c/70200/
+vendor: http://review.source.spreadtrum.com/gerrit/#/c/70195/
+</pre>
+
+<h3 id="toc_0.11.2">服务器</h3>
+<pre>
+http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/B2G%E9%A1%B9%E7%9B%AE%E5%8F%AF%E5%88%A9%E7%94%A8%E7%9A%84%E8%B5%84%E6%BA%90
+ssh huafang@10.0.0.180
+服务器端的目录被挂载在~/server上
+</pre>
+
+<hr />
+<h2 id="toc_0.12">20131011</h2>
+<h3 id="toc_0.12.1">文档</h3>
+<pre>
+git clone gitosis@sprdroid.git.spreadtrum.com.cn:doc
+</pre>
+
+<h3 id="toc_0.12.2">repo升级</h3>
+<pre>
+http://10.0.64.31/AP-Android/wiki/UpdateRepoNew
+</pre>
+
+<hr />
+<h2 id="toc_0.13">20131015</h2>
+<h3 id="toc_0.13.1">fastboot</h3>
+<pre>
+1. sudo adb reboot bootloader
+2. sudo fastboot flash &lt;partition&gt; &lt;image&gt;
+3. sudo fastboot reboot
+可参考 http://10.0.64.31/AP-Android/wiki/How%20to%20use%20Android%20fastboot%20tool
+</pre>
+
+<h2 id="toc_0.14">20131017</h2>
+<h3 id="toc_0.14.1">slogctl</h3>
+<pre>
+slogctl off，将slog关闭，否则kmsg显示不正常
+</pre>
+
+<hr />
+<h2 id="toc_0.15">20131023</h2>
+<h3 id="toc_0.15.1">更新某个仓库</h3>
+<pre>
+1. repo sync
+repo sync framework/base
+该命令可以在任意目录
+2. git pull
+git pull korg sprdroid4.1
+该命令必须在仓库所在的目录
+korg可以在.git/config里查remote标签，sprdroid4.1可以在manifest.xml里查
+或者git branch -a里的信息
+</pre>
+
+<hr />
+<h2 id="toc_0.16">20131030</h2>
+<h3 id="toc_0.16.1">如何编译三星的kernel</h3>
+<pre>
+http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/samsung%20kernel%20build
+</pre>
+
+<hr />
+<h2 id="toc_0.17">20131112</h2>
+<h3 id="toc_0.17.1">defconfig文件</h3>
+<pre>
+生成defconfig：kdconfig =&gt; kuconfig
+生成临时的defconfig文件:kmconfig
+</pre>
+
+<hr />
+<h2 id="toc_0.18">20131115</h2>
+<h3 id="toc_0.18.1">三星分支</h3>
+<pre>
+分支: sprdroid4.1_3.4_ss_dev
+工程：sp8830ssdbase-userdebug
+</pre>
+
+<h3 id="toc_0.18.2">列出指定后缀的文件列表</h3>
+<pre>
+在源代码的根目录下执行以下命令
+find . -wholename ./out -prune -o -wholename ./.repo -prune -o -type f -regextype posix-extended -iregex ".*\.(h|c|cpp|java|mk|cc)$" -o -type f -iname "makefile" &gt; filelist.txt
+说明：
+排除./out和.repo这两个目录
+查找以.h/c/cpp/java/mk/cc为后缀，或是makefile文件
+</pre>
+
+<hr />
+<h2 id="toc_0.19">20131121</h2>
+<h3 id="toc_0.19.1">内核代码规范</h3>
+<pre>
+http://10.0.64.31/AP-Android/wiki/LinuxProgrammingDesignGuide
+</pre>
+
+<h3 id="toc_0.19.2">Linux Device Driver</h3>
+<pre>
+http://10.0.64.31/AP-Android/wiki/Device%20driver
+</pre>
+
+<h3 id="toc_0.19.3">Linux 3.10</h3>
+<pre>
+http://kernelnewbies.org/Linux_3.10
+http://kernelnewbies.org/Linux_3.10-DriversArch
+</pre>
+
+<hr />
+<h2 id="toc_0.20">20131126</h2>
+<h3 id="toc_0.20.1">linux mount上海 外传内共享目录的方法</h3>
+<pre>
+sudo mount -t cifs -o username=你的用户名,password=你的密码,domain=tsn,uid=$(id -u),gid=$(id -g) //10.0.0.165/To_Internal ~/to_internal
+</pre>
+
+<h3 id="toc_0.20.2">服务器</h3>
+<pre>
+http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/mengya_110810_visit_win
+</pre>
+
+<hr />
+<h2 id="toc_0.21">20131127</h2>
+<h3 id="toc_0.21.1">OpenGrok</h3>
+<pre>
+天津  http://10.5.2.45:8080/
+我的  http://10.0.33.7:8080/source
+</pre>
+
+<hr />
+<h2 id="toc_0.22">20131129</h2>
+<h3 id="toc_0.22.1">客户版本发布</h3>
+<pre>
+http://10.0.64.31/AP-Android/wiki/MocorSmartReleaseNotes
+</pre>
+
+<hr />
+<h2 id="toc_0.23">20131224</h2>
+<h3 id="toc_0.23.1">用BeyondCompare做差分包</h3>
+<pre>
+BeyondCompare对比两个目录，列出所有不一样的文件
+选择所要做差分包的文件，右击鼠标，选择"Copy to Folder"
+分别对old和new目录做一次，就可以生成差分包
+</pre>
+
+<hr />
+<h2 id="toc_0.24">20140110</h2>
+<h3 id="toc_0.24.1">android服务器</h3>
+<pre>
+服务器名：
+android10
+...
+android19
+密码：
+PSD#sciuser
+</pre>
+
+<hr />
+<h2 id="toc_0.25">20140210</h2>
+<h3 id="toc_0.25.1">连接服务器</h3>
+<pre>
+ssh本机：
+ssh spreadtrum\\hua.fang@10.0.33.5
+
+挂载远程机器目录到本地：
+sshfs -o allow_other huafang@10.0.0.180:/home3/huafang ~/server_ss
+
+挂载远程机器硬盘到本地：
+sudo mount -t cifs -o username=hua.fang,password=12abAB,uid=$(id -u),gid=$(id -g) //10.0.0.165/thinclient ~/net_folder/n_folder
+</pre>
+
+<hr />
+<h2 id="toc_0.26">20140211</h2>
+<h3 id="toc_0.26.1">切换到tag</h3>
+<pre>
+repo forall -c "git checkout &lt;TAG_name&gt;"
+</pre>
+
+<hr />
+<h2 id="toc_0.27">20140226</h2>
+<h3 id="toc_0.27.1">修改CP基址和大小</h3>
+<pre>
+u-boot部分：
+****  include/configs/sp8830ssw.h  ****
+#define FIXNV_SIZE            (2*128 * 1024)
+#define PRODUCTINFO_SIZE      (16 * 1024)
+#define MODEM_SIZE            (0x800000)
+#define TDDSP_SIZE            (0x2e0000)
+#define WDSP_SIZE             (0x200000)
+#define RUNTIMENV_SIZE        (3*128 * 1024)
+
+#define PHYS_OFFSET_ADDR              0x80000000
+#define TD_CP_OFFSET_ADDR             0x8000000      /*128*/
+#define TD_CP_SDRAM_SIZE              0x2100000      /*33M*/
+#define WCDMA_CP_OFFSET_ADDR          0x8000000      /*128M*/
+#define WCDMA_CP_SDRAM_SIZE           0x2100000      /*33M*/
+//#define WCN_CP_OFFSET_ADDR          0x14000000     /*320M*/
+//#define WCN_CP_SDRAM_SIZE           0x400000       /*4M*/
+****************************************
+
+****  property/normal_mode.h  ****
+#define TDDSP_ADR       0x88020000
+#define TDFIXNV_ADR     0x88340000
+#define TDRUNTIMENV_ADR 0x88380000
+#define TDMODEM_ADR     0x88400000
+#define WDSP_ADR        0x88020000
+#define WFIXNV_ADR      0x88240000
+#define WRUNTIMENV_ADR  0x88280000
+#define WMODEM_ADR      0x88300000
+****************************************
+
+kernel部分：
+****  arch/arm/mach-sc/include/mach/__hardware-sc8830.h  ****
+#define SIPC_SMEM_ADDR        (CONFIG_PHYS_OFFSET + 120 * SZ_1M)
+
+#define CPT_START_ADDR        (CONFIG_PHYS_OFFSET + 128 * SZ_1M)
+#define CPT_TOTAL_SIZE        (SZ_1M * 33) 
+#define CPT_RING_ADDR         (CPT_START_ADDR + CPT_TOTAL_SIZE - SZ_4K)
+#define CPT_RING_SIZE         (SZ_4K)
+#define CPT_SMEM_SIZE         (SZ_1M + SZ_256K)
+
+#define CPW_START_ADDR        (CONFIG_PHYS_OFFSET + 128 * SZ_1M)
+#define CPW_TOTAL_SIZE        (SZ_1M * 33) 
+#define CPW_RING_ADDR         (CPW_START_ADDR + CPW_TOTAL_SIZE - SZ_4K)
+#define CPW_RING_SIZE         (SZ_4K)
+#define CPW_SMEM_SIZE         (SZ_1M + SZ_256K)
+
+#define WCN_START_ADDR        (CONFIG_PHYS_OFFSET + 320 * SZ_1M)
+#define WCN_TOTAL_SIZE        0x281000//(SZ_1M * 5)
+#define WCN_RING_ADDR         (WCN_START_ADDR + WCN_TOTAL_SIZE - SZ_4K)
+#define WCN_RING_SIZE         (SZ_4K)
+#define WCN_SMEM_SIZE         (SZ_512K + SZ_256K)
+****************************************
+
+****  arch/arm/mach-sc/devices-sc8830.c  ****
+static int native_tdmodem_start(void *arg)
+{
+      u32 state;
+      u32 value;
+      u32 cp1data[3] = {0xe59f0000, 0xe12fff10, CPT_START_ADDR + 0x400000};
+      memcpy((void *)(SPRD_IRAM1_BASE + 0x1800), cp1data, sizeof(cp1data));
+....
+}
+
+static struct cproc_init_data sprd_cproc_td_pdata = {
+	       .devname      = "cpt",
+	       .base         = CPT_START_ADDR,
+	       .maxsz        = CPT_TOTAL_SIZE,
+	       .start        = native_tdmodem_start,
+	       .stop         = native_tdmodem_stop,
+	       .wdtirq               = IRQ_CP1_WDG_INT,
+	       .segnr        = 4,
+	       .segs         = {
+	              {
+	                     .name  = "modem",
+	                     .base  = CPT_START_ADDR + 0x400000,
+	                     .maxsz = 0x00800000,
+	              },
+	              {
+	                     .name  = "dsp",
+	                     .base  = CPT_START_ADDR + 0x20000,
+	                     .maxsz = 0x002E0000,
+	              },
+	              {
+	                     .name  = "fixnv",
+	                     .base  = CPT_START_ADDR + 0x340000,
+	                     .maxsz = 0x40000,
+	              },
+	              {
+	                     .name  = "runtimenv",
+	                     .base  = CPT_START_ADDR + 0x380000,
+	                     .maxsz = 0x60000,
+	              },
+	       },
+};
+****************************************
+</pre>
+
+<hr />
+<h2 id="toc_0.28">20140313</h2>
+<h3 id="toc_0.28.1">拉分支</h3>
+<pre>
+给summer.duan发邮件，让她拉分支。
+分支信息：
+1) 开发分支名称：
+2）开发分支从哪个分支拉出：
+3) 开发分支起始点： 
+4）开发分支功能描述：
+5）开发分支项目Lead：
+6）开发分支生命周期：
+7）开发分支验收标准：
+</pre>
+
+<hr />
+<h2 id="toc_0.29">20140325</h2>
+<h3 id="toc_0.29.1">DS-5</h3>
+<pre>
+http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/%E4%BD%BF%E7%94%A8DS-5%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%B7%A5%E5%85%B7
+http://10.0.64.31/AP-Android/attachment/wiki/DebugTools/DS-5%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA.odt
+</pre>
+
+<hr />
+<h2 id="toc_0.30">20140410</h2>
+<h3 id="toc_0.30.1">SS SDK git</h3>
+<pre>
+repo init -b Samsung_Kernel_Base -u gitosis@sprdroid.git.spreadtrum.com.cn:SSKernel/manifest --repo-url=gitosis@sprdroid.git.spreadtrum.com.cn:tools/repo.git
+</pre>
+
+<hr />
+<h2 id="toc_0.31">20140412</h2>
+<h3 id="toc_0.31.1">烧image</h3>
+<pre>
+1. 从手机里提取image
+手机里运行命令
+dd if=/dev/block/platform/sprd-sdhci.3/by-name/KERNEL of=/data/temp.img
+再adb pull /data/temp.img .
+
+2. 往手机里烧image
+运行命令
+adb push xxx/boot.img /data
+手机里运行
+dd if=/data/boot.img of=/dev/block/platform/sprd-sdhci.3/by-name/KERNEL
+</pre>
+
+<hr />
+<h2 id="toc_0.32">20140507</h2>
+<h3 id="toc_0.32.1">通过adb发AT命令</h3>
+<pre>
+1. 找到对应的SIPC通道，
+在vendor/sprd/open-source/apps/engmode/eng_pcclient.c的at_chan变量里找
+static void eng_get_modem_int(char* type, char* at_chan, char* diag_chan, char* log_chan)
+{
+    char property_name[32] = {0};
+
+    sprintf(property_name,"%s%s%s","ro.modem.",type,".tty");
+    property_get(property_name, at_chan, "not_find");
+    ENG_LOG("%s %s at_chan:%s", __FUNCTION__,property_name,at_chan);
+
+    if(strcmp(type,"wcn") != 0 &amp;&amp; 0 != strcmp(at_chan, "not_find")){
+        strcat(at_chan, "31"); // channel31 is reserved for eng at
+    }   
+}
+ro.modem.type.tty定义在device/sprd/scx35l_coreprimelite/system.prop里
+ro.modem.tl.tty=/dev/stty_lte
+2. 发AT命令
+监听回应：cat /dev/stty_lte31 &amp;
+发AT命令：echo "AT\r" &gt; /dev/stty_lte31
+</pre>
+
+
+<hr />
+<h2 id="toc_0.33">20140702</h2>
+<h3 id="toc_0.33.1">sysdump搜log</h3>
+<pre>
+strings sysdump.core.01_0x80000000-0x87ffffff_dump.lst &gt; a.txt
+搜索"Modules linked"，上下就是sysdump时的打印
+</pre>
+
+<hr />
+<h2 id="toc_0.34">20140708</h2>
+<h3 id="toc_0.34.1">samsung doc</h3>
+<pre>
+\\hw06\HW_Doc\2 Function\10 T1\SAMSUNG
+</pre>
+
+<hr />
+<h2 id="toc_0.35">20140731</h2>
+<h3 id="toc_0.35.1">公共盘</h3>
+<pre>
+\\shnas2\Dept_Folder\FPD          ----用来存放临时文件及log等，记得经常清空
+P:\PLD\Samsung                    ----用来存放项目相关的文档、patch、binary、Tools等
+</pre>
+
+<hr />
+<h2 id="toc_0.36">20140819</h2>
+<h3 id="toc_0.36.1">light sleep</h3>
+<pre>
+echo any_wake_lock &gt; /sys/power/wake_lock
+然后等灭屏后，电流大约到20mA左右就说明进入light sleep
+
+echo 1 &gt; /sys/module/cpuidle_scx35/parameters/cpuidle_debug
+可打开light sleep调试信息
+</pre>
+
+<hr />
+<h2 id="toc_0.37">20140827</h2>
+<h3 id="toc_0.37.1">CSFB多形态命名方案建议</h3>
+<pre>
+总体命名：CCD5
+ 
+约定：
+第1位：CSFB类多形态业务
+第2位：所对应的运营商（CMCC（中移）, CUCC（联通）, Oversea（海外），Public（公开市场）……)
+第3位：所采用卡/待数（Single, dual, triple…）
+第4位：所采用mode数（3mode, 4mode, 5mode…）
+第5/6位：补充定义说明（特定模定义/双通定义/Volte定义等（顺序为TDD，FDD,  Active，Volte，RCS，默认为第5补充位，若有歧义按此顺序加第6位补充）
+ 
+含义范例：CSFB for CMCC(or CUCC/Oversea) + Dual Sim (or Single Sim)+ 5mode（or 3/4mode）+ Active（双通，若无A则默认为单通）
+ 
+扩展示例：
+CCS3  （针对单卡，Single sim， 3mode；）
+CCD3F （3mode默认是TDD 3mode；针对FDD 3mode，第5位加F；单卡同 ）
+CUD4 （针对CUCC  4模）
+CCD5A （5mode双通）
+CCD5V （增加Volte支持）
+COD4   (针对海外运营商)
+CPD3   (针对公开市场3mode)
+……
+</pre>
+
+<hr />
+<h2 id="toc_0.38">20140902</h2>
+<h3 id="toc_0.38.1">Power Management</h3>
+<p>
+<a href="http://10.0.64.31/AP-Android/wiki/Power%20Management">Power Management</a>
+</p>
+
+<h3 id="toc_0.38.2">快速编译</h3>
+<p>
+<a href="http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/%E5%B7%A5%E7%A8%8B%E5%BF%AB%E9%80%9F%E7%BC%96%E8%AF%91%E8%84%9A%E6%9C%AC">快速编译</a></BR>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/build.patch">不用搜所有Android.mk的patch</a>
+</p>
+
+<hr />
+<h2 id="toc_0.39">20140906</h2>
+<h3 id="toc_0.39.1">parse log</h3>
+<p>
+[[<a href="http://10.0.64.31/AP-Android/wiki/parse_log|parse">http://10.0.64.31/AP-Android/wiki/parse_log|parse</a> log]</BR>
+<a href="http://10.0.64.31/AP-Android/wiki/DebugTools">debug tools</a>
+</p>
+
+<hr />
+<h2 id="toc_0.40">20140923</h2>
+<h3 id="toc_0.40.1">WIKI format</h3>
+<p>
+<a href="http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/WikiFormatting">WikiFormat</a>
+</p>
+
+<hr />
+<h2 id="toc_0.41">20140929</h2>
+<h3 id="toc_0.41.1">cp log</h3>
+<pre>
+GED cp LOG：
+*#*#83781#*#*打开debug页面，将arm log的开关打开
+插入usb口，打开logel、channel server工具，选uart
+
+如果用uart输出，需要配置cp代码，将口设为com1
+</pre>
+
+<hr />
+<h2 id="toc_0.42">20141006</h2>
+<h3 id="toc_0.42.1">modify modem size</h3>
+<p>
+<a href="http://bugzilla.spreadtrum.com/bugzilla/show_bug.cgi?id=354198">modify modem size sample</a>
+</p>
+
+<hr />
+<h2 id="toc_0.43">20141015</h2>
+<h3 id="toc_0.43.1">芯片失效分析手段</h3>
+<pre>
+降频：
+ddr频率降为200m
+cpu频率降为600m
+
+升压：
+vddarm：1.2v
+vddcore：1.2v
+
+关DVFS
+关DFS
+关cpu core
+</pre>
+
+<hr />
+<h2 id="toc_0.44">20141111</h2>
+<h3 id="toc_0.44.1">各sdhci涵义</h3>
+<pre>
+sdhci0: t卡
+sdhci1: wifi
+sdhci2: 缺省
+sdhci3: emmc
+</pre>
+
+<hr />
+<h2 id="toc_0.45">20141117</h2>
+<h3 id="toc_0.45.1">模样模式mount sdcard，打开adb，抓slog</h3>
+<pre>
+on cali
+    mount_all /etc/recovery.fstab
+#   start recovery
+    start slog
+    trigger adb_enable
+
+service slog /system/bin/slog -t
+    class main
+    user root
+
+由于校准模式时，engpc会占用diag口，slog工具无法使用，所以cp的log会不抓取
+</pre>
+
+<h3 id="toc_0.45.2">sdb安装及使用</h3>
+<pre>
+http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/sdb%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8
+</pre>
+
+<hr />
+<h2 id="toc_0.46">20141125</h2>
+<h3 id="toc_0.46.1">cp reset</h3>
+<pre>
+1.ap patch：
+http://review.source.spreadtrum.com/gerrit/#/c/147209/
+http://review.source.spreadtrum.com/gerrit/#/c/147208/
+
+2.cp patch：
+bug里面有：
+http://bugzilla.spreadtrum.com/bugzilla/show_bug.cgi?id=367641
+
+里面有个提交：
+Comment 31 cmadmin 2014-11-19 11:11:16 CST
+</pre>
+
+<hr />
+<h2 id="toc_0.47">20141207</h2>
+<h3 id="toc_0.47.1">关闭kernel console</h3>
+<pre>
+一般，u-boot传给kernel的cmd是console=ttyS1,115200n8 no_console_suspend
+可以配成console=null，将console关闭
+</pre>
+
+<h3 id="toc_0.47.2">配置bus monitor</h3>
+<pre>
+以下是AHB的bus monitor的配置
++       {
++               uint32 addr[] = {
++                       0x20f00000,
++                       0x21000000,
++                       0x21100000
++               };
++
++               int i = 0;
++
++               REG32(0x20e00000) |= (7&lt;&lt;14);
++
++               for (i = 0; i &lt; 3; i++) {
++                       REG32(addr[i]) = 0;                         // 启动状态
++                       REG32(addr[i]+4) = 0;
++                       REG32(addr[i]+8) = 0x80000000;              // 监测的最小地址
++                       REG32(addr[i]+0xc) = 0xa0000000;            // 监测的最大地址
++                       REG32(addr[i]+0x10) = 0;
++                       REG32(addr[i]+0x14) = 0;
++                       REG32(addr[i]+0x18) = 0;                    // 监测的最小值
++                       REG32(addr[i]+0x1c) = 0xffffffff;           // 监测的最大值
++                       REG32(addr[i]+0x20) = 0;
++                       REG32(addr[i]+0x24) = 0;
++                       REG32(addr[i]+0x28) = 0;
++                       REG32(addr[i]+0x2c) = 0;
++                       REG32(addr[i]+0x30) = 0;
++                       REG32(addr[i]+0x34) = 0;
++                       REG32(addr[i]) = 0x1;
++
++               }
++       }
+将REG32(addr[i])配成0x20000000，将bus monitor状态清除
+</pre>
+
+<h3 id="toc_0.47.3">reserve memory调试</h3>
+<pre>
+代码：kernel/mm/memblock.c
+打开配置形状：CONFIG_MEMBLOCK_RESERVE_DEBUG
+
+或者，
+diff --git a/mm/memblock.c b/mm/memblock.c
+index e178a33..7a762d7 100644
+--- a/mm/memblock.c
++++ b/mm/memblock.c
+@@ -35,7 +35,7 @@ struct memblock memblock __initdata_memblock = {
+        .current_limit          = MEMBLOCK_ALLOC_ANYWHERE,
+ };
+ 
+-int memblock_debug __initdata_memblock;
++int memblock_debug __initdata_memblock = 1;
+ static int memblock_can_resize __initdata_memblock;
+ static int memblock_memory_in_slab __initdata_memblock = 0;
+ static int memblock_reserved_in_slab __initdata_memblock = 0;
+@@ -555,11 +555,13 @@ int __init_memblock memblock_reserve(phys_addr_t base, phys_addr_t size)
+ {
+        struct memblock_type *_rgn = &amp;memblock.reserved;
+ 
++printk("~~~~~~~~~~~~\n");
+        memblock_dbg("memblock_reserve: [%#016llx-%#016llx] %pF\n",
+                     (unsigned long long)base,
+                     (unsigned long long)base + size,
+                     (void *)_RET_IP_);
+ 
++dump_stack();
+        return memblock_add_region(_rgn, base, size, MAX_NUMNODES);
+ }
+ #else
+</pre>
+
+<h3 id="toc_0.47.4">u-boot printf</h3>
+<pre>
+u-boot/common/console.c
+</pre>
+
+<hr />
+<h2 id="toc_0.48">20141208</h2>
+<h3 id="toc_0.48.1">DDR频点</h3>
+<pre>
+lpddr2支持：    200 384 400 466
+lpddr3支持：192 200 384 400 500 640
+</pre>
+
+<hr />
+<h2 id="toc_0.49">20141212</h2>
+<h3 id="toc_0.49.1">Power Management</h3>
+<pre>
+http://10.0.64.31/AP-Android/wiki/Power%20Management
+</pre>
+
+<hr />
+<h2 id="toc_0.50">20141216</h2>
+<h3 id="toc_0.50.1">打印64位数</h3>
+<pre>
+printk("%llu", u64);
+printk("%lld", l64);
+</pre>
+
+<h3 id="toc_0.50.2">interactive调频过多</h3>
+<pre>
+换成interactive的governor，打开kernel log后，CPU调频速度过快，可以减少采样率来规避此问题
+echo 100000 &gt; /sys/devices/system/cpu/cpufreq/interactive/timer_rate
+</pre>
+
+<h3 id="toc_0.50.3">RTC/alarm</h3>
+<pre>
+硬件上只有一个RTC，最后一次的设置时间会最终生效（kernel/drivers/rtc/rtc-sprd.c）
+alarm驱动会调用RTC，该驱动有一个队列，可以保证存在多个alarm，将最快到达的时间设置给RTC（kernel/kernel/time/alarmtimer.c，在set_real_alarm里）
+ktime_to_ms将ktime结构转换成ms
+参考资料：http://www.embedu.org/Column/Column468.htm
+</pre>
+
+<hr />
+<h2 id="toc_0.51">20141217</h2>
+<h3 id="toc_0.51.1">校准模式下保存armlog到t卡</h3>
+<pre>
+device/sprd/scx35/recovery/init.rc
+
+on property:ro.bootmode=cali
+   setprop ro.config.engcplog.enable 1
+</pre>
+
+<hr />
+<h2 id="toc_0.52">20150104</h2>
+<h3 id="toc_0.52.1">check current ddr freq</h3>
+<pre>
+adb shell cat /d/clk/clk_summary | grep clk_emc?
+
+get the value and divide by 2
+
+e.g,
+$ adb shell cat /d/clk/clk_summary | grep clk_emc
+       clk_emc                  0           0            768000000 
+
+then the current ddr frequence is 384M
+</pre>
+
+<hr />
+<h2 id="toc_0.53">20150109</h2>
+<h3 id="toc_0.53.1">寄存器虚拟地址映射</h3>
+<pre>
+调用地址映射的接口：
+290 MACHINE_START(SCPHONE, "sc8830")
+293     .map_io     = sci_map_io,            // 这个接口
+300 MACHINE_END
+
+实现映射接口的文件：
+kernel/arch/arm/mach-sc/io-sc8830.c
+
+183 void __init sci_map_io(void)
+184 {
+185     iotable_init(sprd_io_desc, ARRAY_SIZE(sprd_io_desc));
+186     sc_init_chip_id();
+187 }   
+
+这个io数组：
+ 39 static struct map_desc sprd_io_desc[] __initdata = {
+ 40     SPRD_DEVICE(CORE),
+ 41     SPRD_DEVICE(MDAR),
+180 };  
+
+这些地址定义的地方：kernel/arch/arm/mach-sc/include/mach/__hardware-sc9630.h
+
+ 40 #define SPRD_CORE_BASE          SCI_IOMAP(0x10000)
+ 41 #define SPRD_CORE_PHYS          0x12000000
+ 42 #define SPRD_CORE_SIZE          SZ_64K
+</pre>
+
+<hr />
+<h2 id="toc_0.54">20150112</h2>
+<h3 id="toc_0.54.1">DCXO/TCXO/VC-TCXO</h3>
+<pre>
+精准度：DCXO &lt; TCXO &lt; VC-TCXO
+
+DCXO:
+就是一个二氧化硅的晶体，外面会有电容电阻组成的振荡电路，精准度是最差的
+TCXO:
+将振荡电路封装在芯片内部
+VC-TCXO:
+高精度的振荡器，但对温度相对敏感
+</pre>
+
+<hr />
+<h2 id="toc_0.55">20150122</h2>
+<h3 id="toc_0.55.1">cpu升频升压</h3>
+<pre>
+cpu每档都有对应的vddarm电压值
+现在每次步进为250mv，每档所需的时间大概在10ms左右
+
+如下，从1.2g到768m，需要大概40ms左右
+[  334.175262] c0 cpufreq_scx35: --xing-- set 768000 khz for cpu0
+[  334.181274] c0 regu: @@@dcdc_set_voltage: regu 0xdf328128 (vddarm) 975000 = 900000 +75000uV(trim 0x18)
+[  334.190582] c0 regu: @@@dcdc_set_voltage: regu 0xdf328128 (vddarm) 950000 = 900000 +50000uV(trim 0x10)
+[  334.199890] c0 regu: @@@dcdc_set_voltage: regu 0xdf328128 (vddarm) 925000 = 900000 +25000uV(trim 0x8)
+[  334.209106] c0 regu: @@@dcdc_set_voltage: regu 0xdf328128 (vddarm) 900000 = 900000 +0uV(trim 0x0)
+[  334.217987] c0 cpufreq_scx35: 1200000 --&gt; 768000, real=768000, index=2
+</pre>
+
+<hr />
+<h2 id="toc_0.56">20150123</h2>
+<h3 id="toc_0.56.1">截取文件内容命令/提取cp的内存</h3>
+<pre>
+dd if=sysdump.core.01_0x80000000-0xafffffff_dump.lst of=temp.mem bs=1048576 skip=150 count=64
+- bs: 读写单位
+- skip: 跳过多少单位
+- count: 读多少单位
+
+步骤：
+1、7s reset将DDR里的内容dump到T卡（注：7s reset dump出来的文件只有一个，文件名为sysdump.core.01_0x80000000-0xafffffff_dump.lst）
+2、将dump出来的文件拷到某文件夹下
+3、进入控制台，cd命令切到该目录
+4、运行如下命令，会在同目录下生成cp.mem
+dd if=sysdump.core.01_0x80000000-0xafffffff_dump.lst of=cp.mem bs=1048576 skip=150 count=64
+</pre>
+
+<hr />
+<h2 id="toc_0.57">20150127</h2>
+<h3 id="toc_0.57.1">getevent</h3>
+<pre>
+获取input event列表：getevent命令， getevent -lt /dev/input/event1可看到event1里的相关信息
+</pre>
+
+<hr />
+<h2 id="toc_0.58">20150129</h2>
+<h3 id="toc_0.58.1">模拟重启modem</h3>
+<pre>
+setprop persist.sys.sprd.modemreset 1
+echo "AT+SPATASSERT=1\r" &gt; /dev/stty_lte31
+</pre>
+
+<hr />
+<h2 id="toc_0.59">20150216</h2>
+<h3 id="toc_0.59.1">屏幕横竖屏设置</h3>
+<pre>
+device/sprd/scx35_tsharkgoyave/system.prop
+
+ # SPRD: add support hwrotation
+ ro.sf.hwrotation=270
+</pre>
+
+<hr />
+<h2 id="toc_0.60">20150227</h2>
+<h3 id="toc_0.60.1">校准模式下抓armlog</h3>
+<pre>
+=== device/sprd/scx35/recovery/init.rc ===
+on property:ro.bootmode=cali
+   setprop ro.config.engcplog.enable 0
+==&gt;
+on property:ro.bootmode=cali
+   setprop ro.config.engcplog.enable 1
+
+=== device/sprd/scx35l_coreprimelite/init.recovery.board.rc ===
+#on cali
+#       mount_all /etc/recovery.fstab
+#       start recovery
+#       start slog
+#       trigger adb_enable
+==&gt;
+on cali
+       mount_all /etc/recovery.fstab
+#       start recovery
+#       start slog
+#       trigger adb_enable
+</pre>
+
+<h3 id="toc_0.60.2">看adc通道的值</h3>
+<pre>
+lookat -s 0x1 0x40038304 &amp;&amp; lookat -s 0x17 0x40038300 &amp;&amp; lookat -l25 0x40038300
+
+lookat -s 0x1 0x40038304：
+设置adc通道，及大小量程
+
+lookat -s 0x17 0x40038300：
+使能adc
+
+lookat -l25 0x40038300：
+看adc值，主要看0x4003834c的值
+</pre>
+
+<h3 id="toc_0.60.3">sharkl查看arm7的log</h3>
+<pre>
+将串口切给arm7
+lookat -s 0x285580 0x402a0008
+</pre>
+
+<hr />
+<h2 id="toc_0.61">20150302</h2>
+<h3 id="toc_0.61.1">看light sleep的log</h3>
+<pre>
+./sys/module/cpuidle_scx35/parameters/cpuidle_debug
+</pre>
+
+<hr />
+<h2 id="toc_0.62">20150309</h2>
+<h3 id="toc_0.62.1">a-die chip id</h3>
+<pre>
+chipid由两部分组成：ANA_REG_GLB_CHIP_ID_HIGH/ANA_REG_GLB_CHIP_ID_LOW
+ANA_REG_GLB_CHIP_ID_HIGH的16位再加上ANA_REG_GLB_CHIP_ID_LOW的高4位，组成chip id
+ANA_REG_GLB_CHIP_ID_LOW的低12位为版本号
+
+拿chipid的代码在kernel/arch/arm/mach-sc/arch_misc.c
+sci_get_ana_chip_id/sci_get_ana_chip_ver
+</pre>
+
+<hr />
+<h2 id="toc_0.63">20150310</h2>
+<h3 id="toc_0.63.1">WPA</h3>
+<pre>
+WPA这路电由ps来控制，在ldo_sleep.c里，不能配置成sleep power down，否则dsp会有问题
+</pre>
+
+<hr />
+<h2 id="toc_0.64">20150325</h2>
+<h3 id="toc_0.64.1">vi显示^M</h3>
+<pre>
+用命令打开文件
+:e ++ff=unix &lt;file_name&gt;
+
+set fileformats=unix设置为unix格式
+</pre>
+
+<hr />
+<h2 id="toc_0.65">20150326</h2>
+<h3 id="toc_0.65.1">enable engpc</h3>
+<pre>
+persist.sys.engpc.disable : 控制engpc的开关
+
+工程模式里，需要去掉slog里所有的选项，然后才能使能engservice
+</pre>
+
+<hr />
+<h2 id="toc_0.66">20150401</h2>
+<h3 id="toc_0.66.1">开启/关闭服务</h3>
+<pre>
+c代码：
+property_set("ctl.start", "engpc");
+property_set("ctl.stop", "engpc");
+
+adb shell:
+setprop ctl.start engpc
+setprop ctl.stop engpc
+</pre>
+
+<h3 id="toc_0.66.2">kernel error code</h3>
+<pre>
+kernel/include/uapi/asm-generic/errno-base.h
+
+4#define	EPERM		 1	/* Operation not permitted */
+5#define	ENOENT		 2	/* No such file or directory */
+6#define	ESRCH		 3	/* No such process */
+7#define	EINTR		 4	/* Interrupted system call */
+8#define	EIO		 5	/* I/O error */
+9#define	ENXIO		 6	/* No such device or address */
+10#define	E2BIG		 7	/* Argument list too long */
+11#define	ENOEXEC		 8	/* Exec format error */
+12#define	EBADF		 9	/* Bad file number */
+13#define	ECHILD		10	/* No child processes */
+14#define	EAGAIN		11	/* Try again */
+15#define	ENOMEM		12	/* Out of memory */
+16#define	EACCES		13	/* Permission denied */
+17#define	EFAULT		14	/* Bad address */
+18#define	ENOTBLK		15	/* Block device required */
+19#define	EBUSY		16	/* Device or resource busy */
+20#define	EEXIST		17	/* File exists */
+21#define	EXDEV		18	/* Cross-device link */
+22#define	ENODEV		19	/* No such device */
+23#define	ENOTDIR		20	/* Not a directory */
+24#define	EISDIR		21	/* Is a directory */
+25#define	EINVAL		22	/* Invalid argument */
+26#define	ENFILE		23	/* File table overflow */
+27#define	EMFILE		24	/* Too many open files */
+28#define	ENOTTY		25	/* Not a typewriter */
+29#define	ETXTBSY		26	/* Text file busy */
+30#define	EFBIG		27	/* File too large */
+31#define	ENOSPC		28	/* No space left on device */
+32#define	ESPIPE		29	/* Illegal seek */
+33#define	EROFS		30	/* Read-only file system */
+34#define	EMLINK		31	/* Too many links */
+35#define	EPIPE		32	/* Broken pipe */
+36#define	EDOM		33	/* Math argument out of domain of func */
+37#define	ERANGE		34	/* Math result not representable */
+</pre>
+
+<hr />
+<h2 id="toc_0.67">20150408</h2>
+<h3 id="toc_0.67.1">工具前缀</h3>
+<pre>
+arm: arm-eabi-
+arm64: aarch64-linux-android-
+</pre>
+
+<h3 id="toc_0.67.2">selinux开关</h3>
+<pre>
+1、
+关闭：setenforce 0
+开启：setenforce 1
+当前状态：getenforce
+
+2、
+service权限控制，以engpc为例
+device/sprd/scx35/sepolicy/engpc.te
+
+需要打开对某文件节点的权限，先看该文件节点是哪个操作对象，如
+    shell@scx35_sp7731gea_hd:/sys/power # ls -Z
+-rw-rw---- system   system            u:object_r:sysfs:s0 state
+-rw-rw---- radio    system            u:object_r:sysfs_wake_lock:s0 wake_lock
+-rw-rw---- radio    system            u:object_r:sysfs_wake_lock:s0 wake_unlock
+若想对state进行操作，则需要加
+allow engpc sysfs:file write;
+</pre>
+
+<h3 id="toc_0.67.3">wifi document</h3>
+<pre>
+\\10.0.0.166\Public_Folder\PLD\Samsung\SC7730S_Tshark\Pikea_marlin\files\wifi\wifi
+</pre>
+
+<hr />
+<h2 id="toc_0.68">20150413</h2>
+<h3 id="toc_0.68.1">ANA_REG_GLB_PWR_WR_PROT_VALUE</h3>
+<pre>
+ANA_REG_GLB_PWR_WR_PROT_VALUE需要根据spec来设置相应的值，如果设置完正确的值后，就可以修改ANA_REG_GLB_LDO_DCDC_PD，否则无法修改
+改完后，再将ANA_REG_GLB_PWR_WR_PROT_VALUE设回0
+</pre>
+
+<hr />
+<h2 id="toc_0.69">20150418</h2>
+<h3 id="toc_0.69.1">打印函数名</h3>
+<pre>
+printk("%pF\n", printk);
+</pre>
+
+<hr />
+<h2 id="toc_0.70">20150420</h2>
+<h3 id="toc_0.70.1">生成manifest.xml</h3>
+<pre>
+repo manifest -o ~/manifest.xml -r
+</pre>
+
+<h3 id="toc_0.70.2">linux driver加载顺序</h3>
+<pre>
+1、根据init的级别  －－  可以改注册init_func的级别
+2、根据编译顺序  －－  可以改makefile里的编译顺序
+</pre>
+
+<hr />
+<h2 id="toc_0.71">20150424</h2>
+<h3 id="toc_0.71.1">panic后不重启</h3>
+<pre>
+kernel/drivers/platform/sprd/sys_reset.c
+
+diff --git a/drivers/platform/sprd/sys_reset.c b/drivers/platform/sprd/sys_reset.c
+index 1f6bc43..f08594c 100755
+--- a/drivers/platform/sprd/sys_reset.c
++++ b/drivers/platform/sprd/sys_reset.c
+@@ -19,6 +19,7 @@ void sprd_set_reboot_mode(const char *cmd)
+ {
+        if(cmd)
+                printk("sprd_set_reboot_mode:cmd=%s\n",cmd);
++while(1);
+        if (cmd &amp;&amp; !(strncmp(cmd, "recovery", 8))) {
+                sci_adi_raw_write(ANA_RST_STATUS, HWRST_STATUS_RECOVERY);
+        } else if (cmd &amp;&amp; !strncmp(cmd, "alarm", 5)) {
+</pre>
+
+<h3 id="toc_0.71.2">recovery用jigbox串口</h3>
+<pre>
+cmdline里加上控制台的配置
+
+diff --git a/board/spreadtrum/ss_sharklt8/ss_sharklt8.c b/board/spreadtrum/ss_sharklt8/ss_sharklt8.c
+index 7a3e34e..4cc86ce 100755
+--- a/board/spreadtrum/ss_sharklt8/ss_sharklt8.c
++++ b/board/spreadtrum/ss_sharklt8/ss_sharklt8.c
+@@ -169,8 +169,8 @@ void fdt_fixup_chosen_bootargs_board(char *buf, int calibration_mode)
+         * so in samsung board .dts, we remove the "console=ttyS1,115200n8" in chosen node by default.
+         * so in normal mode, we need to append console
+         */
+-       if (!calibration_mode) {
++//     if (!calibration_mode) {
+                p += sprintf(p, " console=ttyS1,115200n8 no_console_suspend ");
+-       }
++//     }
+ }
+</pre>
+
+<hr />
+<h2 id="toc_0.72">20150428</h2>
+<h3 id="toc_0.72.1">pr_debug</h3>
+<pre>
+echo 'file sprdfb_main.c +p' &gt; /sys/kernel/debug/dynamic_debug/control
+</pre>
+
+<hr />
+<h2 id="toc_0.73">20150501</h2>
+<h3 id="toc_0.73.1">printk文件节点实现</h3>
+<pre>
+实现文件：kernel/kernel/sysctl.c
+
+237static struct ctl_table sysctl_base_table[] = {
+238	{
+239		.procname	= "kernel",
+240		.mode		= 0555,
+241		.child		= kern_table,
+242	},
+243	{
+244		.procname	= "vm",
+245		.mode		= 0555,
+246		.child		= vm_table,
+247	},
+248	{
+249		.procname	= "fs",
+250		.mode		= 0555,
+251		.child		= fs_table,
+252	},
+253	{
+254		.procname	= "debug",
+255		.mode		= 0555,
+256		.child		= debug_table,
+257	},
+258	{
+259		.procname	= "dev",
+260		.mode		= 0555,
+261		.child		= dev_table,
+262	},
+263	{ }
+264};
+
+
+1683int __init sysctl_init(void)
+1684{
+1685	struct ctl_table_header *hdr;
+1686
+1687	hdr = register_sysctl_table(sysctl_base_table);
+1688	kmemleak_not_leak(hdr);
+1689	return 0;
+1690}
+</pre>
+
+<hr />
+<h2 id="toc_0.74">20150507</h2>
+<h3 id="toc_0.74.1">编译器</h3>
+<pre>
+arm32：arm-eabi-
+arm64：aarch64-linux-android-
+</pre>
+
+<hr />
+<h2 id="toc_0.75">20150522</h2>
+<h3 id="toc_0.75.1">EMMC和DDR性能测试</h3>
+<pre>
+EMMC用bonnie
+命令：bonnie -d /data -s 2000
+说明：测试数据的大小一般为DDR的2倍，最大为2g
+举例：
+shell@scx35l64_ss_sharklt8:/ # bonnie -d /data -s 2000                         
+File '/data/Bonnie.12726', size: 2097152000
+Writing with putc()...done
+Rewriting...done
+Writing intelligently...done
+Reading with getc()...done
+Reading intelligently...done
+Seeker 1...Seeker 2...Seeker 3...start 'em...done...done...done...
+              -------Sequential Output-------- ---Sequential Input-- --Random--
+              -Per Char- --Block--- -Rewrite-- -Per Char- --Block--- --Seeks---
+Machine    MB K/sec %CPU K/sec %CPU K/sec %CPU K/sec %CPU K/sec %CPU  /sec %CPU
+         2000  7024 98.0 28532 56.0 12100 25.6  8860 98.7 67623 30.2 2288.3 40.6
+</pre>
+
+<hr />
+<h2 id="toc_0.76">20150527</h2>
+<h3 id="toc_0.76.1">查看dfs是否起作用</h3>
+<pre>
+看0x30000108是否有变化
+
+shell@scx35l_sharkl_j1poplte_old:/ # lookat 0x30000108                         
+0x03060b0c
+shell@scx35l_sharkl_j1poplte_old:/ # lookat 0x30000108                         
+0x060a0d10
+</pre>
+
+<hr />
+<h2 id="toc_0.77">20150601</h2>
+<h3 id="toc_0.77.1">/proc/sysrq-trigger</h3>
+<pre>
+
+/proc/sysrq-trigger该文件能做些什么事情呢？ 
+
+# 立即重新启动计算机 （Reboots the kernel without first unmounting file systems or syncing disks attached to the system）
+echo "b" &gt; /proc/sysrq-trigger
+
+# 立即关闭计算机（shuts off the system）
+echo "o" &gt; /proc/sysrq-trigger
+
+# 导出内存分配的信息 （可以用/var/log/message 查看）（Outputs memory statistics to the console） 
+echo "m" &gt; /proc/sysrq-trigger
+
+# 导出当前CPU寄存器信息和标志位的信息（Outputs all flags and registers to the console）
+echo "p" &gt; /proc/sysrq-trigger
+
+# 导出线程状态信息 （Outputs a list of processes to the console）
+echo "t" &gt; /proc/sysrq-trigger
+
+# 故意让系统崩溃 （ Crashes the system without first unmounting file systems or syncing disks attached to the system）
+echo "c" &gt; /proc/sysrq-trigger
+
+# 立即重新挂载所有的文件系统 （Attempts to sync disks attached to the system）
+echo "s" &gt; /proc/sysrq-trigger
+
+# 立即重新挂载所有的文件系统为只读 （Attempts to unmount and remount all file systems as read-only）
+echo "u" &gt; /proc/sysrq-trigger
+
+呵呵，此外还有两个，类似于强制注销的功能
+e — Kills all processes except init using SIGTERM
+i — Kills all processes except init using SIGKILL
+</pre>
+
+<hr />
+<h2 id="toc_0.78">20150603</h2>
+<h3 id="toc_0.78.1">module_param_named</h3>
+<pre>
+#define module_param(name, type,perm) \
+module_param_named(name, name, type, perm)
+
+通过命令"modinfo-p${modulename}"可以得知一个模块有哪些参数可以使用。
+同时，对于已经加载到内核里的模块，它们的模块参数会列举在/sys/module/${modulename}/parameters/目录下面，
+可以使用"echo -n ${value} &gt; /sys/module/${modulename}/parameters/${parm}"这样的命令去修改。
+</pre>
+
+<hr />
+<h2 id="toc_0.79">20150610</h2>
+<h3 id="toc_0.79.1">chip_sleep</h3>
+<pre>
+chip_sleep信号是指ap是否已经进入睡眠
+xtl_buf_en0/1是可以配置的，选定的子系统是否已经进入睡眠
+
+vdd18进lp后，负载只有5ma
+vdd18是否进lp，只受chip_sleep信号影响，不受xtl影响
+但如果进lp后，cp唤醒，vdd18不会被唤醒，可能导致负载不够而荡机
+</pre>
+
+<hr />
+<h2 id="toc_0.80">20150619</h2>
+<h3 id="toc_0.80.1">spl加打印函数</h3>
+<pre>
+
+#define UART1_TX_BUF_ADDR 0X70100000
+#define UART1_TX_BUF_CNT ((REG32(0x70100000 + 0xc)&gt;&gt;8)&amp;0xff)
+void spl_print(const unsigned char *string)
+{
+    unsigned char *s1 = NULL;
+
+    s1 = string;
+
+    while (*s1 != NULL)
+    {    
+        //wait until uart1 tx fifo empty
+        while(UART1_TX_BUF_CNT != 0);
+
+        //put out char by uart1 tx fifo
+        REG32(UART1_TX_BUF_ADDR) = *s1; 
+        s1++;
+    }    
+}
+</pre>
+
+<hr />
+<h2 id="toc_0.81">20150703</h2>
+<h3 id="toc_0.81.1">SharkLT8 FLATMEM</h3>
+<pre>
+默认是SPARSEMEM，需要加以下内容才能在menu config里看到FLATMEM的配置
+
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index fc2af5d..7b5ac60 100755
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -558,6 +558,9 @@ config ARCH_SPARSEMEM_ENABLE
+ config ARCH_SPARSEMEM_DEFAULT
+        def_bool ARCH_SPARSEMEM_ENABLE
+ 
++config ARCH_FLATMEM_ENABLE
++       def_bool y
++
+ config ARCH_SELECT_MEMORY_MODEL
+        def_bool ARCH_SPARSEMEM_ENABLE
+</pre>
+
+<h3 id="toc_0.81.2">persist.radio.ssda.testmode含义</h3>
+<pre>
+packages/apps/EngineerMode/src/com/sprd/engineermode/telephony/TelephonyManagerSprd.java
+
+64    public static enum RadioFeatures {
+65        SVLET, TD_LTE, LTE_FDD, TD_LTE_AND_LTE_FDD, // TD-LTE/LTE-FDD
+66        LTE_FDD_AND_W_AND_GSM_CSFB, // LTE-FDD/W/GSM-CSFB
+67        TD_LTE_AND_W_AND_GSM_CSFB, // TD-LTE/W/GSM-CSFB
+68        TD_LTE_AND_LTE_FDD_AND_W_AND_GSM_CSFB, // TD-LTE/LTE-FDD/W/GSM-CSFB
+69        TD_LTE_AND_TD_AND_GSM_CSFB, // TD-LTE/TD/GSM-CSFB
+70        TD_LTE_AND_LTE_FDD_AND_TD_AND_GSM_CSFB, // TD-LTE/LTE-FDD/TD/GSM-CSFB
+71        TD_LTE_AND_LTE_FDD_AND_W_AND_TD_AND_GSM_CSFB, // TD-LTE/LTE-FDD/W/TD/GSM-CSFB
+72        GSM_ONLY, // GSM
+73        WCDMA_ONLY, // WCDMA
+74        TD_ONLY, // TD
+75        TD_AND_GSM, // T/G
+76        WCDMA_AND_GSM, // W/G
+77        NONE
+78    };
+</pre>
+
+<h3 id="toc_0.81.3">persist.radio.ssda.mode</h3>
+<pre>
+packages/apps/EngineerMode/src/com/sprd/engineermode/telephony/TelephonyManagerSprd.java
+
+60    public static enum RadioCapbility {
+61        NONE, TDD_SVLTE, FDD_CSFB, TDD_CSFB, CSFB
+62    };
+</pre>
+
+<hr />
+<h2 id="toc_0.82">20150708</h2>
+<h3 id="toc_0.82.1">boot core1 on SharkLT8</h3>
+<pre>
+上电流程如下：
+1. 跑在64bit:
+1）设置CPU1为64bit模式
+0x50820034的bit1 = 1
+
+2）设置启动地址
+0x50820024 = 启动地址
+
+3）上电（和你的寄存器配置一样，只是不需要配置REG_AP_AHB_CA7_RST_SET）
++        val = BITS_PD_CA7_C3_PWR_ON_DLY(4) | BITS_PD_CA7_C3_PWR_ON_SEQ_DLY(4) | BITS_PD_CA7_C3_ISO_ON_DLY(4);
++        sci_glb_write(REG_PMU_APB_PD_CA7_C1_CFG, val, -1UL);
++
++        val = (BIT_PD_CA7_C3_AUTO_SHUTDOWN_EN | __raw_readl(REG_PMU_APB_PD_CA7_C1_CFG)) &amp;~(BIT_PD_CA7_C3_FORCE_SHUTDOWN);
++       printf("maryxiao####### val 0x%x\n", val);
++        sci_glb_write(REG_PMU_APB_PD_CA7_C1_CFG, val, -1UL);
+
+
+
+2. 跑在32bit:
+32位上电流程只能用于debug，如下：
+1）设置CPU1为32bit模式
+0x50820034的bit1 = 0
+
+2）CPU1上电（和64位一样）
++        val = BITS_PD_CA7_C3_PWR_ON_DLY(4) | BITS_PD_CA7_C3_PWR_ON_SEQ_DLY(4) | BITS_PD_CA7_C3_ISO_ON_DLY(4);
++        sci_glb_write(REG_PMU_APB_PD_CA7_C1_CFG, val, -1UL);
++
++        val = (BIT_PD_CA7_C3_AUTO_SHUTDOWN_EN | __raw_readl(REG_PMU_APB_PD_CA7_C1_CFG)) &amp;~(BIT_PD_CA7_C3_FORCE_SHUTDOWN);
++       printf("maryxiao####### val 0x%x\n", val);
++        sci_glb_write(REG_PMU_APB_PD_CA7_C1_CFG, val, -1UL);
+
+3）等待CPU1进入WFE
+查询0x20E03008的bit5，直至为1
+
+4）设置CPU1启动标志
+0x20E00014的bit1 = 1
+
+5）设置启动地址
+0x20E00018 = 启动地址
+这里注意是0x20E00018，而不是1C，实际上1C、20、24三个寄存器已经不用了
+
+6）通知CPU1开始执行
+SEV
+</pre>
+
+<h3 id="toc_0.82.2">kernel boot cp</h3>
+<pre>
+gerrit 提交如下：
+http://review.source.spreadtrum.com/gerrit/#/c/185283/
+http://review.source.spreadtrum.com/gerrit/#/c/185284/
+http://review.source.spreadtrum.com/gerrit/#/c/185313/
+http://review.source.spreadtrum.com/gerrit/#/c/187967/
+</pre>
+
+<hr />
+<h2 id="toc_0.83">20150710</h2>
+<h3 id="toc_0.83.1">不输入密码执行sudo</h3>
+<pre>
+echo &lt;password&gt; | sudo -S fastboot reboot
+</pre>
+
+<hr />
+<h2 id="toc_0.84">20150714</h2>
+<h3 id="toc_0.84.1">thread_info与sp关系</h3>
+<pre>
+sp = thread_info + 0x2000
+即栈底是thread_info之后的2个page大小
+</pre>
+
+</body>
+</html>

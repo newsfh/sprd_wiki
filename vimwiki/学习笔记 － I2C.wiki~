@@ -1,0 +1,255 @@
+%toc 目录
+
+----
+=== TShark I2C寄存器 ===
+==== 寄存器域 ====
+[[Image(i2c_reg_range.png)]]
+==== Reg Memory Map ====
+[[Image(i2c_reg_memory_map.png)]]
+
+==== 设置时钟频率 ====
+[[Image(i2c_reg_clock_setting.png)]]
+
+----
+=== I2C协议 ===
+==== 速度 ====
+{{{
+ 提供三种速度模式：
+ Standard mode: 100k
+ Fast mode: 400k
+ High-speed mode: 3.5M
+}}}
+[[Image(i2c_transmission.gif)]]
+
+==== 总线空闲状态 ====
+{{{
+ I2C总线总线的SDA和SCL两条信号线同时处于高电平时，规定为总线的空闲状态。
+ 此时各个器件的输出级场效应管均处在截止状态，即释放总线，由两条信号线各自的上拉电阻把电平拉高。
+}}}
+
+==== 启动信号 ====
+{{{
+ 在时钟线SCL保持高电平期间，数据线SDA上的电平被拉低（即负跳变），定义为I2C总线总线的启动信号，它标志着一次数据传输的开始。
+ 启动信号是一种电平跳变时序信号，而不是一个电平信号。
+ 启动信号是由主控器主动建立的，在建立该信号之前I2C总线必须处于空闲状态。
+}}}
+
+==== 重启动信号 ====
+{{{
+ 在主控器控制总线期间完成了一次数据通信（发送或接收）之后，如果想继续占用总线再进行一次数据通信（发送或接收），而又不释放总线，就需要利用重启动Sr信号时序。
+ 重启动信号Sr既作为前一次数据传输的结束，又作为后一次数据传输的开始。
+ 利用重启动信号的优点是，在前后两次通信之间主控器不需要释放总线，这样就不会丢失总线的控制权，即不让其他主器件节点抢占总线。
+}}}
+
+==== 停止信号 ====
+{{{
+ 在时钟线SCL保持高电平期间，数据线SDA被释放，使得SDA返回高电平（即正跳变），称为I2C总线的停止信号，它标志着一次数据传输的终止。
+ 停止信号也是一种电平跳变时序信号，而不是一个电平信号，停止信号也是由主控器主动建立的，建立该信号之后，I2C总线将返回空闲状态。
+ 不是在数据有效性中规定在SDA只能在SCL的低电平的时候变化，为何STAR，STOP不一样？
+ 首先STAR和STOP不是数据，所以可以不遵守数据有效性中的规定，其它数据都遵守，而STAR和STOP“不遵守”导致STAR和STOP更容易被识别。这样不是不遵守而是更有优势。
+ 起始和停止条件一般由主机产生，总线在起始条件后被认为处于忙的状态，在停止条件的某段时间后总线被认为再次处于空闲状态。
+ 如果产生重复起始(Sr) 条件而不产生停止条件，总线会一直处于忙的状态。此时的起始条件(S)和重复起始(Sr) 条件在功能上是一样的。 
+ 如果连接到总线的器件合并了必要的接口硬件，那么用它们检测起始和停止条件十分简便。但是没有这种接口的微控制器在每个时钟周期至少要采样SDA 线两次来判别有没有发生电平切换。
+}}}
+[[Image(i2c_transmission_start_stop.gif)]]
+
+==== 数据位传送 ====
+{{{
+ 在I2C总线上传送的每一位数据都有一个时钟脉冲相对应（或同步控制），即在SCL串行时钟的配合下，在SDA上逐位地串行传送每一位数据。
+ 进行数据传送时，在SCL呈现高电平期间，SDA上的电平必须保持稳定，低电平为数据0，高电平为数据1。
+ 只有在SCL为低电平期间，才允许SDA上的电平改变状态。
+ 逻辑0的电平为低电压，而逻辑1的电平取决于器件本身的正电源电压VDD（当使用独立电源时）。
+ 数据位的传输是边沿触发。
+}}}
+[[Image(i2c_transmission_bit_trans.gif)]]
+
+==== 应答信号 ====
+{{{
+ I2C总线上的所有数据都是以8位字节传送的，发送器每发送一个字节，就在时钟脉冲9期间释放数据线，由接收器反馈一个应答信号。
+ 应答信号为低电平时，规定为有效应答位（ACK简称应答位），表示接收器已经成功地接收了该字节；应答信号为高电平时，规定为非应答位（NACK），一般表示接收器接收该字节没有成功。
+ 对于反馈有效应答位ACK的要求是，接收器在第9个时钟脉冲之前的低电平期间将SDA线拉低，并且确保在该时钟的高电平期间为稳定的低电平。
+ 如果接收器是主控器，则在它收到最后一个字节后，发送一个NACK信号，以通知被控发送器结束数据发送，并释放SDA线，以便主控接收器发送一个停止信号P。
+}}}
+[[Image(i2c_transmission_ack.gif)]]
+
+==== 插入等待时间 ====
+{{{
+ 如果被控器需要延迟下一个数据字节开始传送的时间，则可以通过把时钟线SCL电平拉低并且保持，使主控器进入等待状态。
+ 一旦被控器释放时钟线，数据传输就得以继续下去，这样就使得被控器得到足够时间转移已经收到的数据字节，或者准备好即将发送的数据字节。
+ 带有CPU的被控器在对收到的地址字节做出应答之后，需要一定的时间去执行中断服务子程序，来分析或比较地址码，其间就把SCL线钳位在低电平上，直到处理妥当后才释放SCL线，进而使主控器继续后续数据字节的发送。
+}}}
+[[Image(i2c_transmission_hold.gif)]]
+
+==== 总线封锁状态 ====
+{{{
+ 在特殊情况下，如果需要禁止所有发生在I2C总线上的通信活动，封锁或关闭总线是一种可行途径，只要挂接于该总线上的任意一个器件将时钟线SCL锁定在低电平上即可。
+}}}
+
+==== 总线竞争的仲裁 ====
+{{{
+ 总线上可能挂接有多个器件，有时会发生两个或多个主器件同时想占用总线的情况，这种情况叫做总线竞争。
+ I2C总线具有多主控能力，可以对发生在SDA线上的总线竞争进行仲裁，其仲裁原则是这样的：
+  当多个主器件同时想占用总线时，如果某个主器件发送高电平，而另一个主器件发送低电平，则发送电平与此时SDA总线电平不符的那个器件将自动关闭其输出级。
+ 总线竞争的仲裁是在两个层次上进行的。首先是地址位的比较，如果主器件寻址同一个从器件，则进入数据位的比较，从而确保了竞争仲裁的可靠性。由于是利用I2C总线上的信息进行仲裁，因此不会造成信息的丢失。
+ 为何识别到“0”将丢失仲裁呢？因为对于OD门，只能驱动到低电平，释放总线只能通过不驱动总线释放，停止驱动即产生“1”，但是发现总线还是“0”，这说明还有主机在跟自己竞争总线使用权，自己线驱动到“1”，确检测到“0”，那代表自己已经失去了仲裁。
+ 主机只能在总线空闲的时侯启动传送。两个或多个主机可能在起始条件的最小持续时间tHD;STA 内产生一个起始条件，结果在总线上产生一个规定的起始条件。
+ 当SCL 线是高电平时，仲裁在SDA 线发生；这样，在其他主机发送低电平时，发送高电平的主机将断开它的数据输出级，因为总线上的电平与它自己的电平不相同。然后，进一步获得其的判定条件：
+ 仲裁可以持续多位。首先是比较地址位。如果每个主机都试图寻址同一的器件，仲裁会继续比较数据位（假设主机是发送器），或者比较响应位（假设主机是接收器）。
+ I2C 总线的地址和数据信息由赢得仲裁的主机决定，在仲裁过程中不会丢失信息。丢失仲裁的主机可以产生时钟脉冲直到丢失仲裁的该字节末尾。
+ 在串行传输过程中时，一旦有重复的起始条件或停止条件发送到I2C 总线的时侯，仲裁过程仍在进行。如果可能产生这样的情况，有关的主机必须在帧格式相同位置发送这个重复起始条件或停止条件。 
+ 此外，如果主机也结合了从机功能，而且在寻址阶段丢失仲裁，它很可能就是赢得仲裁的主机在寻址的器件。那么，丢失仲裁的主机必须立即切换到它的从机模式。
+ I2C 总线的控制只由地址或主机码以及竞争主机发送的数据决定，没有中央主机，总线也没有任何定制的优先权。
+}}}
+[[Image(i2c_transmission_arbitration.gif)]]
+{{{
+ 上图显示了两个主机的仲裁过程，当然可能包含更多的内容由连接到总线的主机数量决定，此时产生DATA1的主机的内部数据电平与SDA线的实际电平有一些差别，如果关断数据输出，这就意味着总线连接了一个高输出电平，这不会影响由赢得仲裁的主机初始化的数据传输。
+}}}
+
+==== 时钟信号的同步 ====
+{{{
+ 在I2C总线上传送信息时的时钟同步信号是由挂接在SCL线上的所有器件的逻辑“与”完成的。
+ SCL线上由高电平到低电平的跳变将影响到这些器件，一旦某个器件的时钟信号下跳为低电平，将使SCL线一直保持低电平，使SCL线上的所有器件开始低电平期。
+ 此时，低电平周期短的器件的时钟由低至高的跳变并不能影响SCL线的状态，于是这些器件将进入高电平等待的状态。
+ 当所有器件的时钟信号都上跳为高电平时，低电平期结束，SCL线被释放返回高电平，即所有的器件都同时开始它们的高电平期。
+ 其后，第一个结束高电平期的器件又将SCL线拉成低电平。这样就在SCL线上产生一个同步时钟。可见，时钟低电平时间由时钟低电平期最长的器件确定，而时钟高电平时间由时钟高电平期最短的器件确定。
+}}}
+[[Image(i2c_transmission_clk.gif)]]
+
+----
+=== API ===
+||'''Adapter'''||'''Driver'''||'''Device(client)'''||'''Transfer'''||
+||i2c_add_adapter||module_i2c_driver||i2c_register_board_info||__i2c_transfer||
+||i2c_add_numbered_adapter||i2c_del_driver||i2c_new_device||i2c_transfer||
+||i2c_del_adapter|| ||i2c_new_dummy||i2c_master_send||
+||i2c_lock_adapter|| ||i2c_verify_client||i2c_master_recv||
+||i2c_unlock_adapter|| ||i2c_unregister_device||i2c_smbus_read_byte||
+||i2c_verify_adapter|| ||i2c_use_client||i2c_smbus_write_byte||
+|| || ||i2c_release_client||i2c_smbus_read_byte_data||
+|| || || ||i2c_smbus_write_byte_data||
+|| || || ||i2c_smbus_read_word_data||
+|| || || ||i2c_smbus_write_word_data||
+|| || || ||i2c_smbus_read_block_data||
+|| || || ||i2c_smbus_write_block_data||
+|| || || ||i2c_smbus_xfer||
+
+=== 文件节点 ===
+{{{
+ shell@scx35_sp8730sea:/sys/bus/i2c/devices # ll
+ lrwxrwxrwx root     root              2012-01-01 00:04 0-0021 -> ../../../devices/f536a000.i2c/i2c-0/0-0021
+ lrwxrwxrwx root     root              2012-01-01 00:04 0-003c -> ../../../devices/f536a000.i2c/i2c-0/0-003c
+ lrwxrwxrwx root     root              2012-01-01 00:04 1-0038 -> ../../../devices/f536c000.i2c/i2c-1/1-0038
+ lrwxrwxrwx root     root              2012-01-01 00:04 2-0018 -> ../../../devices/f5370000.i2c/i2c-2/2-0018
+ lrwxrwxrwx root     root              2012-01-01 00:04 2-0023 -> ../../../devices/f5370000.i2c/i2c-2/2-0023
+ lrwxrwxrwx root     root              2012-01-01 00:04 3-006a -> ../../../devices/f5372000.i2c/i2c-3/3-006a
+ lrwxrwxrwx root     root              2012-01-01 00:04 i2c-0 -> ../../../devices/f536a000.i2c/i2c-0
+ lrwxrwxrwx root     root              2012-01-01 00:04 i2c-1 -> ../../../devices/f536c000.i2c/i2c-1
+ lrwxrwxrwx root     root              2012-01-01 00:04 i2c-2 -> ../../../devices/f5370000.i2c/i2c-2
+ lrwxrwxrwx root     root              2012-01-01 00:04 i2c-3 -> ../../../devices/f5372000.i2c/i2c-3
+
+ 注：0-0021  => 0代码挂在i2c0上，0021是它的设备号
+
+ shell@scx35_sp8730sea:/sys/bus/i2c/devices/0-0021 # ll
+ lrwxrwxrwx root     root              2012-01-01 00:05 driver -> ../../../../bus/i2c/drivers/sensor_main
+ -r--r--r-- root     root         4096 2012-01-01 00:05 modalias
+ -r--r--r-- root     root         4096 2012-01-01 00:05 name
+ drwxr-xr-x root     root              2012-01-01 00:00 power
+ lrwxrwxrwx root     root              2012-01-01 00:05 subsystem -> ../../../../bus/i2c
+ -rw-r--r-- root     root         4096 2012-01-01 00:00 uevent
+
+ 注：从driver中可以看出它是camera的sensor，再cat name可以看到它是main还是sub的
+
+ ./sys/bus/i2c
+ ./sys/bus/i2c/devices/i2c-0
+ ./sys/bus/i2c/devices/i2c-1
+ ./sys/bus/i2c/devices/i2c-2
+ ./sys/bus/i2c/devices/i2c-3
+ ./sys/bus/i2c/devices/i2c-7
+ ./sys/bus/i2c/drivers/sm5701-i2c
+ ./sys/bus/platform/devices/f536a000.i2c
+ ./sys/bus/platform/devices/f5370000.i2c
+ ./sys/bus/platform/devices/f536c000.i2c
+ ./sys/bus/platform/devices/f5372000.i2c
+ ./sys/bus/platform/devices/i2c_gpio.5
+ ./sys/bus/platform/devices/f5374000.i2c
+ ./sys/bus/platform/drivers/sprd-i2c
+ ./sys/bus/platform/drivers/sprd-i2c/f536a000.i2c
+ ./sys/bus/platform/drivers/sprd-i2c/f5370000.i2c
+ ./sys/bus/platform/drivers/sprd-i2c/f536c000.i2c
+ ./sys/bus/platform/drivers/sprd-i2c/f5372000.i2c
+ ./sys/bus/platform/drivers/i2c-gpio
+ ./sys/bus/platform/drivers/i2c-gpio/i2c_gpio.5
+ ./sys/devices/f536a000.i2c
+ ./sys/devices/f536a000.i2c/i2c-0
+ ./sys/devices/f536a000.i2c/i2c-0/i2c-dev
+ ./sys/devices/f536a000.i2c/i2c-0/i2c-dev/i2c-0
+ ./sys/devices/f5370000.i2c
+ ./sys/devices/f5370000.i2c/i2c-2
+ ./sys/devices/f5370000.i2c/i2c-2/i2c-dev
+ ./sys/devices/f5370000.i2c/i2c-2/i2c-dev/i2c-2
+ ./sys/devices/f536c000.i2c
+ ./sys/devices/f536c000.i2c/i2c-1
+ ./sys/devices/f536c000.i2c/i2c-1/i2c-dev
+ ./sys/devices/f536c000.i2c/i2c-1/i2c-dev/i2c-1
+ ./sys/devices/f5372000.i2c
+ ./sys/devices/f5372000.i2c/i2c-3
+ ./sys/devices/f5372000.i2c/i2c-3/i2c-dev
+ ./sys/devices/f5372000.i2c/i2c-3/i2c-dev/i2c-3
+ ./sys/devices/i2c_gpio.5
+ ./sys/devices/i2c_gpio.5/i2c-7
+ ./sys/devices/i2c_gpio.5/i2c-7/i2c-dev
+ ./sys/devices/i2c_gpio.5/i2c-7/i2c-dev/i2c-7
+ ./sys/devices/f5374000.i2c
+ ./sys/class/i2c-dev
+ ./sys/class/i2c-dev/i2c-0
+ ./sys/class/i2c-dev/i2c-1
+ ./sys/class/i2c-dev/i2c-2
+ ./sys/class/i2c-dev/i2c-3
+ ./sys/class/i2c-dev/i2c-7
+ ./sys/class/i2c-adapter
+ ./sys/class/i2c-adapter/i2c-0
+ ./sys/class/i2c-adapter/i2c-1
+ ./sys/class/i2c-adapter/i2c-2
+ ./sys/class/i2c-adapter/i2c-3
+ ./sys/class/i2c-adapter/i2c-7
+ ./sys/kernel/debug/clk/ext_26m/clk_i2c
+ ./sys/kernel/debug/clk/ext_26m/clk_i2c0
+ ./sys/kernel/debug/clk/ext_26m/clk_i2c1
+ ./sys/kernel/debug/clk/ext_26m/clk_i2c2
+ ./sys/kernel/debug/clk/ext_26m/clk_i2c3
+ ./sys/kernel/debug/clk/ext_26m/clk_i2c4
+ ./sys/module/dwc_otg/parameters/i2c_enable
+ ./sys/module/i2c_algo_bit
+ ./dev/i2c-7
+ ./dev/i2c-3
+ ./dev/i2c-1
+ ./dev/i2c-2
+ ./dev/i2c-0
+}}}
+
+=== 调试技巧 ===
+{{{
+ 打开i2c，需要将scl/sda脚上的电压设为1.8v，另外，用的时候，需要打开APB_EB中相应的clk位，如下
+ lookat -s 0x007de800 0x71300000
+ lookat -s 0x1a 0x70800000
+ lookat -s 0xa024 0x70800004
+
+ i2c工作电压可以为1.8v或3.0v，这个要根据外部器件所在的工作电压决定。但如果i2c所在的输入电压只有1.8v，那它就只能配成1.8v
+}}}
+
+=== 问题调试 ===
+* 一个i2c挂两个设备，下命令时不通
+{{{
+J1POPLTE有两个版本，它们用的tsp设备不同，但用的电和gpio是一样。
+现在要做兼容，dts和defconfig里两个设备都配置
+第一个设备在probe时，初始化失败，因为这个设备不存在，所以正常
+但到第二个设备时，还是probe设备，下命令不通
+将i2c重新reset掉，还是没有成功
+后来在第一驱动里，probe失败时，将打开的ldo关闭，这时第二个设备就好了
+}}}
+
+=== 网络资料 ===
+[[http://blog.csdn.net/chuckfql/article/details/19834137]]</BR>
+[[http://www.pudn.com/downloads155/sourcecode/others/detail687457.html|gpio-i2c sample code 1]]</BR>
+[[http://www.2cto.com/kf/201211/170780.html|gpio-i2c sample code 2]]</BR>
+[[http://blog.csdn.net/zhenwenxian/article/details/8466886|gpio-i2c sample code 3]]</BR>
+

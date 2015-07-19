@@ -1,0 +1,10 @@
+%toc 目录
+
+----
+=== /proc/sys/kernel/printk ===
+=== /proc/kmsg ===
+=== /dev/kmsg ===
+=== /proc/interrupts ===
+=== /d/gpio ===
+=== /d/memblock/reserved ===
+

@@ -1,0 +1,100 @@
+%toc 目录
+
+----
+== 安装linux版本t32 sim ==
+{{{
+将软件拷到本地
+smb://10.0.0.166/public_folder/PLD/APPS/B2G/fresher/huafang/t32
+
+将其变为可执行属性：
+chmod -R 777 t32
+
+根据t32/t32/readme下的提示，执行相应命令
+
+执行t32/t32-a5.sh脚本即可
+
+由于版本问题，有可能会提示出错，需将t32/libjpeg下的libjpeg.so.62文件拷到/usr/lib/x86_64-linux-gnu
+sudo cp t32/libjpeg/libjpeg.so.62 /usr/lib/x86_64-linux-gnu
+}}}
+
+----
+== 安装windows版本trace32 ==
+{{{
+在Vmware的windows环境下安装，不用讲了吧
+软件在
+（版本较新）smb://leixiepc/sharedfile/software/NEW%20TRACE32
+（版本较旧）smb://zhimingpc/ming/software/Trace32_201106
+
+注：
+由于Vmware对USB3.0支持有问题，所以我们组新买的3.0的trace没法使用，但是2.0口的可以用
+}}}
+
+----
+== 配置trace32 simulator ==
+{{{
+其实simulator不用另外再安装，在USB版本基础上就可以配置
+
+按照如下方式，可以添加simulator的配置
+配完后，点start就可以使用
+}}}
+{{local:images/1.bmp}}</BR>
+{{local:images/2.bmp}}
+
+----
+== 使用技巧 ==
+=== 加载命令 ===
+0. 加载elf
+{{{
+d.load.elf xxx\elf /nocode
+
+xxx\elf为相应的符号表文件
+}}}
+0. 加载binary
+{{{
+d.load.binary xxx\binary 0xc0000000 /noclear
+
+xxx\binary为相应的dump文件
+0xc0000000为相应的加载地址，需跟dump文件对应，8->c
+}}}
+0. 调试加载源代码
+{{{
+symbol.SOURCEPATH.SETRECURSEDIR xxx
+
+xxx为源代码路径
+}}}
+
+=== Trace32快捷命令 ===
+|*shortcut*|*comment*|
+|F8|Break|
+|F7|Run|
+|F3|Step over call|
+|F2|Step|
+|F6|Go up|
+| | |
+|r|list registers|
+| | |
+|d.dump <addr>|dump content in address|
+|d.la <addr>|list assemble|
+|d.save.b <file> <addr>++<len>|save binary to file|
+|d.p %y.l <addr>++<len>|dump symbol from specific address|
+| | |
+|v.v <var>|view content|
+|v.w <var>|watch content|
+|v.f|show current callstack|
+|v.f /task <task_ptr>|show designated task's callstack|
+| | |
+|y.b [var]|show symbol info of var|
+|y.l [addr]|show symbol info of address|
+| | |
+|b.s|set breakpoint|
+|b.l|list breakpoint|
+| | |
+|TASK.DTask|show all tasks|
+
+=== 查看framebuffer内容 ===
+{{{
+data.image 0xdd700000 480. 800. /RGB32
+它的地址从registered_fb[0].fix.smem_start可以看到，它是物理地址，需要转到虚拟地址
+也可以通过dispc_ctx也可以得到此地址
+}}}
+

@@ -1,0 +1,120 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>linux学习笔记 － device tree</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">打印dt解析过程</a>
+<li><a href="#toc_0.0.2">相关目录文件、数据结构、全局变量</a>
+<ul>
+<li><a href="#toc_0.0.2.1">相关文件</a>
+<li><a href="#toc_0.0.2.2">数据结构</a>
+<ul>
+<li><a href="#toc_0.0.2.2.1">device_node</a>
+<li><a href="#toc_0.0.2.2.2">property</a>
+</ul>
+</ul>
+<li><a href="#toc_0.0.3">附件</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">打印dt解析过程</h3>
+<pre>
+316void __init setup_arch(char **cmdline_p)
+317{
+318	/* This also populates @boot_command_line from /bootargs */
+319	machine_desc = setup_machine_fdt(__dtb_start);
+
+348	/* copy flat DT out of .init and then unflatten it */
+349	copy_devtree();
+350	unflatten_device_tree();
+365}
+</pre>
+
+<hr />
+<h3 id="toc_0.0.2">相关目录文件、数据结构、全局变量</h3>
+<h4 id="toc_0.0.2.1">相关文件</h4>
+<table>
+<tr>
+<td>
+<strong>内容</strong>
+</td>
+<td>
+<strong>说明</strong>
+</td>
+</tr>
+<tr>
+<td>
+kernel/drivers/of
+</td>
+<td>
+所在目录
+</td>
+</tr>
+<tr>
+<td>
+struct device_node *of_allnodes;
+</td>
+<td>
+所有dt节点
+</td>
+</tr>
+</table>
+
+<h4 id="toc_0.0.2.2">数据结构</h4>
+<h5 id="toc_0.0.2.2.1">device_node</h5>
+<pre>
+46struct device_node {
+47	const char *name;
+48	const char *type;
+49	phandle phandle;
+50	const char *full_name;
+51
+52	struct	property *properties;
+53	struct	property *deadprops;	/* removed properties */
+54	struct	device_node *parent;
+55	struct	device_node *child;
+56	struct	device_node *sibling;
+57	struct	device_node *next;	/* next device of same type */
+58	struct	device_node *allnext;	/* next in list of all nodes */
+59	struct	proc_dir_entry *pde;	/* this node's proc directory */
+60	struct	kref kref;
+61	unsigned long _flags;
+62	void	*data;
+63#if defined(CONFIG_SPARC)
+64	const char *path_component_name;
+65	unsigned int unique_id;
+66	struct of_irq_controller *irq_trans;
+67#endif
+68};
+</pre>
+
+<h5 id="toc_0.0.2.2.2">property</h5>
+<pre>
+33struct property {
+34	char	*name;
+35	int	length;
+36	void	*value;
+37	struct property *next;
+38	unsigned long _flags;
+39	unsigned int unique_id;
+40};
+</pre>
+
+<hr />
+<h3 id="toc_0.0.3">附件</h3>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/printk_device_tree.patch">printk_device_tree.patch</a>
+</p>
+
+</body>
+</html>

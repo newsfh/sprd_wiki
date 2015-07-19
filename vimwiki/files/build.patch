@@ -1,0 +1,19 @@
+diff --git a/core/main.mk b/core/main.mk
+index 9e3eb92..05a35e6 100644
+--- a/core/main.mk
++++ b/core/main.mk
+@@ -484,8 +484,14 @@ ifneq ($(dont_bother),true)
+ 
+ # Can't use first-makefiles-under here because
+ # --mindepth=2 makes the prunes not work.
++only_android_mk_module := bootimage chipram bootloader
++ifneq ($(filter $(only_android_mk_module), $(MAKECMDGOALS)),)
++subdir_makefiles := \
++	$(shell build/tools/findleaves.py --prune=$(OUT_DIR) --prune=.repo --prune=.git $(subdirs)/build Android.mk)
++else
+ subdir_makefiles := \
+ 	$(shell build/tools/findleaves.py --prune=$(OUT_DIR) --prune=.repo --prune=.git $(subdirs) Android.mk)
++endif
+ 
+ $(foreach mk, $(subdir_makefiles), $(info including $(mk) ...)$(eval include $(mk)))
+ 

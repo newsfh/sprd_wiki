@@ -1,0 +1,965 @@
+%toc 目录
+
+= log =
+== 全局变量 ==
+=== __log_buf ===
+{{{
+/kernel/kernel/printk.c
+
+static char __log_buf[__LOG_BUF_LEN] __aligned(LOG_ALIGN);
+log buffer
+}}}
+
+=== log_list ===
+{{{
+kernel/drivers/staging/android/logger.c
+
+logger的链表
+取某logger的值
+(struct logger_log*)(<list_node_ptr> - sizeof(struct logger_log) + sizeof(struct list_head))
+}}}
+
+----
+= debug =
+== 全局变量 ==
+=== sprd_debug_last_regs_access ===
+{{{
+/kernel/arch/arm/mach-sc/sprd_debug.c
+kernel/include/linux/regs_debug.h
+
+struct sprd_debug_regs_access *sprd_debug_last_regs_access;
+记录上次访问IO/寄存器
+
+crash> p sprd_debug_last_regs_access
+sprd_debug_last_regs_access = $5 = (struct sprd_debug_regs_access *) 0xe084e000
+crash> struct sprd_debug_regs_access 0xe084e000
+struct sprd_debug_regs_access {
+  vaddr = 4112531460, 
+  value = 0, 
+  stack = 3740827352, 
+  pc = 3221297172, 
+  time = 300800, 
+  status = 1
+}
+
+status：若0，调用前，若1，调用结束
+value：非0，必为write指令，若0，有可能为read
+}}}
+
+=== sprd_debug_log ===
+{{{
+/kernel/arch/arm/mach-sc/sprd_debug.c
+
+static struct sched_log sprd_debug_log __cacheline_aligned;
+记录上次的irq/task/work
+
+sprd_debug_log = $4 = {
+  task = {{{
+        time = 0x3021703be30, 
+        sys_cnt = 0x328471, 
+        comm = "swapper/0\000kDisp", 
+        pid = 0x0
+      }, {
+      ...
+      }...}}, 
+  irq = {{{
+        time = 0x30224f051bd, 
+        sys_cnt = 0x32855a, 
+        irq = 0x3c, 
+        fn = 0xc002462c <__gptimer_interrupt>, 
+        en = 0x1
+      }, {
+      ...
+      }...}}, 
+  work = {{{
+        time = 0x300ea150fb1, 
+        sys_cnt = 0x3270b8, 
+        worker = 0xddfd1a40, 
+        work = 0xde2d7d24, 
+        f = 0xc01d0a04 <cfq_kick_queue>
+      }, {
+      }...}}, 
+  hrtimers = {{{
+        time = 0x0, 
+        sys_cnt = 0x0, 
+        timer = 0x0, 
+        fn = 0x0, 
+        en = 0x0
+      }, {
+      ...
+      }}}.
+}
+}}}
+
+=== sprd_sysdump_extra ===
+{{{
+kernel/arch/arm/kernel/sprd_sysdump.c
+
+struct sysdump_extra sprd_sysdump_extra
+sysdump时的信息
+
+crash> p sprd_sysdump_extra -x
+sprd_sysdump_extra = $2 = {
+  enter_id = 0x1, 
+  enter_cpu = 0x2, 
+  reason = "oops\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000", 
+  cpu_context = {{
+      uregs = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}
+    }, {
+      uregs = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0}
+    }, {
+      uregs = {0xc0e09dc0, 0xc07e9470, 0x5, 0x0, 0xc07e9470, 0xc0e09dc0, 0x5, 0x400a0013, 0xc0e09dc0, 0x699000, 0xc07e18e8, 0xde151dbc, 0x490, 0xde151da8, 0xc00572b4, 0x0, 0xa0093, 0xffffffff}
+    }, {
+      uregs = {0xefffffff, 0x21b4b, 0xffffffff, 0x0, 0xb64d3534, 0xb5ad3d30, 0x1c, 0xb6ee81d8, 0xb644c804, 0xb5a4d000, 0x1, 0x27fe01, 0xb6f25fbc, 0xbea7d8f0, 0xb6ec3895, 0xb6f230ae, 0x84028830, 0xffffffff}
+    }}
+}
+}}}
+
+=== gkernel_sprd_build_info ===
+{{{
+/kernel/arch/arm/mach-sc/sprd_debug.c
+
+static char gkernel_sprd_build_info[100];
+编译信息
+}}}
+
+=== kernel_log_mark ===
+=== plat_log_mark ===
+=== marks_var_mark ===
+=== frame_buf_mark ===
+{{{
+kernel/arch/arm/mach-sc/sec_getlog.c (TW version)
+
+The above global variables are on TW version. It stores some useful information.
+}}}
+
+----
+= task =
+== 全局变量 ==
+=== init_task ===
+{{{
+kernel/init/init_task.c
+struct task_struct init_task = INIT_TASK(init_task);
+
+pid为0的task
+}}}
+
+=== runqueues ===
+{{{
+kernel/kernel/sched/core.c
+DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
+
+running queue on cpu
+
+per_cpu上的全局变量，要通过cpu offset来看
+&runqueues + __per_cpu_offset[cpu]来看
+如在trace32里，可以通过v.v (struct rq*)((char*)&runqueues+__per_cpu_offset[0])
+}}}
+
+=== __per_cpu_offset ===
+{{{
+kernel/mm/percpu.c
+unsigned long __per_cpu_offset[NR_CPUS] __read_mostly;
+
+per_cpu上的偏移
+}}}
+
+== 数据结构 ==
+=== thread_info ===
+{{{
+kernel/arch/arm/include/asm/thread_info.h
+
+if you get the stack address, you can get thread_info by mask the lowest 13bits.
+v.v (struct thread_info*)(stack_ptr & 0xFFFFE000)
+
+
+46/*
+47 * low level task data that entry.S needs immediate access to.
+48 * __switch_to() assumes cpu_context follows immediately after cpu_domain.
+49 */
+50struct thread_info {
+51	unsigned long		flags;		/* low level flags */
+52	int			preempt_count;	/* 0 => preemptable, <0 => bug */
+53	mm_segment_t		addr_limit;	/* address limit */
+54	struct task_struct	*task;		/* main task structure */
+55	struct exec_domain	*exec_domain;	/* execution domain */
+56	__u32			cpu;		/* cpu */
+57	__u32			cpu_domain;	/* cpu domain */
+58	struct cpu_context_save	cpu_context;	/* cpu context */
+59	__u32			syscall;	/* syscall number */
+60	__u8			used_cp[16];	/* thread used copro */
+61	unsigned long		tp_value;
+62#ifdef CONFIG_CRUNCH
+63	struct crunch_state	crunchstate;
+64#endif
+65	union fp_state		fpstate __attribute__((aligned(8)));
+66	union vfp_state		vfpstate;
+67#ifdef CONFIG_ARM_THUMBEE
+68	unsigned long		thumbee_state;	/* ThumbEE Handler Base register */
+69#endif
+70	struct restart_block	restart_block;
+71};
+}}}
+
+=== task_struct ===
+{{{
+/kernel/include/linux/sched.h
+
+1034struct task_struct {
+1035	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
+1036	void *stack;
+1037	atomic_t usage;
+1038	unsigned int flags;	/* per process flags, defined below */
+1039	unsigned int ptrace;
+1040
+1041#ifdef CONFIG_SMP
+1042	struct llist_node wake_entry;
+1043	int on_cpu;
+1044#endif
+1045	int on_rq;
+1046
+1047	int prio, static_prio, normal_prio;
+1048	unsigned int rt_priority;
+1049	const struct sched_class *sched_class;
+1050	struct sched_entity se;
+1051	struct sched_rt_entity rt;
+1052#ifdef CONFIG_CGROUP_SCHED
+1053	struct task_group *sched_task_group;
+1054#endif
+1055
+1056#ifdef CONFIG_PREEMPT_NOTIFIERS
+1057	/* list of struct preempt_notifier: */
+1058	struct hlist_head preempt_notifiers;
+1059#endif
+1060
+1061	/*
+1062	 * fpu_counter contains the number of consecutive context switches
+1063	 * that the FPU is used. If this is over a threshold, the lazy fpu
+1064	 * saving becomes unlazy to save the trap. This is an unsigned char
+1065	 * so that after 256 times the counter wraps and the behavior turns
+1066	 * lazy again; this to deal with bursty apps that only use FPU for
+1067	 * a short time
+1068	 */
+1069	unsigned char fpu_counter;
+1070#ifdef CONFIG_BLK_DEV_IO_TRACE
+1071	unsigned int btrace_seq;
+1072#endif
+1073
+1074	unsigned int policy;
+1075	int nr_cpus_allowed;
+1076	cpumask_t cpus_allowed;
+1077
+1078#ifdef CONFIG_PREEMPT_RCU
+1079	int rcu_read_lock_nesting;
+1080	char rcu_read_unlock_special;
+1081	struct list_head rcu_node_entry;
+1082#endif /* #ifdef CONFIG_PREEMPT_RCU */
+1083#ifdef CONFIG_TREE_PREEMPT_RCU
+1084	struct rcu_node *rcu_blocked_node;
+1085#endif /* #ifdef CONFIG_TREE_PREEMPT_RCU */
+1086#ifdef CONFIG_RCU_BOOST
+1087	struct rt_mutex *rcu_boost_mutex;
+1088#endif /* #ifdef CONFIG_RCU_BOOST */
+1089
+1090#if defined(CONFIG_SCHEDSTATS) || defined(CONFIG_TASK_DELAY_ACCT)
+1091	struct sched_info sched_info;
+1092#endif
+1093
+1094	struct list_head tasks;
+1095#ifdef CONFIG_SMP
+1096	struct plist_node pushable_tasks;
+1097#endif
+1098
+1099	struct mm_struct *mm, *active_mm;
+1100#ifdef CONFIG_COMPAT_BRK
+1101	unsigned brk_randomized:1;
+1102#endif
+1103#if defined(SPLIT_RSS_COUNTING)
+1104	struct task_rss_stat	rss_stat;
+1105#endif
+1106/* task state */
+1107	int exit_state;
+1108	int exit_code, exit_signal;
+1109	int pdeath_signal;  /*  The signal sent when the parent dies  */
+1110	unsigned int jobctl;	/* JOBCTL_*, siglock protected */
+1111
+1112	/* Used for emulating ABI behavior of previous Linux versions */
+1113	unsigned int personality;
+1114
+1115	unsigned did_exec:1;
+1116	unsigned in_execve:1;	/* Tell the LSMs that the process is doing an
+1117				 * execve */
+1118	unsigned in_iowait:1;
+1119
+1120	/* task may not gain privileges */
+1121	unsigned no_new_privs:1;
+1122
+1123	/* Revert to default priority/policy when forking */
+1124	unsigned sched_reset_on_fork:1;
+1125	unsigned sched_contributes_to_load:1;
+1126
+1127	pid_t pid;
+1128	pid_t tgid;
+1129
+1130#ifdef CONFIG_CC_STACKPROTECTOR
+1131	/* Canary value for the -fstack-protector gcc feature */
+1132	unsigned long stack_canary;
+1133#endif
+1134	/*
+1135	 * pointers to (original) parent process, youngest child, younger sibling,
+1136	 * older sibling, respectively.  (p->father can be replaced with
+1137	 * p->real_parent->pid)
+1138	 */
+1139	struct task_struct __rcu *real_parent; /* real parent process */
+1140	struct task_struct __rcu *parent; /* recipient of SIGCHLD, wait4() reports */
+1141	/*
+1142	 * children/sibling forms the list of my natural children
+1143	 */
+1144	struct list_head children;	/* list of my children */
+1145	struct list_head sibling;	/* linkage in my parent's children list */
+1146	struct task_struct *group_leader;	/* threadgroup leader */
+1147
+1148	/*
+1149	 * ptraced is the list of tasks this task is using ptrace on.
+1150	 * This includes both natural children and PTRACE_ATTACH targets.
+1151	 * p->ptrace_entry is p's link on the p->parent->ptraced list.
+1152	 */
+1153	struct list_head ptraced;
+1154	struct list_head ptrace_entry;
+1155
+1156	/* PID/PID hash table linkage. */
+1157	struct pid_link pids[PIDTYPE_MAX];
+1158	struct list_head thread_group;
+1159
+1160	struct completion *vfork_done;		/* for vfork() */
+1161	int __user *set_child_tid;		/* CLONE_CHILD_SETTID */
+1162	int __user *clear_child_tid;		/* CLONE_CHILD_CLEARTID */
+1163
+1164	cputime_t utime, stime, utimescaled, stimescaled;
+1165	cputime_t gtime;
+1166#ifndef CONFIG_VIRT_CPU_ACCOUNTING_NATIVE
+1167	struct cputime prev_cputime;
+1168#endif
+1169#ifdef CONFIG_VIRT_CPU_ACCOUNTING_GEN
+1170	seqlock_t vtime_seqlock;
+1171	unsigned long long vtime_snap;
+1172	enum {
+1173		VTIME_SLEEPING = 0,
+1174		VTIME_USER,
+1175		VTIME_SYS,
+1176	} vtime_snap_whence;
+1177#endif
+1178	unsigned long nvcsw, nivcsw; /* context switch counts */
+1179	struct timespec start_time; 		/* monotonic time */
+1180	struct timespec real_start_time;	/* boot based time */
+1181/* mm fault and swap info: this can arguably be seen as either mm-specific or thread-specific */
+1182	unsigned long min_flt, maj_flt;
+1183
+1184	struct task_cputime cputime_expires;
+1185	struct list_head cpu_timers[3];
+1186
+1187/* process credentials */
+1188	const struct cred __rcu *real_cred; /* objective and real subjective task
+1189					 * credentials (COW) */
+1190	const struct cred __rcu *cred;	/* effective (overridable) subjective task
+1191					 * credentials (COW) */
+1192	char comm[TASK_COMM_LEN]; /* executable name excluding path
+1193				     - access with [gs]et_task_comm (which lock
+1194				       it with task_lock())
+1195				     - initialized normally by setup_new_exec */
+1196/* file system info */
+1197	int link_count, total_link_count;
+1198#ifdef CONFIG_SYSVIPC
+1199/* ipc stuff */
+1200	struct sysv_sem sysvsem;
+1201#endif
+1202#ifdef CONFIG_DETECT_HUNG_TASK
+1203/* hung task detection */
+1204	unsigned long last_switch_count;
+1205#endif
+1206/* CPU-specific state of this task */
+1207	struct thread_struct thread;
+1208/* filesystem information */
+1209	struct fs_struct *fs;
+1210/* open file information */
+1211	struct files_struct *files;
+1212/* namespaces */
+1213	struct nsproxy *nsproxy;
+1214/* signal handlers */
+1215	struct signal_struct *signal;
+1216	struct sighand_struct *sighand;
+1217
+1218	sigset_t blocked, real_blocked;
+1219	sigset_t saved_sigmask;	/* restored if set_restore_sigmask() was used */
+1220	struct sigpending pending;
+1221
+1222	unsigned long sas_ss_sp;
+1223	size_t sas_ss_size;
+1224	int (*notifier)(void *priv);
+1225	void *notifier_data;
+1226	sigset_t *notifier_mask;
+1227	struct callback_head *task_works;
+1228
+1229	struct audit_context *audit_context;
+1230#ifdef CONFIG_AUDITSYSCALL
+1231	kuid_t loginuid;
+1232	unsigned int sessionid;
+1233#endif
+1234	struct seccomp seccomp;
+1235
+1236/* Thread group tracking */
+1237   	u32 parent_exec_id;
+1238   	u32 self_exec_id;
+1239/* Protection of (de-)allocation: mm, files, fs, tty, keyrings, mems_allowed,
+1240 * mempolicy */
+1241	spinlock_t alloc_lock;
+1242
+1243	/* Protection of the PI data structures: */
+1244	raw_spinlock_t pi_lock;
+1245
+1246#ifdef CONFIG_RT_MUTEXES
+1247	/* PI waiters blocked on a rt_mutex held by this task */
+1248	struct plist_head pi_waiters;
+1249	/* Deadlock detection and priority inheritance handling */
+1250	struct rt_mutex_waiter *pi_blocked_on;
+1251#endif
+1252
+1253#ifdef CONFIG_DEBUG_MUTEXES
+1254	/* mutex deadlock detection */
+1255	struct mutex_waiter *blocked_on;
+1256#endif
+1257#ifdef CONFIG_TRACE_IRQFLAGS
+1258	unsigned int irq_events;
+1259	unsigned long hardirq_enable_ip;
+1260	unsigned long hardirq_disable_ip;
+1261	unsigned int hardirq_enable_event;
+1262	unsigned int hardirq_disable_event;
+1263	int hardirqs_enabled;
+1264	int hardirq_context;
+1265	unsigned long softirq_disable_ip;
+1266	unsigned long softirq_enable_ip;
+1267	unsigned int softirq_disable_event;
+1268	unsigned int softirq_enable_event;
+1269	int softirqs_enabled;
+1270	int softirq_context;
+1271#endif
+1272#ifdef CONFIG_LOCKDEP
+1273# define MAX_LOCK_DEPTH 48UL
+1274	u64 curr_chain_key;
+1275	int lockdep_depth;
+1276	unsigned int lockdep_recursion;
+1277	struct held_lock held_locks[MAX_LOCK_DEPTH];
+1278	gfp_t lockdep_reclaim_gfp;
+1279#endif
+1280
+1281/* journalling filesystem info */
+1282	void *journal_info;
+1283
+1284/* stacked block device info */
+1285	struct bio_list *bio_list;
+1286
+1287#ifdef CONFIG_BLOCK
+1288/* stack plugging */
+1289	struct blk_plug *plug;
+1290#endif
+1291
+1292/* VM state */
+1293	struct reclaim_state *reclaim_state;
+1294
+1295	struct backing_dev_info *backing_dev_info;
+1296
+1297	struct io_context *io_context;
+1298
+1299	unsigned long ptrace_message;
+1300	siginfo_t *last_siginfo; /* For ptrace use.  */
+1301	struct task_io_accounting ioac;
+1302#if defined(CONFIG_TASK_XACCT)
+1303	u64 acct_rss_mem1;	/* accumulated rss usage */
+1304	u64 acct_vm_mem1;	/* accumulated virtual memory usage */
+1305	cputime_t acct_timexpd;	/* stime + utime since last update */
+1306#endif
+1307#ifdef CONFIG_CPUSETS
+1308	nodemask_t mems_allowed;	/* Protected by alloc_lock */
+1309	seqcount_t mems_allowed_seq;	/* Seqence no to catch updates */
+1310	int cpuset_mem_spread_rotor;
+1311	int cpuset_slab_spread_rotor;
+1312#endif
+1313#ifdef CONFIG_CGROUPS
+1314	/* Control Group info protected by css_set_lock */
+1315	struct css_set __rcu *cgroups;
+1316	/* cg_list protected by css_set_lock and tsk->alloc_lock */
+1317	struct list_head cg_list;
+1318#endif
+1319#ifdef CONFIG_FUTEX
+1320	struct robust_list_head __user *robust_list;
+1321#ifdef CONFIG_COMPAT
+1322	struct compat_robust_list_head __user *compat_robust_list;
+1323#endif
+1324	struct list_head pi_state_list;
+1325	struct futex_pi_state *pi_state_cache;
+1326#endif
+1327#ifdef CONFIG_PERF_EVENTS
+1328	struct perf_event_context *perf_event_ctxp[perf_nr_task_contexts];
+1329	struct mutex perf_event_mutex;
+1330	struct list_head perf_event_list;
+1331#endif
+1332#ifdef CONFIG_NUMA
+1333	struct mempolicy *mempolicy;	/* Protected by alloc_lock */
+1334	short il_next;
+1335	short pref_node_fork;
+1336#endif
+1337#ifdef CONFIG_NUMA_BALANCING
+1338	int numa_scan_seq;
+1339	int numa_migrate_seq;
+1340	unsigned int numa_scan_period;
+1341	u64 node_stamp;			/* migration stamp  */
+1342	struct callback_head numa_work;
+1343#endif /* CONFIG_NUMA_BALANCING */
+1344
+1345	struct rcu_head rcu;
+1346
+1347	/*
+1348	 * cache last used pipe for splice
+1349	 */
+1350	struct pipe_inode_info *splice_pipe;
+1351
+1352	struct page_frag task_frag;
+1353
+1354#ifdef	CONFIG_TASK_DELAY_ACCT
+1355	struct task_delay_info *delays;
+1356#endif
+1357#ifdef CONFIG_FAULT_INJECTION
+1358	int make_it_fail;
+1359#endif
+1360	/*
+1361	 * when (nr_dirtied >= nr_dirtied_pause), it's time to call
+1362	 * balance_dirty_pages() for some dirty throttling pause
+1363	 */
+1364	int nr_dirtied;
+1365	int nr_dirtied_pause;
+1366	unsigned long dirty_paused_when; /* start of a write-and-pause period */
+1367
+1368#ifdef CONFIG_LATENCYTOP
+1369	int latency_record_count;
+1370	struct latency_record latency_record[LT_SAVECOUNT];
+1371#endif
+1372	/*
+1373	 * time slack values; these are used to round up poll() and
+1374	 * select() etc timeout values. These are in nanoseconds.
+1375	 */
+1376	unsigned long timer_slack_ns;
+1377	unsigned long default_timer_slack_ns;
+1378
+1379#ifdef CONFIG_FUNCTION_GRAPH_TRACER
+1380	/* Index of current stored address in ret_stack */
+1381	int curr_ret_stack;
+1382	/* Stack of return addresses for return function tracing */
+1383	struct ftrace_ret_stack	*ret_stack;
+1384	/* time stamp for last schedule */
+1385	unsigned long long ftrace_timestamp;
+1386	/*
+1387	 * Number of functions that haven't been traced
+1388	 * because of depth overrun.
+1389	 */
+1390	atomic_t trace_overrun;
+1391	/* Pause for the tracing */
+1392	atomic_t tracing_graph_pause;
+1393#endif
+1394#ifdef CONFIG_TRACING
+1395	/* state flags for use by tracers */
+1396	unsigned long trace;
+1397	/* bitmask and counter of trace recursion */
+1398	unsigned long trace_recursion;
+1399#endif /* CONFIG_TRACING */
+1400#ifdef CONFIG_MEMCG /* memcg uses this to do batch job */
+1401	struct memcg_batch_info {
+1402		int do_batch;	/* incremented when batch uncharge started */
+1403		struct mem_cgroup *memcg; /* target memcg of uncharge */
+1404		unsigned long nr_pages;	/* uncharged usage */
+1405		unsigned long memsw_nr_pages; /* uncharged mem+swap usage */
+1406	} memcg_batch;
+1407	unsigned int memcg_kmem_skip_account;
+1408#endif
+1409#ifdef CONFIG_HAVE_HW_BREAKPOINT
+1410	atomic_t ptrace_bp_refcnt;
+1411#endif
+1412#ifdef CONFIG_UPROBES
+1413	struct uprobe_task *utask;
+1414#endif
+1415#if defined(CONFIG_BCACHE) || defined(CONFIG_BCACHE_MODULE)
+1416	unsigned int	sequential_io;
+1417	unsigned int	sequential_io_avg;
+1418#endif
+1419};
+}}}
+
+----
+= CPU =
+== 全局变量 ==
+=== cpu_online_bits ===
+{{{
+kernel/kernel/cpu.c
+static DECLARE_BITMAP(cpu_online_bits, CONFIG_NR_CPUS) __read_mostly;
+
+看哪些cpu在线
+}}}
+
+== 数据结构 ==
+
+----
+= memory =
+== 全局变量 ==
+=== high_memory ===
+=== mem_map ===
+=== slab_caches ===
+=== kmem_cache ===
+=== kmalloc_caches ===
+[[linux学习笔记%20－%20内存管理|全局变量]]
+
+== 数据结构 ==
+=== page ===
+[http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/hua.fang_linux_memory_manager_study#page page]
+
+=== kmem_cache ===
+[http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/hua.fang_linux_memory_manager_study#kmem_cache kmem_cache]
+
+=== kmem_cache_cpu ===
+[http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/hua.fang_linux_memory_manager_study#kmem_cache_cpu kmem_cache_cpu]
+
+=== kmem_cache_node ===
+[http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/hua.fang_linux_memory_manager_study#kmem_cache_node kmem_cache_node]
+
+----
+= worker =
+== 全局变量 ==
+=== workqueues ===
+{{{
+/kernel/kernel/workqueue.c
+
+static LIST_HEAD(workqueues);       /* PL: list of all workqueues */
+工作队列
+}}}
+
+== 数据结构 ==
+
+=== workqueue_struct ===
+{{{
+/kernel/kernel/workqueue.c
+
+231/*
+232 * The externally visible workqueue.  It relays the issued work items to
+233 * the appropriate worker_pool through its pool_workqueues.
+234 */
+235struct workqueue_struct {
+236	struct list_head	pwqs;		/* WR: all pwqs of this wq */
+237	struct list_head	list;		/* PL: list of all workqueues */
+238
+239	struct mutex		mutex;		/* protects this wq */
+240	int			work_color;	/* WQ: current work color */
+241	int			flush_color;	/* WQ: current flush color */
+242	atomic_t		nr_pwqs_to_flush; /* flush in progress */
+243	struct wq_flusher	*first_flusher;	/* WQ: first flusher */
+244	struct list_head	flusher_queue;	/* WQ: flush waiters */
+245	struct list_head	flusher_overflow; /* WQ: flush overflow list */
+246
+247	struct list_head	maydays;	/* MD: pwqs requesting rescue */
+248	struct worker		*rescuer;	/* I: rescue worker */
+249
+250	int			nr_drainers;	/* WQ: drain in progress */
+251	int			saved_max_active; /* WQ: saved pwq max_active */
+252
+253	struct workqueue_attrs	*unbound_attrs;	/* WQ: only for unbound wqs */
+254	struct pool_workqueue	*dfl_pwq;	/* WQ: only for unbound wqs */
+255
+256#ifdef CONFIG_SYSFS
+257	struct wq_device	*wq_dev;	/* I: for sysfs interface */
+258#endif
+259#ifdef CONFIG_LOCKDEP
+260	struct lockdep_map	lockdep_map;
+261#endif
+262	char			name[WQ_NAME_LEN]; /* I: workqueue name */
+263
+264	/* hot fields used during command issue, aligned to cacheline */
+265	unsigned int		flags ____cacheline_aligned; /* WQ: WQ_* flags */
+266	struct pool_workqueue __percpu *cpu_pwqs; /* I: per-cpu pwqs */
+267	struct pool_workqueue __rcu *numa_pwq_tbl[]; /* FR: unbound pwqs indexed by node */
+268};
+}}}
+
+=== pool_workqueue ===
+{{{
+/kernel/kernel/workqueue.c
+
+190/*
+191 * The per-pool workqueue.  While queued, the lower WORK_STRUCT_FLAG_BITS
+192 * of work_struct->data are used for flags and the remaining high bits
+193 * point to the pwq; thus, pwqs need to be aligned at two's power of the
+194 * number of flag bits.
+195 */
+196struct pool_workqueue {
+197	struct worker_pool	*pool;		/* I: the associated pool */
+198	struct workqueue_struct *wq;		/* I: the owning workqueue */
+199	int			work_color;	/* L: current color */
+200	int			flush_color;	/* L: flushing color */
+201	int			refcnt;		/* L: reference count */
+202	int			nr_in_flight[WORK_NR_COLORS];
+203						/* L: nr of in_flight works */
+204	int			nr_active;	/* L: nr of active works */
+205	int			max_active;	/* L: max active works */
+206	struct list_head	delayed_works;	/* L: delayed works */
+207	struct list_head	pwqs_node;	/* WR: node on wq->pwqs */
+208	struct list_head	mayday_node;	/* MD: node on wq->maydays */
+209
+210	/*
+211	 * Release of unbound pwq is punted to system_wq.  See put_pwq()
+212	 * and pwq_unbound_release_workfn() for details.  pool_workqueue
+213	 * itself is also sched-RCU protected so that the first pwq can be
+214	 * determined without grabbing wq->mutex.
+215	 */
+216	struct work_struct	unbound_release_work;
+217	struct rcu_head		rcu;
+218} __aligned(1 << WORK_STRUCT_FLAG_BITS);
+}}}
+
+=== worker_pool ===
+{{{
+/kernel/kernel/workqueue.c
+
+114/*
+115 * Structure fields follow one of the following exclusion rules.
+116 *
+117 * I: Modifiable by initialization/destruction paths and read-only for
+118 *    everyone else.
+119 *
+120 * P: Preemption protected.  Disabling preemption is enough and should
+121 *    only be modified and accessed from the local cpu.
+122 *
+123 * L: pool->lock protected.  Access with pool->lock held.
+124 *
+125 * X: During normal operation, modification requires pool->lock and should
+126 *    be done only from local cpu.  Either disabling preemption on local
+127 *    cpu or grabbing pool->lock is enough for read access.  If
+128 *    POOL_DISASSOCIATED is set, it's identical to L.
+129 *
+130 * MG: pool->manager_mutex and pool->lock protected.  Writes require both
+131 *     locks.  Reads can happen under either lock.
+132 *
+133 * PL: wq_pool_mutex protected.
+134 *
+135 * PR: wq_pool_mutex protected for writes.  Sched-RCU protected for reads.
+136 *
+137 * WQ: wq->mutex protected.
+138 *
+139 * WR: wq->mutex protected for writes.  Sched-RCU protected for reads.
+140 *
+141 * MD: wq_mayday_lock protected.
+142 */
+143
+144/* struct worker is defined in workqueue_internal.h */
+145
+146struct worker_pool {
+147	spinlock_t		lock;		/* the pool lock */
+148	int			cpu;		/* I: the associated cpu */
+149	int			node;		/* I: the associated node ID */
+150	int			id;		/* I: pool ID */
+151	unsigned int		flags;		/* X: flags */
+152
+153	struct list_head	worklist;	/* L: list of pending works */
+154	int			nr_workers;	/* L: total number of workers */
+155
+156	/* nr_idle includes the ones off idle_list for rebinding */
+157	int			nr_idle;	/* L: currently idle ones */
+158
+159	struct list_head	idle_list;	/* X: list of idle workers */
+160	struct timer_list	idle_timer;	/* L: worker idle timeout */
+161	struct timer_list	mayday_timer;	/* L: SOS timer for workers */
+162
+163	/* a workers is either on busy_hash or idle_list, or the manager */
+164	DECLARE_HASHTABLE(busy_hash, BUSY_WORKER_HASH_ORDER);
+165						/* L: hash of busy workers */
+166
+167	/* see manage_workers() for details on the two manager mutexes */
+168	struct mutex		manager_arb;	/* manager arbitration */
+169	struct mutex		manager_mutex;	/* manager exclusion */
+170	struct idr		worker_idr;	/* MG: worker IDs and iteration */
+171
+172	struct workqueue_attrs	*attrs;		/* I: worker attributes */
+173	struct hlist_node	hash_node;	/* PL: unbound_pool_hash node */
+174	int			refcnt;		/* PL: refcnt for unbound pools */
+175
+176	/*
+177	 * The current concurrency level.  As it's likely to be accessed
+178	 * from other CPUs during try_to_wake_up(), put it in a separate
+179	 * cacheline.
+180	 */
+181	atomic_t		nr_running ____cacheline_aligned_in_smp;
+182
+183	/*
+184	 * Destruction of pool is sched-RCU protected to allow dereferences
+185	 * from get_work_pool().
+186	 */
+187	struct rcu_head		rcu;
+188} ____cacheline_aligned_in_smp;
+}}}
+
+=== worker ===
+{{{
+/kernel/kernel/workqueue_internal.h
+
+15/*
+16 * The poor guys doing the actual heavy lifting.  All on-duty workers are
+17 * either serving the manager role, on idle list or on busy hash.  For
+18 * details on the locking annotation (L, I, X...), refer to workqueue.c.
+19 *
+20 * Only to be used in workqueue and async.
+21 */
+22struct worker {
+23	/* on idle list while idle, on busy hash table while busy */
+24	union {
+25		struct list_head	entry;	/* L: while idle */
+26		struct hlist_node	hentry;	/* L: while busy */
+27	};
+28
+29	struct work_struct	*current_work;	/* L: work being processed */
+30	work_func_t		current_func;	/* L: current_work's fn */
+31	struct pool_workqueue	*current_pwq; /* L: current_work's pwq */
+32	bool			desc_valid;	/* ->desc is valid */
+33	struct list_head	scheduled;	/* L: scheduled works */
+34
+35	/* 64 bytes boundary on 64bit, 32 on 32bit */
+36
+37	struct task_struct	*task;		/* I: worker task */
+38	struct worker_pool	*pool;		/* I: the associated pool */
+39						/* L: for rescuers */
+40
+41	unsigned long		last_active;	/* L: last active timestamp */
+42	unsigned int		flags;		/* X: flags */
+43	int			id;		/* I: worker id */
+44
+45	/*
+46	 * Opaque string set with work_set_desc().  Printed out with task
+47	 * dump for debugging - WARN, BUG, panic or sysrq.
+48	 */
+49	char			desc[WORKER_DESC_LEN];
+50
+51	/* used only by rescuers to point to the target workqueue */
+52	struct workqueue_struct	*rescue_wq;	/* I: the workqueue to rescue */
+53};
+}}}
+
+----
+= irq =
+== 全局变量 ==
+=== irq_desc ===
+{{{
+kernel/kernel/irq/irqdesc.c
+
+struct irq_desc irq_desc[NR_IRQS]
+irq中断信息
+}}}
+
+----
+= SIPC =
+== 全局变量 ==
+=== mem_pool ===
+{{{
+kernel/drivers/sipc/smem.c
+
+static struct smem_pool     mem_pool;
+
+smem池
+成员变量smem_head放着已分配的smem，可以用(struct smem_record*)list_node来看内容
+}}}
+
+=== smsg_ipcs ===
+{{{
+kernel/drivers/sipc/smsg.c
+
+static struct smsg_ipc *smsg_ipcs[SIPC_ID_NR];
+smsg信息，按通道来看smsg
+}}}
+
+=== sbufs ===
+{{{
+kernel/drivers/sipc/sbuf.c
+
+static struct sbuf_mgr *sbufs[SIPC_ID_NR][SMSG_CH_NR];
+
+sbuf里的内容
+现有32个双向通道，即有64个通道，逢单为AP->CP，逢双为CP->AP
+}}}
+
+== 数据结构 ==
+=== SIPC ID ===
+{{{
+29/* sipc processor ID definition */
+30enum {
+31	SIPC_ID_AP = 0,		/* Application Processor */
+32	SIPC_ID_CPT,		/* TD processor */
+33	SIPC_ID_CPW,		/* WCDMA processor */
+34	SIPC_ID_WCN,		/* Wireless Connectivity */
+35	SIPC_ID_GGE, 		/* Gsm Gprs Edge processor */
+36	SIPC_ID_LTE, 		/* LTE processor */
+37  SIPC_ID_PMIC,
+38	SIPC_ID_NR,		/* total processor number */
+39};
+}}}
+
+=== SIPC channel ===
+{{{
+49/* smsg channel definition */
+50enum {
+51	SMSG_CH_CTRL = 0,	/* some emergency control */
+52	SMSG_CH_COMM,		/* general communication channel */
+53	SMSG_CH_RPC_AP,		/* RPC server channel in AP side */
+54	SMSG_CH_RPC_CP,		/* RPC server channel in CP side */
+55	SMSG_CH_PIPE,		/* general pipe channel */
+56	SMSG_CH_PLOG,		/* pipe for debug log/dump */
+57	SMSG_CH_TTY,		/* virtual serial for telephony */
+58	SMSG_CH_DATA0,		/* 2G/3G wirleless data */
+59	SMSG_CH_DATA1,		/* 2G/3G wirleless data */
+60	SMSG_CH_DATA2,		/* 2G/3G wirleless data */
+61	SMSG_CH_VBC,		/* audio conrol channel */
+62	SMSG_CH_PLAYBACK, 	/* audio playback channel */
+63	SMSG_CH_CAPTURE,	/* audio capture channel */
+64	SMSG_CH_MONITOR_AUDIO,	/* audio monitor channel */
+65	SMSG_CH_CTRL_VOIP,	/* audio voip conrol channel */
+66	SMSG_CH_PLAYBACK_VOIP, 	/* audio voip playback channel */
+67	SMSG_CH_CAPTURE_VOIP,	/* audio voip capture channel */
+68	SMSG_CH_MONITOR_VOIP,	/* audio voip monitor channel */
+69	SMSG_CH_NR,		/* total channel number */
+70};
+}}}
+
+=== SMSG type ===
+{{{
+72/* smsg type definition */
+73enum {
+74	SMSG_TYPE_NONE = 0,
+75	SMSG_TYPE_OPEN,		/* first msg to open a channel */
+76	SMSG_TYPE_CLOSE,	/* last msg to close a channel */
+77	SMSG_TYPE_DATA,		/* data, value=addr, no ack */
+78	SMSG_TYPE_EVENT,	/* event with value, no ack */
+79	SMSG_TYPE_CMD,		/* command, value=cmd */
+80	SMSG_TYPE_DONE,		/* return of command */
+81	SMSG_TYPE_SMEM_ALLOC,	/* allocate smem, flag=order */
+82	SMSG_TYPE_SMEM_FREE,	/* free smem, flag=order, value=addr */
+83	SMSG_TYPE_SMEM_DONE,	/* return of alloc/free smem */
+84	SMSG_TYPE_FUNC_CALL,	/* RPC func, value=addr */
+85	SMSG_TYPE_FUNC_RETURN,	/* return of RPC func */
+86	SMSG_TYPE_DIE,
+87	SMSG_TYPE_NR,		/* total type number */
+88};
+}}}
+
+----
+= FB =
+== 全局变量 ==
+=== registered_fb ===
+{{{
+registered_fb[0].fix.smem_start is the address for framebuffer.
+It's phycial address, should transform to virtual address.
+
+d.image 0xdd700000 480. 800. /RGB32
+}}}
+

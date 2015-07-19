@@ -1,0 +1,461 @@
+&MHz=0xF4240  
+&KHz=(&MHz/0x3E8)  
+ 
+;TShark config  
+&ADI_BASE_ADDR=0x40030000  
+&ADI_ARM_RD_CMD=(&ADI_BASE_ADDR+0x24)  
+&ADI_RD_DATA=(&ADI_BASE_ADDR+0x28)  
+&PLL_BASE=0x402E3000  
+&MPLL_CFG=(&PLL_BASE+0x0)  
+&MPLL_CFG1=(&MPLL_CFG+0x70)  
+&DPLL_CFG=(&PLL_BASE+0x4)  
+&DPLL_CFG1=(&DPLL_CFG+0x70)  
+&TDPLL_CFG=(&PLL_BASE+0x8)  
+&TDPLL_CFG1=(&TDPLL_CFG+0x70)  
+&CPLL_CFG=(&PLL_BASE+0xC)  
+&CPLL_CFG1=(&CPLL_CFG+0x70)  
+&WIFI0PLL_CFG=(&PLL_BASE+0x10)  
+&WIFI0PLL_CFG1=(&WIFI0PLL_CFG+0x70)  
+&WIFI1PLL_CFG=(&PLL_BASE+0x14)  
+&WIFI1PLL_CFG1=(&WIFI1PLL_CFG+0x70)  
+&WPLL_CFG=(&PLL_BASE+0x18)  
+&WPLL_CFG1=(&PLL_BASE+0x1C)  
+&CA7_AHB_CKG_CFG=0x20D03000  
+ 
+&DAP_BASE=0x80030000  
+&DAP_CPU0=(&DAP_BASE+0x0000)  
+&DAP_CPU1=(&DAP_BASE+0x2000)  
+&DAP_CPU2=(&DAP_BASE+0x4000)  
+&DAP_CPU3=(&DAP_BASE+0x6000)  
+&MEM_BASE=0x30000000  
+&ANA_DIE_BASE=0x40038800  
+&ANA_STATUS=(&ANA_DIE_BASE+0x00E4)  
+&ANA_MP_MISC_CTRL=(&ANA_DIE_BASE+0x0148)  
+&ARM_BIT_OFFSET=0x6  
+&CORE_BIT_OFFSET=0x3  
+&DCDC_CORE_ADI=(&ANA_DIE_BASE+0x0160)  
+&DCDC_ARM_ADI=(&ANA_DIE_BASE+0x0164)  
+&EMC_CKG_CFG=0x402D0024  
+;TShark config end  
+ 
+&MPLL_FREQ=0  
+&DPLL_FREQ=0  
+&TDPLL_FREQ=0  
+&CPLL_FREQ=0  
+&WIFIPLL1_FREQ=0  
+&WIFIPLL2_FREQ=0  
+&WPLL_FREQ=0  
+ 
+SYStem.Mode Down  
+SYStem.RESet  
+SYStem.JtagClock 10MHz  
+SYStem.CPU CortexA7MPCore  
+SYStem.CONFIG CoreNumber 4  
+CORE.ASSIGN 1 2 3 4  
+;SYStem.CONFIG.COREDEBUG.Base   0x80030000 0x80032000 0x80034000 0x80036000  
+SYStem.CONFIG.COREBase  0x80030000 0x80032000 0x80034000 0x80036000  
+ 
+IF ICD()  
+(  
+        TrOnchip.Set DABORT OFF  
+        TrOnchip.Set PABORT OFF  
+        TrOnchip.Set UNDEF OFF  
+        TrOnchip.Set RESET OFF  
+ 
+        Break.SELect.Program Onchip  
+        Break.SELect.Read Onchip  
+        Break.SELect.Write Onchip  
+ 
+        SYStem.CONFIG MEMORYACCESSPORT 0  
+        SYStem.CONFIG DEBUGACCESSPORT 1  
+        SYStem.CONFIG JTAGACCESSPORT 2  
+        ;SYStem.CONFIG COREACCESSPORT 0  
+ 
+        SYStem.MemAccess DAP  
+        SYStem.CpuAccess Enable  
+        SYStem.Mode PREPARE ;Attach ;Up  
+ 
+        WINCLEAR INFOS  
+        AREA.CREATE INFOS 80. 80.  
+        WinPOS 0,0,,,,, INFOS  
+        AREA.VIEW INFOS  
+        AREA.CLEAR INFOS  
+        AREA.SELECT INFOS  
+         
+        PRINT "------------TShark CHECK V0.1------------------"  
+        PRINT "------------------ PLL CHECK ------------------"  
+        GOSUB PLL_CHECK "MPLL    " &MPLL_CFG &MPLL_CFG1  
+        ENTRY &MPLL_FREQ  
+        GOSUB PLL_CHECK "DPLL    " &DPLL_CFG &DPLL_CFG1  
+        ENTRY &DPLL_FREQ  
+        GOSUB PLL_CHECK "TDPLL   " &TDPLL_CFG &TDPLL_CFG1  
+        ENTRY &TDPLL_FREQ  
+        GOSUB PLL_CHECK "CPLL    " &CPLL_CFG &CPLL_CFG1  
+        ENTRY &CPLL_FREQ  
+        GOSUB PLL_CHECK "WIFIPLL1" &WIFI0PLL_CFG &WIFI0PLL_CFG1  
+        ENTRY &WIFIPLL1_FREQ  
+        GOSUB PLL_CHECK "WIFIPLL2" &WIFI1PLL_CFG &WIFI1PLL_CFG1  
+        ENTRY &WIFIPLL2_FREQ  
+        GOSUB PLL_CHECK "WPLL    " &WPLL_CFG &WPLL_CFG1  
+         ENTRY &WPLL_FREQ  
+         PRINT "------------------ CA7 CHECK ------------------"  
+         GOSUB CA7_CHECK &CA7_AHB_CKG_CFG  
+         PRINT "------------------ VOL CHECK ------------------"  
+         GOSUB VOL_CHECK "VDDARM " &DCDC_ARM_ADI &ANA_MP_MISC_CTRL &ARM_BIT_OFFSET  
+         GOSUB VOL_CHECK "VDDCORE" &DCDC_CORE_ADI &ANA_MP_MISC_CTRL &CORE_BIT_OFFSET  
+         PRINT "------------------ CA7 CHECK ------------------"  
+         GOSUB CPU_CHECK "CPU0   " &DAP_CPU0  
+         GOSUB CPU_CHECK "CPU1   " &DAP_CPU1  
+        GOSUB CPU_CHECK "CPU2   " &DAP_CPU2  
+        GOSUB CPU_CHECK "CPU3   " &DAP_CPU3  
+        PRINT "------------------ MEM CHECK ------------------"  
+        GOSUB EMC_CHECK &EMC_CKG_CFG  
+        GOSUB MEM_CHECK &MEM_BASE  
+         
+        SYStem.Mode Down  
+)  
+ 
+ENDDO  
+ 
+EMC_CKG_SELECT:  
+        LOCAL &SEL  
+        ENTRY &SEL  
+        IF (0==&SEL)  
+        (  
+                PRINT "EMC SELECT 26MHz"  
+                RETURN 0x1A*&MHz  
+        )  
+        ELSE IF (1==&SEL)  
+        (  
+                PRINT "EMC SELECT CPLL"  
+                RETURN &CPLL_FREQ  
+        )  
+        ELSE IF (2==&SEL)  
+        (  
+                PRINT "EMC SELECT TDPLL"  
+                RETURN &TDPLL_FREQ  
+        )  
+        ELSE IF (3==&SEL)  
+        (  
+                PRINT "EMC SELECT DPLL"  
+                RETURN &DPLL_FREQ  
+        )  
+        RETURN 0x1A*&MHz  
+;END EMC_CKG_SELECT  
+ 
+ 
+ 
+EMC_CHECK:  
+        LOCAL &VAL &DIV &FREQ &CKG_CFG  
+        ENTRY &CKG_CFG  
+        GOSUB READ_REG32 &CKG_CFG  
+        ENTRY &VAL  
+        GOSUB EMC_CKG_SELECT (&VAL&0x7)  
+        ENTRY &FREQ  
+        &DIV=(1+(&VAL>>0x8)&0x3)  
+        PRINT "EMC DIV is 1/" %D &DIV " " %D (&FREQ/&DIV/&KHz) " KHz"  
+        RETURN  
+;END EMC_CHECK  
+ 
+ 
+CA7_MCU_CKG_SELECT:  
+        LOCAL &SEL  
+        ENTRY &SEL  
+        IF (0==&SEL)  
+        (  
+                PRINT "MCU SELECT 26MHz"  
+                RETURN 0x1A*&MHz  
+        )  
+        ELSE IF (1==&SEL)  
+        (  
+                PRINT "MCU SELECT DPLL"  
+                RETURN &DPLL_FREQ  
+        )  
+        ELSE IF (2==&SEL)  
+        (  
+                PRINT "MCU SELECT CPLL"  
+                RETURN &CPLL_FREQ  
+        )  
+        ELSE IF (3==&SEL)  
+        (  
+                PRINT "MCU SELECT TDPLL"  
+                RETURN &TDPLL_FREQ  
+        )  
+        ELSE IF (4==&SEL)  
+        (  
+                PRINT "MCU SELECT WIFIPLL1"  
+                RETURN &WIFIPLL1_FREQ  
+        )  
+        ELSE IF (5==&SEL)  
+        (  
+                PRINT "MCU SELECT WPLL"  
+                RETURN &WPLL_FREQ  
+        )  
+        ELSE IF (6==&SEL)  
+        (  
+                PRINT "MCU SELECT MPLL"  
+                RETURN &MPLL_FREQ  
+        )  
+        RETURN 0x1A*&MHz  
+;END CA7_MCU_CKG_SELECT  
+ 
+CA7_CHECK:  
+        LOCAL &VAL &DIV &FREQ &CKG_CFG  
+        ENTRY &CKG_CFG  
+        GOSUB READ_REG32 &CKG_CFG  
+        ENTRY &VAL  
+        GOSUB CA7_MCU_CKG_SELECT (&VAL&0x7)  
+        ENTRY &FREQ  
+        &DIV=(1+(&VAL>>0x4)&0x7)  
+        PRINT "MCU DIV is 1/" %D &DIV " " %D (&FREQ/&DIV/&KHz) " KHz"  
+        &DIV=(1+(&VAL>>0x8)&0x7)  
+        PRINT "AXI DIV is 1/" %D &DIV " " %D (&FREQ/&DIV/&KHz) " KHz"  
+        &DIV=(1+(&VAL>>0x10)&0x7)  
+        PRINT "DBG DIV is 1/" %D &DIV " " %D (&FREQ/&DIV/&KHz) " KHz"  
+        RETURN  
+;END CA7_CHECK  
+ 
+VOL_CHECK:  
+        LOCAL &NAME &DCDC_VOL_ADI &MP_MISC_REG &BIT_OFFSET &VOL  
+        ENTRY &NAME &DCDC_VOL_ADI &MP_MISC_REG &BIT_OFFSET  
+        GOSUB VOL_GET &DCDC_VOL_ADI &MP_MISC_REG &BIT_OFFSET  
+        ENTRY &VOL  
+        PRINT &NAME " is " %D &VOL " mv (NOTE: calibration will cause some offset)"  
+;END VOL_CHECK  
+ 
+VOL_LEVEL_CHANGE:  
+        LOCAL &LEVEL  
+        ENTRY &LEVEL  
+        IF (0==&LEVEL)  
+        (  
+                RETURN 0x44C ;1100mv  
+        )  
+        ELSE IF (1==&LEVEL)  
+        (  
+                RETURN 0x2BC ;700mv  
+        )  
+        ELSE IF (2==&LEVEL)  
+        (  
+                RETURN 0x320 ;800mv  
+        )  
+        ELSE IF (3==&LEVEL)  
+        (  
+                RETURN 0x384 ;900mv  
+        )  
+        ELSE IF (4==&LEVEL)  
+        (  
+                RETURN 0x3E8 ;1000mv  
+        )  
+        ELSE IF (5==&LEVEL)  
+        (  
+                RETURN 0x28A ;650mv  
+        )  
+        ELSE IF (6==&LEVEL)  
+        (  
+                RETURN 0x4B0 ;1200mv  
+        )  
+        ELSE IF (7==&LEVEL)  
+        (  
+                RETURN 0x514 ;1300mv  
+        )  
+        RETURN 0x384  
+;END VOL_LEVEL_CHANGE  
+ 
+ 
+VOL_GET:  
+        LOCAL &BONDOPT6 &VOL &VAL &CAL_SW_ADI &DCDC_VOL_ADI &MP_MISC_REG &BIT_OFFSET  
+        ENTRY &DCDC_VOL_ADI &MP_MISC_REG &BIT_OFFSET  
+        GOSUB ADI_READ &ANA_STATUS  
+        ENTRY &VAL  
+        &BONDOPT6=(&VAL>>0x6)&1  
+        GOSUB ADI_READ &DCDC_VOL_ADI  
+        ENTRY &VAL  
+        &CAL_SW_ADI=&VAL&0x1F  
+        IF (0==&BONDOPT6)  
+        (  
+                &VOL=(&VAL>>0x5)&0x7  
+        )  
+        ELSE  
+        (  
+                GOSUB ADI_READ &MP_MISC_REG  
+                ENTRY &VAL  
+                &VOL=(&VAL>>&BIT_OFFSET)&0x7  
+        )  
+        GOSUB VOL_LEVEL_CHANGE &VOL  
+        ENTRY &VOL  
+        &VOL=&VOL+((&CAL_SW_ADI*0x64)>>0x5)  
+        RETURN &VOL  
+;END VOL_GET  
+ 
+ 
+REG_CHANGE_CHECK:  
+        LOCAL &REG &VAL &PRE_VAL &CHANGE &SAMPLE_COUNT &XOR  
+        ENTRY &REG &SAMPLE_COUNT &XOR  
+        IF (1==&XOR)  
+        (  
+                &CHANGE=0xFFFFFFFF  
+        )  
+        ELSE  
+        (  
+                &CHANGE=0  
+                &PRE_VAL=DATA.LONG(&REG)  
+        )  
+LOCAL_SAMPLE:  
+        &VAL=DATA.LONG(&REG)  
+        ;debug info ;PRINT "&REG" " = " &VAL  
+        IF (1==&XOR)  
+        (  
+                &CHANGE=&CHANGE&&VAL  
+        )  
+        ELSE  
+        (  
+                IF (&PRE_VAL!=&VAL)  
+                (  
+                        &CHANGE=1  
+                )  
+                &PRE_VAL=&VAL;  
+        )  
+        &SAMPLE_COUNT=&SAMPLE_COUNT-1  
+        IF (0!=&SAMPLE_COUNT)  
+        (  
+                GOTO LOCAL_SAMPLE  
+        )  
+        RETURN &CHANGE &VAL  
+;END REG_CHANGE_CHECK  
+ 
+MEM_CHECK:  
+        LOCAL &MEM_ADDR &VAL &MEM_CHANGE &DDR_IN_NORMAL  
+        ENTRY &MEM_ADDR  
+        &DDR_IN_NORMAL=1  
+        GOSUB REG_CHANGE_CHECK EAHB:(&MEM_ADDR+0x3FC) 0x200 1  
+        ENTRY &MEM_CHANGE &VAL  
+        IF (0!=&MEM_CHANGE)  
+        (  
+                PRINT "DDR Port Busy? 0x03FC=0x" &MEM_CHANGE  
+                PRINT "DDR 0x0004=0x" DATA.LONG(EAHB:(&MEM_ADDR+0x4))  
+                PRINT "DDR 0x0308=0x" DATA.LONG(EAHB:(&MEM_ADDR+0x308))  
+                PRINT "DDR 0x0004=0x" DATA.LONG(EAHB:(&MEM_ADDR+0x4))  
+                PRINT "DDR 0x0308=0x" DATA.LONG(EAHB:(&MEM_ADDR+0x308))  
+                PRINT "DDR 0x0004=0x" DATA.LONG(EAHB:(&MEM_ADDR+0x4))  
+                PRINT "DDR 0x0308=0x" DATA.LONG(EAHB:(&MEM_ADDR+0x308))  
+                PRINT "DDR 0x0004=0x" DATA.LONG(EAHB:(&MEM_ADDR+0x4))  
+                PRINT "DDR 0x0308=0x" DATA.LONG(EAHB:(&MEM_ADDR+0x308))  
+                &DDR_IN_NORMAL=0  
+        )  
+         
+        IF (1==&DDR_IN_NORMAL)  
+        (  
+                PRINT "DDR IN Normal"  
+        )  
+        RETURN  
+;END MEM_CHECK   
+ 
+CPU_CHECK:  
+        LOCAL &NAME &CPU_DAP &VAL &PC_CHANGE  
+        ENTRY &NAME &CPU_DAP  
+        GOSUB REG_CHANGE_CHECK EAPB:(&CPU_DAP+0x84) 0x200 0  
+        ENTRY &PC_CHANGE &VAL  
+        IF (1==&PC_CHANGE)  
+        (  
+                PRINT &NAME " Running"  
+        )  
+        ELSE  
+        (  
+                IF (0x00000000==&VAL)  
+                (  
+                        PRINT &NAME " Shutdown?"  
+                )  
+                ELSE IF (0xFFFFFFFF==&VAL)  
+                (  
+                        PRINT &NAME " IN Debugger?"  
+                )  
+                ELSE  
+                (  
+                        PRINT &NAME " Hold? PC=0x" &VAL  
+                )  
+        )  
+        RETURN  
+;END CPU_CHECK   
+ 
+ 
+PLL_CHECK:  
+        LOCAL &NAME &PLL_REG &PLL_REG1 &VAL &VAL1 &DIV_S &SDM_EN &PLL &REFIN  
+        ENTRY &NAME &PLL_REG &PLL_REG1  
+        GOSUB READ_REG32 &PLL_REG1  
+        ENTRY &VAL1  
+        GOSUB READ_REG32 &PLL_REG  
+        ENTRY &VAL  
+        &DIV_S=(1<<0xA)  
+        &DIV_S=&VAL1&&DIV_S  
+        &SDM_EN=(1<<0x6)  
+        &SDM_EN=&VAL1&&SDM_EN  
+        &REFIN=(&VAL>>0x18)&0x3  
+        GOSUB GET_REFIN_CLK &REFIN  
+        ENTRY &REFIN  
+        IF (0==&DIV_S)  
+        (  
+                LOCAL &N  
+                &N=&VAL&0x3F  
+                &PLL=&REFIN*&N  
+        )  
+        ELSE  
+        (  
+                IF (0==&SDM_EN)  
+                (  
+                        LOCAL &NINT  
+                        &NINT=&VAL1&0x3F  
+                        &PLL=&REFIN*&NINT  
+                )  
+                ELSE  
+                (  
+                        LOCAL &NINT &KINT  
+                        &NINT=&VAL1&0x3F  
+                        &KINT=(&VAL1>>0xC)&0xFFFFF  
+                        &PLL=&REFIN*&NINT+&REFIN*&KINT/(1<<0x14)  
+                )  
+        )  
+        PRINT &NAME " " %D (&PLL/&KHz) " KHz"  
+        RETURN &PLL  
+;END PLL_CHECK  
+ 
+GET_REFIN_CLK:  
+        LOCAL &REFIN  
+        ENTRY &REFIN  
+        IF (&REFIN==0)  
+        (  
+                RETURN 0x2*&MHz  
+        )  
+        ELSE IF (&REFIN==1)  
+        (  
+                RETURN 0x4*&MHz  
+        )  
+        ELSE IF (&REFIN==2)  
+        (  
+                RETURN 0xD*&MHz  
+        )  
+        ELSE IF (&REFIN==3)  
+        (  
+                RETURN 0x1A*&MHz  
+        )  
+        RETURN  
+;END GET_REFIN_CLK  
+ 
+READ_REG32:  
+        LOCAL &VAL &REG  
+        ENTRY &REG  
+        &VAL=DATA.LONG(EAHB:&REG)  
+        RETURN &VAL  
+;END READ_REG32  
+ 
+ADI_READ:  
+        LOCAL &VAL &REG  
+        ENTRY &REG  
+        D.S ENAHB:&ADI_ARM_RD_CMD %LE %LONG &REG  
+READ_LOOP:  
+        &VAL=DATA.LONG(EAHB:&ADI_RD_DATA)  
+        IF (0x80000000==(&VAL&0x80000000))  
+        (  
+                GOTO READ_LOOP  
+        )  
+        RETURN (&VAL&0xFFFF)  
+;END ADI_READ  

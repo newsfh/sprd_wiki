@@ -1,0 +1,63 @@
+diff --git a/drivers/sipc/spipe.c b/drivers/sipc/spipe.c
+index 0cee34fb..5218273 100644
+--- a/drivers/sipc/spipe.c
++++ b/drivers/sipc/spipe.c
+@@ -76,18 +76,34 @@ static int spipe_release(struct inode *inode, struct file *filp)
+ 	return 0;
+ }
+ 
++void print_buf(char* buf, int len)
++{
++	int i;
++	for (i = 0; i < len; i++)
++		printk("%x ", buf[i]);
++	printk("\n");
++}
++
+ static ssize_t spipe_read(struct file *filp,
+ 		char __user *buf, size_t count, loff_t *ppos)
+ {
+ 	struct spipe_sbuf *sbuf = filp->private_data;
+ 	int timeout = -1;
++	ssize_t mysize;
+ 
+ 	if (filp->f_flags & O_NONBLOCK) {
+ 		timeout = 0;
+ 	}
+ 
+-	return sbuf_read(sbuf->dst, sbuf->channel, sbuf->bufid,
++	mysize = sbuf_read(sbuf->dst, sbuf->channel, sbuf->bufid,
+ 			(void *)buf, count, timeout);
++
++if (sbuf->dst == 5 && sbuf->channel == 5) {
++	printk("%s: ", __FUNCTION__);
++	print_buf(buf, mysize);
++}
++
++	return mysize;
+ }
+ 
+ static ssize_t spipe_write(struct file *filp,
+@@ -95,13 +111,21 @@ static ssize_t spipe_write(struct file *filp,
+ {
+ 	struct spipe_sbuf *sbuf = filp->private_data;
+ 	int timeout = -1;
++	ssize_t mysize;
+ 
+ 	if (filp->f_flags & O_NONBLOCK) {
+ 		timeout = 0;
+ 	}
+ 
+-	return sbuf_write(sbuf->dst, sbuf->channel, sbuf->bufid,
++	mysize = sbuf_write(sbuf->dst, sbuf->channel, sbuf->bufid,
+ 			(void *)buf, count, timeout);
++
++if (sbuf->dst == 5 && sbuf->channel == 5) {
++	printk("%s: ", __FUNCTION__);
++	print_buf(buf, mysize);
++}
++
++	return mysize;
+ }
+ 
+ static unsigned int spipe_poll(struct file *filp, poll_table *wait)

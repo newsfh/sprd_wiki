@@ -1,0 +1,92 @@
+%toc 目录
+
+----
+=== interactive ===
+==== 介绍 ====
+{{{
+起一个采样timer（默认是20ms），如果该统计时间段内的有效负责大于某值（默认为99％），那它就用最高值
+}}}
+
+==== 代码解读 ====
+{{{
+kernel/drivers/cpufreq/cpufreq_interactive.c
+}}}
+{{{
+static u64 update_load(int cpu)
+{
+    struct cpufreq_interactive_cpuinfo *pcpu = &per_cpu(cpuinfo, cpu);
+    u64 now;
+    u64 now_idle;
+    unsigned int delta_idle;
+    unsigned int delta_time;
+    u64 active_time;
+
+    now_idle = get_cpu_idle_time(cpu, &now);                                // 获得当前idle总数和当前时间戳
+    delta_idle = (unsigned int)(now_idle - pcpu->time_in_idle);             // 与老的idle总数相减，就得到本统计段内的idle总数
+    delta_time = (unsigned int)(now - pcpu->time_in_idle_timestamp);        // 与老的时间戳相减，就得到本统计段内的时间
+
+    if (delta_time <= delta_idle)
+        active_time = 0;
+    else
+        active_time = delta_time - delta_idle;                              // 本统计段的总时间 - idle的总时间 = 本次的总有效时间
+
+    pcpu->cputime_speedadj += active_time * pcpu->policy->cur;              // 本次的总有效时间频率值
+
+    pcpu->time_in_idle = now_idle;
+    pcpu->time_in_idle_timestamp = now;
+    return now;
+}
+}}}
+
+{{{
+static void cpufreq_interactive_timer(unsigned long data)
+{   
+    now = update_load(data);                                                // 更新idle时间，及上一时间段内的有效cpu频率总数
+    delta_time = (unsigned int)(now - pcpu->cputime_speedadj_timestamp);    // 本次的统计时间
+    cputime_speedadj = pcpu->cputime_speedadj;
+    
+    do_div(cputime_speedadj, delta_time);                                   // 本次统计时间内的平均有效频率
+    loadadjfreq = (unsigned int)cputime_speedadj * 100;
+    cpu_load = loadadjfreq / pcpu->target_freq;                             // 本次统计时间段的负载（按100来算），即平均有效频率所占目标频率的比重，如果超过规定值，那就考虑要升频了
+    boosted = boost_val || now < boostpulse_endtime;
+    
+    if (cpu_load >= go_hispeed_load || boosted) {                           // 负载大于规定的比重
+        if (pcpu->target_freq < hispeed_freq) {                             // 如果现在的目标值小于规定hispeed频率，那就选该值（hispeed为最大频率，所以一般都会走这个case）
+            new_freq = hispeed_freq;
+        } else {                                                            // 不然走这个case
+            new_freq = choose_freq(pcpu, loadadjfreq);
+    
+            if (new_freq < hispeed_freq)
+                new_freq = hispeed_freq;
+        }   
+    } else {
+        new_freq = choose_freq(pcpu, loadadjfreq);
+    }
+}
+}}}
+
+==== 文件节点 ====
+{{{
+shell@scx35l_coreprimelite:/sys/devices/system/cpu/cpufreq/interactive # ll
+-rw-r--r-- root     root         4096 2012-01-01 00:05 above_hispeed_delay
+-rw-r--r-- root     root         4096 2012-01-01 00:05 boost
+--w------- root     root         4096 2012-01-01 00:05 boostpulse
+-rw-r--r-- root     root         4096 2012-01-01 00:05 boostpulse_duration
+-rw-r--r-- root     root         4096 2012-01-01 00:05 go_hispeed_load            // 负载线，当负载高于此值时，采用hispeed_freq频率
+-rw-r--r-- root     root         4096 2012-01-01 00:05 hispeed_freq               // 当负载高于go_hispeed_load时，采用该频率
+-rw-r--r-- root     root         4096 2012-01-01 00:05 io_is_busy
+-rw-r--r-- root     root         4096 2012-01-01 00:05 min_sample_time
+-rw-r--r-- root     root         4096 2012-01-01 00:05 target_loads               // 负载值，来算是否要升频或降频
+-rw-r--r-- root     root         4096 2012-01-01 00:05 timer_rate                 // 采样率
+-rw-r--r-- root     root         4096 2012-01-01 00:05 timer_slack
+}}}
+
+----
+=== 附件 ===
+[[local:files/interactive_debug.patch|interactive_debug.patch]]
+
+----
+=== 参考资料 ===
+[[http://blog.csdn.net/xujianqun/article/details/7681011|CPU 策略学习：interactive分析，结合代码]]</BR>
+
+

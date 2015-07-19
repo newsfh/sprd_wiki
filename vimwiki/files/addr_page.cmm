@@ -1,0 +1,41 @@
+        WINCLEAR INFOS  
+        AREA.CREATE INFOS 80. 2000.
+        WinPOS 0,0,,,,, INFOS  
+        AREA.VIEW INFOS  
+        AREA.CLEAR INFOS  
+        AREA.SELECT INFOS  
+
+;;;;;;;;;;;;;;;;;;;
+;;;;; CONSTANT ;;;;
+;;;;;;;;;;;;;;;;;;;
+	&MEM_MAP_ADDR=v.value(mem_map)
+	&PAGE_SIZE=v.value(sizeof(struct page))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; ADDR_TO_PAGE		--  内存地址转page地址
+; PAGE_TO_ADDR		--  page地址转内存地址
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+GOSUB PAGE_TO_ADDR 0xC12E8D20
+GOSUB ADDR_TO_PAGE 0xEBCA7000
+print "OK"
+enddo
+
+ADDR_TO_PAGE:
+	LOCAL &addr_ptr
+	ENTRY &addr_ptr
+
+	print "addr " &addr_ptr " => page " &MEM_MAP_ADDR+((&addr_ptr-0xc0000000)>>12.)*&PAGE_SIZE
+
+	RETURN
+; END ADDR_TO_PAGE
+
+PAGE_TO_ADDR:
+	LOCAL &page_ptr
+	ENTRY &page_ptr
+
+	print "page " &page_ptr " => address "  (((&page_ptr-&MEM_MAP_ADDR)/&PAGE_SIZE)<<12.)+0xc0000000
+
+	RETURN
+; END PAGE_TO_ADDR

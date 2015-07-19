@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>linux学习笔记 － 同步机制</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_1">Mutex</a>
+<ul>
+<li><a href="#toc_1.1">调试</a>
+</ul>
+<li><a href="#toc_2">RCU</a>
+<ul>
+<li><a href="#toc_2.1">Overview</a>
+<li><a href="#toc_2.2">调试</a>
+<ul>
+<li><a href="#toc_2.2.1">全局变量</a>
+</ul>
+<li><a href="#toc_2.3">参考资料</a>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h1 id="toc_1">Mutex</h1>
+<h2 id="toc_1.1">调试</h2>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mutex_debug.PNG" />
+</p>
+
+<hr />
+<h1 id="toc_2">RCU</h1>
+<h2 id="toc_2.1">Overview</h2>
+<pre>
+RCU(Read-Copy Update)，顾名思义就是读-拷贝修改，它是基于其原理命名的。
+对于被RCU保护的共享数据结构，读者不需要获得任何锁就可以访问它，但写者在访问它时首先拷贝一个副本，然后对副本进行修改，最后使用一个回调（callback）机制在适当的时机把指向原来数据的指针重新指向新的被修改的数据。
+这个时机就是所有引用该数据的CPU都退出对共享数据的操作。
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_rcu.JPG" />
+</p>
+
+<h2 id="toc_2.2">调试</h2>
+<h3 id="toc_2.2.1">全局变量</h3>
+<ul>
+<li>
+rcu_sched_state
+
+</ul>
+
+<hr />
+<h2 id="toc_2.3">参考资料</h2>
+<p>
+<a href="http://www.ibm.com/developerworks/cn/linux/l-rcu/">Linux 2.6内核中新的锁机制--RCU</a></BR>
+<a href="http://blog.csdn.net/junguo/article/details/8244530">RCU机制</a></BR>
+<a href="http://blog.csdn.net/junguo/article/details/8258231">TREE RCU实现之一 —— 数据结构</a></BR>
+<a href="http://blog.csdn.net/junguo/article/details/8258261">TREE RCU实现之二 —— 主干函数</a></BR>
+<a href="http://blog.csdn.net/junguo/article/details/8268277">TREE RCU实现之三 —— 定期调用</a></BR>
+</p>
+
+</body>
+</html>

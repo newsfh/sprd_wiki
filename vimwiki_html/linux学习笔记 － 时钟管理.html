@@ -1,0 +1,808 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>linux学习笔记 － 时钟管理</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.1">基本概念</a>
+<ul>
+<li><a href="#toc_0.1.1">墙上时间 WallTime</a>
+<li><a href="#toc_0.1.2">节拍tick</a>
+<li><a href="#toc_0.1.3">节拍率HZ</a>
+<li><a href="#toc_0.1.4">jiffies</a>
+<li><a href="#toc_0.1.5">RTC</a>
+<li><a href="#toc_0.1.6">xtime</a>
+<li><a href="#toc_0.1.7">monotonic time</a>
+<li><a href="#toc_0.1.8">raw monotonic time</a>
+<li><a href="#toc_0.1.9">boot time</a>
+</ul>
+<li><a href="#toc_0.2">时钟事件软件架构</a>
+<ul>
+<li><a href="#toc_0.2.1">架构</a>
+<li><a href="#toc_0.2.2">clock source（时钟源）</a>
+<li><a href="#toc_0.2.3">clock_event_device</a>
+<li><a href="#toc_0.2.4">clocksource与clock_event_device区别</a>
+</ul>
+<li><a href="#toc_0.3">定时器</a>
+<ul>
+<li><a href="#toc_0.3.1">低分辨率定时器</a>
+<ul>
+<li><a href="#toc_0.3.1.1">定时器的软件架构</a>
+<li><a href="#toc_0.3.1.2">tv对应表</a>
+<li><a href="#toc_0.3.1.3">定时器的到期处理</a>
+</ul>
+<li><a href="#toc_0.3.2">高分辨率定时器</a>
+<ul>
+<li><a href="#toc_0.3.2.1">hrtimer的到期处理</a>
+<li><a href="#toc_0.3.2.2">低精度模式</a>
+<li><a href="#toc_0.3.2.3">高精度模式</a>
+</ul>
+<li><a href="#toc_0.3.3">动态时钟（CONFIG_NO_HZ、tickless）</a>
+</ul>
+<li><a href="#toc_0.4">代码阅读</a>
+<ul>
+<li><a href="#toc_0.4.1">API</a>
+<ul>
+<li><a href="#toc_0.4.1.1">设置定时器</a>
+<li><a href="#toc_0.4.1.2">时间比较</a>
+<li><a href="#toc_0.4.1.3">高分辨率定时器</a>
+</ul>
+<li><a href="#toc_0.4.2">数据结构</a>
+<ul>
+<li><a href="#toc_0.4.2.1">timer_list</a>
+<li><a href="#toc_0.4.2.2">clocksource</a>
+<li><a href="#toc_0.4.2.3">clock_event_device</a>
+<li><a href="#toc_0.4.2.4">timekeeper</a>
+</ul>
+</ul>
+<li><a href="#toc_0.5">使用方式</a>
+<ul>
+<li><a href="#toc_0.5.1">使用定时器</a>
+<li><a href="#toc_0.5.2">高分辨率定时器使用</a>
+<li><a href="#toc_0.5.3">延时方案</a>
+</ul>
+<li><a href="#toc_0.6">调试经验</a>
+<ul>
+<li><a href="#toc_0.6.1">文件节点</a>
+<li><a href="#toc_0.6.2">全局变量</a>
+<ul>
+<li><a href="#toc_0.6.2.1">clocksource_list</a>
+<li><a href="#toc_0.6.2.2">curr_clocksource</a>
+<li><a href="#toc_0.6.2.3">clockevent_devices</a>
+<li><a href="#toc_0.6.2.4">percpu_clockevent</a>
+<li><a href="#toc_0.6.2.5">tick_cpu_device</a>
+<li><a href="#toc_0.6.2.6">clockevents_chain</a>
+<li><a href="#toc_0.6.2.7">timekeeper</a>
+<li><a href="#toc_0.6.2.8">tvec_bases</a>
+<li><a href="#toc_0.6.2.9">hrtimer_bases</a>
+<li><a href="#toc_0.6.2.10">tick_cpu_sched</a>
+</ul>
+</ul>
+<li><a href="#toc_0.7">参考资料</a>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h2 id="toc_0.1">基本概念</h2>
+<h3 id="toc_0.1.1">墙上时间 WallTime</h3>
+<pre>
+当前的时间与日期，也称为“时间戳”，“墙上时间”，“实际时间”
+</pre>
+
+<h3 id="toc_0.1.2">节拍tick</h3>
+<pre>
+连续两次时钟中断的间隔时间
+</pre>
+
+<h3 id="toc_0.1.3">节拍率HZ</h3>
+<pre>
+节拍率(HZ)是时钟中断的频率，表示的一秒内时钟中断的次数。
+比如 HZ=100 表示一秒内触发100次时钟中断程序。
+它可以在defconfig里通过CONFIG_HZ=100来配置。
+</pre>
+
+<h3 id="toc_0.1.4">jiffies</h3>
+<pre>
+jiffies用来记录自系统启动以来产生的总节拍数。
+比如系统启动了 N 秒，那么 jiffies就为 N×HZ
+</pre>
+
+<h3 id="toc_0.1.5">RTC</h3>
+<pre>
+real time clock
+实时时钟和其他的硬件是不同的，RTC吐出来的是时刻，而其他硬件时钟吐出来的是时间。
+也就是说，RTC能告诉我们，当前是2013年9月12日，21：49：38,但是其他的硬件如TSC，PIT，HPET只能告诉我们，我应该走过了XX个cycle，按照我的频率，已经过去了10分钟了
+</pre>
+
+<h3 id="toc_0.1.6">xtime</h3>
+<pre>
+xtime和RTC时间一样，都是人们日常所使用的墙上时间
+如果是使用外部的RTC芯片，访问速度也比较慢，为此，内核维护了另外一个wall time时间：xtime，取决于用于对xtime计时的clocksource，它的精度甚至可以达到纳秒级别。
+因为xtime实际上是一个内存中的变量，它的访问速度非常快，内核大部分时间都是使用xtime来获得当前时间信息。
+xtime记录的是自1970年1月1日24时到当前时刻所经历的纳秒数。
+</pre>
+
+<h3 id="toc_0.1.7">monotonic time</h3>
+<pre>
+该时间自系统开机后就一直单调地增加，它不像xtime可以因用户的调整时间而产生跳变，不过该时间不计算系统休眠的时间，也就是说，系统休眠时，monotoic时间不会递增。
+</pre>
+
+<h3 id="toc_0.1.8">raw monotonic time</h3>
+<pre>
+该时间与monotonic时间类似，也是单调递增的时间，唯一的不同是：raw monotonic time“更纯净”，他不会受到NTP时间调整的影响，它代表着系统独立时钟硬件对时间的统计。
+</pre>
+
+<h3 id="toc_0.1.9">boot time</h3>
+<pre>
+与monotonic时间相同，不过会累加上系统休眠的时间，它代表着系统上电后的总时间。
+</pre>
+
+<hr />
+<h2 id="toc_0.2">时钟事件软件架构</h2>
+<h3 id="toc_0.2.1">架构</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/clock.png" />
+</p>
+
+<h3 id="toc_0.2.2">clock source（时钟源）</h3>
+<pre>
+内核用一个clocksource结构对真实的时钟源进行软件抽象
+数据结构见下
+
+t = (cycle * mult) &gt;&gt; shift;       // 时间
+F = (1 &lt;&lt; shift) / mult;           // 时钟频率
+</pre>
+
+<h3 id="toc_0.2.3">clock_event_device</h3>
+<pre>
+</pre>
+
+<h3 id="toc_0.2.4">clocksource与clock_event_device区别</h3>
+<pre>
+clocksource不能被编程，没有产生事件的能力，它主要被用于timekeeper来实现对真实时间进行精确的统计。
+clock_event_device则是可编程的，它可以工作在周期触发或单次触发模式，系统可以对它进行编程，以确定下一次事件触发的时间，clock_event_device主要用于实现普通定时器和高精度定时器，同时也用于产生tick事件，供给进程调度子系统使用。
+</pre>
+
+<hr />
+<h2 id="toc_0.3">定时器</h2>
+<h3 id="toc_0.3.1">低分辨率定时器</h3>
+<pre>
+低分辨率定时器通常又被叫做时间轮：time wheel
+所谓低分辨率定时器，是指这种定时器的计时单位基于jiffies值的计数，也就是说，它的精度只有1/HZ，假如你的内核配置的HZ是1000，那意味着系统中的低分辨率定时器的精度就是1ms。
+</pre>
+
+<h4 id="toc_0.3.1.1">定时器的软件架构</h4>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/tvec_base.png" />
+</p>
+
+<h4 id="toc_0.3.1.2">tv对应表</h4>
+<table>
+<tr>
+<td>
+<strong>链表数组</strong>
+</td>
+<td>
+<strong>idx范围</strong>
+</td>
+</tr>
+<tr>
+<td>
+tv1
+</td>
+<td>
+0-255(2^8)
+</td>
+</tr>
+<tr>
+<td>
+tv2
+</td>
+<td>
+256--16383(2^14)
+</td>
+</tr>
+<tr>
+<td>
+tv3
+</td>
+<td>
+16384--1048575(2^20)
+</td>
+</tr>
+<tr>
+<td>
+tv4
+</td>
+<td>
+1048576--67108863(2^26)
+</td>
+</tr>
+<tr>
+<td>
+tv5
+</td>
+<td>
+67108864--4294967295(2^32)
+</td>
+</tr>
+</table>
+
+<h4 id="toc_0.3.1.3">定时器的到期处理</h4>
+<pre>
+系统中的定时器按到期时间有规律地放置在tv1--tv5各个链表数组中，其中tv1中放置着在接下来的256个jiffies即将到期的定时器列表。
+需要注意的是，并不是tv1.vec[0]中放置着马上到期的定时器列表，tv1.vec[1]中放置着将在jiffies+1到期的定时器列表。
+因为base.timer_jiffies的值一直在随着系统的运行而动态地增加，原则上是每个tick事件会加1，base.timer_jiffies代表者该cpu定时器系统当前时刻，定时器也是动态地加入头256个链表tv1中。
+
+定时器加入tv1中使用的下标索引是定时器到期时间expires的低8位，所以假设当前的base.timer_jiffies值是0x34567826，则马上到期的定时器是在tv1.vec[0x26]中，
+如果这时候系统加入一个在jiffies值0x34567828到期的定时器，他将会加入到tv1.vec[0x28]中，
+运行两个tick后，base.timer_jiffies的值会变为0x34567828，很显然，在每次tick事件中，定时器系统只要以base.timer_jiffies的低8位作为索引，取出tv1中相应的链表，里面正好包含了所有在该jiffies值到期的定时器列表。
+
+那什么时候处理tv2--tv5中的定时器？每当base.timer_jiffies的低8位为0值时，这表明base.timer_jiffies的第8-13位有进位发生，这6位正好代表着tv2，
+这时只要按base.timer_jiffies的第8-13位的值作为下标，移出tv2中对应的定时器链表，然后用internal_add_timer把它们从新加入到定时器系统中来，
+因为这些定时器一定会在接下来的256个tick期间到期，所以它们肯定会被加入到tv1数组中，这样就完成了tv2往tv1迁移的过程。
+
+同样地，当base.timer_jiffies的第8-13位为0时，这表明base.timer_jiffies的第14-19位有进位发生，这6位正好代表着tv3，按base.timer_jiffies的第14-19位的值作为下标，移出tv3中对应的定时器链表，
+然后用internal_add_timer把它们从新加入到定时器系统中来，显然它们会被加入到tv2中，从而完成tv3到tv2的迁移，
+
+tv4，tv5的处理可以以此作类推。
+
+每个tick事件到来时，内核会在tick定时中断处理期间激活定时器软中断：TIMER_SOFTIRQ
+TIMER_SOFTIRQ的执行函数是__run_timers，它实现了本节讨论的逻辑，取出tv1中到期的定时器，执行定时器的回调函数，由此可见，低分辨率定时器的回调函数是执行在软件中断上下文中的
+
+当cpu的每个tick事件到来时，在事件处理中断中，update_process_times会被调用，该函数会进一步调用run_local_timers，run_local_timers会触发TIMER_SOFTIRQ软中断
+ update_process_times 
+    run_local_timers 
+        hrtimer_run_queues
+        raise_softirq(TIMER_SOFTIRQ)
+</pre>
+
+<h3 id="toc_0.3.2">高分辨率定时器</h3>
+<pre>
+代码：kernel/kernel/hrtimer.c
+
+hrtimer 是建立在 per-CPU 时钟事件设备上的
+为了支持 hrtimer，内核需要配置 CONFIG_HIGH_RES_TIMERS=y
+hrtimer 有两种工作模式：低精度模式（low-resolution mode）与高精度模式（high-resolution mode）
+
+在低精度模式下，hrtimer 的核心处理函数是 hrtimer_run_queues，每一次 tick 中断都要执行一次。如清单 3 所示。这个函数的调用流程为：
+ update_process_times 
+    run_local_timers 
+        hrtimer_run_queues
+        raise_softirq(TIMER_SOFTIRQ)
+
+一旦开启了hrtimer，tick_device所关联的clock_event_device的事件回调函数会被修改为：hrtimer_interrupt，并且会被设置成工作于CLOCK_EVT_MODE_ONESHOT单触发模式。
+
+每个cpu有一个hrtimer_cpu_base结构；
+hrtimer_cpu_base结构管理着3种不同的时间基准系统的hrtimer，分别是：实时时间，启动时间和单调时间；
+每种时间基准系统通过它的active字段（timerqueue_head结构指针），指向它们各自的红黑树；
+红黑树上，按到期时间进行排序，最先到期的hrtimer位于最左下的节点，并被记录在active.next字段中；
+3中时间基准的最先到期时间可能不同，所以，它们之中最先到期的时间被记录在hrtimer_cpu_base的expires_next字段中
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/hrtimer.png" />
+</p>
+
+<h4 id="toc_0.3.2.1">hrtimer的到期处理</h4>
+<pre>
+高精度定时器系统有3个入口可以对到期定时器进行处理，它们分别是：
+1、没有切换到高精度模式时，在每个jiffie的tick事件中断中进行查询和处理；
+2、在HRTIMER_SOFTIRQ软中断中进行查询和处理；
+3、切换到高精度模式后，在每个clock_event_device的到期事件中断中进行查询和处理；
+</pre>
+
+<h4 id="toc_0.3.2.2">低精度模式</h4>
+<pre>
+系统并不是一开始就会支持高精度模式，而是在系统启动后的某个阶段，等待所有的条件都满足后，才会切换到高精度模式
+当系统还没有切换到高精度模式时，所有的高精度定时器运行在低精度模式下，在每个jiffie的tick事件中断中进行到期定时器的查询和处理，显然这时候的精度和低分辨率定时器是一样的（HZ级别）
+低精度模式下，每个tick事件中断中，hrtimer_run_queues函数会被调用，由它完成定时器的到期处理。
+</pre>
+
+<h4 id="toc_0.3.2.3">高精度模式</h4>
+<pre>
+切换到高精度模式后，原来给cpu提供tick事件的tick_device（clock_event_device）会被高精度定时器系统接管，它的中断事件回调函数被设置为hrtimer_interrupt
+
+当系统切换到高精度模式后，tick_device被高精度定时器系统接管，不再定期地产生tick事件，尽管tick_device被接管，高精度定时器系统还是要想办法继续提供定期的tick事件。
+为了达到这一目的，内核定义一个hrtimer，把它的到期时间设定为一个jiffy的时间，当这个hrtimer到期时，在这个hrtimer的到期回调函数中，进行和原来的tick_device同样的操作，然后把该hrtimer的到期时间顺延一个jiffy周期，如此反复循环，完美地模拟了原有tick_device的功能。
+</pre>
+
+<h3 id="toc_0.3.3">动态时钟（CONFIG_NO_HZ、tickless）</h3>
+<pre>
+周期性时钟虽然简单有效，但是也带来了一些缺点，尤其在系统的功耗上，因为就算系统目前无事可做，也必须定期地发出时钟事件，激活系统。
+在系统无事所做的idle阶段，我们可以通过停止周期时钟来达到降低系统功耗的目的，只要有进程处于活动状态，时钟事件依然会被周期性地发出。
+</pre>
+
+<hr />
+<h2 id="toc_0.4">代码阅读</h2>
+<h3 id="toc_0.4.1">API</h3>
+<h4 id="toc_0.4.1.1">设置定时器</h4>
+<pre>
+add_timer(&amp;power_button_poll_timer);                                            // 激活定时器
+mod_timer(&amp;power_button_poll_timer, jiffies+new_delay);                         // 修改定时器超时时间，若之前没激活的，同时会激活
+del_timer(&amp;power_button_poll_timer);                                            // 删除定时器
+</pre>
+
+<h4 id="toc_0.4.1.2">时间比较</h4>
+<pre>
+time_after(a,b)  
+time_before(a,b)  
+time_after_eq(a,b)  
+time_before_eq(a,b)  
+time_in_range(a,b,c)  
+</pre>
+
+<h4 id="toc_0.4.1.3">高分辨率定时器</h4>
+<pre>
+void hrtimer_init(struct hrtimer *timer, clockid_t which_clock,  enum hrtimer_mode mode);  
+int hrtimer_start(struct hrtimer *timer, ktime_t tim, const enum hrtimer_mode mode);  
+hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim, unsigned long range_ns, const enum hrtimer_mode mode);  
+int hrtimer_cancel(struct hrtimer *timer);  
+u64 hrtimer_forward(struct hrtimer *timer, ktime_t now, ktime_t interval);  
+</pre>
+
+<h3 id="toc_0.4.2">数据结构</h3>
+<h4 id="toc_0.4.2.1">timer_list</h4>
+<pre>
+kernel/include/linux/timer.h
+
+struct timer_list {
+	/*
+	 * All fields that change during normal runtime grouped to the
+	 * same cacheline
+	 */
+	void (*function)(unsigned long);
+	unsigned long data;
+
+	struct list_head entry;
+	unsigned long expires;
+	struct tvec_base *base;
+
+	int slack;
+
+#ifdef CONFIG_TIMER_STATS
+	int start_pid;
+	void *start_site;
+	char start_comm[16];
+#endif
+#ifdef CONFIG_LOCKDEP
+	struct lockdep_map lockdep_map;
+#endif
+};
+</pre>
+
+<h4 id="toc_0.4.2.2">clocksource</h4>
+<pre>
+/**
+ * struct clocksource - hardware abstraction for a free running counter
+ *  Provides mostly state-free accessors to the underlying hardware.
+ *  This is the structure used for system time.
+ *
+ * @name:       ptr to clocksource name
+ * @list:       list head for registration
+ * @rating:     rating value for selection (higher is better)
+ *          To avoid rating inflation the following
+ *          list should give you a guide as to how
+ *          to assign your clocksource a rating
+ *          1-99: Unfit for real use
+ *              Only available for bootup and testing purposes.
+ *          100-199: Base level usability.
+ *              Functional for real use, but not desired.
+ *          200-299: Good.
+ *              A correct and usable clocksource.
+ *          300-399: Desired.
+ *              A reasonably fast and accurate clocksource.
+ *          400-499: Perfect
+ *              The ideal clocksource. A must-use where
+ *              available.
+ * @read:       returns a cycle value, passes clocksource as argument
+ * @enable:     optional function to enable the clocksource
+ * @disable:        optional function to disable the clocksource
+ * @mask:       bitmask for two's complement
+ *          subtraction of non 64 bit counters
+ * @mult:       cycle to nanosecond multiplier
+ * @shift:      cycle to nanosecond divisor (power of two)
+ * @max_idle_ns:    max idle time permitted by the clocksource (nsecs)
+ * @maxadj:     maximum adjustment value to mult (~11%)
+ * @flags:      flags describing special properties
+ * @archdata:       arch-specific data
+ * @suspend:        suspend function for the clocksource, if necessary
+ * @resume:     resume function for the clocksource, if necessary
+ * @cycle_last:     most recent cycle counter value seen by ::read()
+ */
+struct clocksource {
+    /*  
+     * Hotpath data, fits in a single cache line when the
+     * clocksource itself is cacheline aligned.
+     */
+    cycle_t (*read)(struct clocksource *cs);
+    cycle_t cycle_last;
+    cycle_t mask;
+    u32 mult;
+    u32 shift;
+    u64 max_idle_ns;
+    u32 maxadj;
+#ifdef CONFIG_ARCH_CLOCKSOURCE_DATA
+    struct arch_clocksource_data archdata;
+#endif
+
+    const char *name;
+    struct list_head list;
+    int rating;
+    int (*enable)(struct clocksource *cs);
+    void (*disable)(struct clocksource *cs);
+    unsigned long flags;
+    void (*suspend)(struct clocksource *cs);
+    void (*resume)(struct clocksource *cs);
+
+    /* private: */
+#ifdef CONFIG_CLOCKSOURCE_WATCHDOG
+    /* Watchdog related data, used by the framework */
+    struct list_head wd_list;
+    cycle_t cs_last;
+    cycle_t wd_last;
+#endif
+} ____cacheline_aligned;
+</pre>
+
+<h4 id="toc_0.4.2.3">clock_event_device</h4>
+<pre>
+kernel/include/linux/clockchips.h
+
+/**
+ * struct clock_event_device - clock event device descriptor
+ * @event_handler:  Assigned by the framework to be called by the low
+ *          level handler of the event source
+ * @set_next_event: set next event function using a clocksource delta
+ * @set_next_ktime: set next event function using a direct ktime value
+ * @next_event:     local storage for the next event in oneshot mode
+ * @max_delta_ns:   maximum delta value in ns
+ * @min_delta_ns:   minimum delta value in ns
+ * @mult:       nanosecond to cycles multiplier
+ * @shift:      nanoseconds to cycles divisor (power of two)
+ * @mode:       operating mode assigned by the management code
+ * @features:       features
+ * @retries:        number of forced programming retries
+ * @set_mode:       set mode function
+ * @broadcast:      function to broadcast events
+ * @min_delta_ticks:    minimum delta value in ticks stored for reconfiguration
+ * @max_delta_ticks:    maximum delta value in ticks stored for reconfiguration
+ * @name:       ptr to clock event name
+ * @rating:     variable to rate clock event devices
+ * @irq:        IRQ number (only for non CPU local devices)
+ * @cpumask:        cpumask to indicate for which CPUs this device works
+ * @list:       list head for the management code
+ */
+struct clock_event_device {
+    void            (*event_handler)(struct clock_event_device *); 
+    int         (*set_next_event)(unsigned long evt,
+                          struct clock_event_device *); 
+    int         (*set_next_ktime)(ktime_t expires,
+                          struct clock_event_device *); 
+    ktime_t         next_event;
+    u64         max_delta_ns;
+    u64         min_delta_ns;
+    u32         mult;
+    u32         shift;
+    enum clock_event_mode   mode;
+    unsigned int        features;
+    unsigned long       retries;
+
+    void            (*broadcast)(const struct cpumask *mask);
+    void            (*set_mode)(enum clock_event_mode mode,
+                        struct clock_event_device *); 
+    void            (*suspend)(struct clock_event_device *); 
+    void            (*resume)(struct clock_event_device *); 
+    unsigned long       min_delta_ticks;
+    unsigned long       max_delta_ticks;
+
+    const char      *name;
+    int         rating;
+    int         irq;
+    const struct cpumask    *cpumask;
+    struct list_head    list;
+} ____cacheline_aligned;
+</pre>
+
+<h4 id="toc_0.4.2.4">timekeeper</h4>
+<pre>
+kernel/include/linux/timekeeper_internal.h
+
+/* Structure holding internal timekeeping values. */
+struct timekeeper {
+    /* Current clocksource used for timekeeping. */
+    struct clocksource  *clock;
+    /* NTP adjusted clock multiplier */
+    u32         mult;
+    /* The shift value of the current clocksource. */
+    u32         shift;
+    /* Number of clock cycles in one NTP interval. */
+    cycle_t         cycle_interval;
+    /* Last cycle value (also stored in clock-&gt;cycle_last) */
+    cycle_t         cycle_last;
+    /* Number of clock shifted nano seconds in one NTP interval. */
+    u64         xtime_interval;
+    /* shifted nano seconds left over when rounding cycle_interval */
+    s64         xtime_remainder;
+    /* Raw nano seconds accumulated per NTP interval. */
+    u32         raw_interval;
+
+    /* Current CLOCK_REALTIME time in seconds */
+    u64         xtime_sec;                                                      // 记录了自1970年1月1日以来所经过的时间
+    /* Clock shifted nano seconds */
+    u64         xtime_nsec;
+
+    /* Difference between accumulated time and NTP time in ntp
+     * shifted nano seconds. */
+    s64         ntp_error;
+    /* Shift conversion between clock shifted nano seconds and
+     * ntp shifted nano seconds. */
+    u32         ntp_error_shift;
+
+    /*  
+     * wall_to_monotonic is what we need to add to xtime (or xtime corrected
+     * for sub jiffie times) to get to monotonic time.  Monotonic is pegged
+     * at zero at system boot time, so wall_to_monotonic will be negative,
+     * however, we will ALWAYS keep the tv_nsec part positive so we can use
+     * the usual normalization.
+     *
+     * wall_to_monotonic is moved after resume from suspend for the
+     * monotonic time not to jump. We need to add total_sleep_time to
+     * wall_to_monotonic to get the real boot based time offset.
+     *
+     * - wall_to_monotonic is no longer the boot time, getboottime must be
+     * used instead.
+     */
+    struct timespec     wall_to_monotonic;                                      // 记录了墙上时间和monotonic时间之间的偏移量，当需要获得monotonic时间时，把xtime和wall_to_monotonic相加即可
+    /* Offset clock monotonic -&gt; clock realtime */
+    ktime_t         offs_real;
+    /* time spent in suspend */
+    struct timespec     total_sleep_time;
+    /* Offset clock monotonic -&gt; clock boottime */
+    ktime_t         offs_boot;
+    /* The raw monotonic time for the CLOCK_MONOTONIC_RAW posix clock. */
+    struct timespec     raw_time;
+    /* The current UTC to TAI offset in seconds */
+    s32         tai_offset;
+    /* Offset clock monotonic -&gt; clock tai */
+    ktime_t         offs_tai;
+};
+</pre>
+
+<hr />
+<h2 id="toc_0.5">使用方式</h2>
+<h3 id="toc_0.5.1">使用定时器</h3>
+<ul>
+<li>
+静态使用
+<pre>
+#define DEFINE_TIMER(_name, _function, _expires, _data)
+该宏将得到一个名字为_name，并分别用_function,_expires,_data参数填充timer_list的相关字段。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+动态使用
+<pre>
+void   power_button_poll(unsigned long   data);
+
+static struct timer_list power_button_poll_timer;
+
+init_timer(&amp;power_button_poll_timer);
+power_button_poll_timer.function = power_button_poll;
+power_button_poll_timer.expires = jiffies + (HZ / 10);
+power_button_poll_timer.data = 0;
+
+add_timer(&amp;power_button_poll_timer);                                            // 激活定时器
+mod_timer(&amp;power_button_poll_timer, jiffies+new_delay);                         // 修改定时器超时时间，若之前没激活的，同时会激活
+del_timer(&amp;power_button_poll_timer);                                            // 删除定时器
+</pre>
+
+</ul>
+
+<h3 id="toc_0.5.2">高分辨率定时器使用</h3>
+<pre>
+  2 #include &lt;linux/module.h&gt;
+  3 #include &lt;linux/kernel.h&gt;
+  4 #include &lt;linux/hrtimer.h&gt;
+  5 #include &lt;linux/jiffies.h&gt;
+  6
+  7
+  8 static struct hrtimer timer;
+  9 ktime_t kt;
+ 10
+ 11 static enum hrtimer_restart hrtimer_handler(struct hrtimer *timer)
+ 12 {
+ 13 //kt = ktime_set(1, 10);
+ 14 printk(" ------ I am in hrtimer -----\n");
+ 15 hrtimer_forward(timer, timer-&gt;base-&gt;get_time(), kt);
+ 16 return HRTIMER_RESTART;
+ 17 }
+ 18
+ 19 static int __init test_init(void)
+ 20 {
+ 21
+ 22 pr_info("timer resolution: %lu\n", TICK_NSEC);
+ 23 kt = ktime_set(1, 10); /* 1 sec, 10 nsec */
+ 24 hrtimer_init(&amp;timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+ 25 //hrtimer_set_expires(&amp;timer, kt);
+ 26 hrtimer_start(&amp;timer, kt, HRTIMER_MODE_REL);
+ 27 timer.function = hrtimer_handler;
+ 28
+ 29 printk("\n-------- test start ---------\n");
+ 30 return 0;
+ 31 }
+ 32
+ 33 static void __exit test_exit(void)
+ 34 {
+ 35 hrtimer_cancel(&amp;timer);
+ 36 printk("-------- test over ----------\n");
+ 37 return;
+ 38 }
+ 39
+ 40 MODULE_LICENSE("GPL");
+ 41
+ 42 module_init(test_init);
+ 43 module_exit(test_exit);
+</pre>
+
+<h3 id="toc_0.5.3">延时方案</h3>
+<ul>
+<li>
+忙等
+<pre>
+unsigned long   delay = jiffies + 5*HZ;
+
+while(time_before(jiffies, delay))           cond_resched();
+</pre>
+
+</ul>
+
+<ul>
+<li>
+delay/sleep
+<pre>
+void ndelay(unsigned long nesec);
+void udelay(unsigned long usecs);
+void mdelay(unsigned long msecs);
+void msleep(unsigned int millisecs);
+void ssleep(unsigned int seconds);
+</pre>
+
+</ul>
+
+<ul>
+<li>
+schedule_timeout
+<pre>
+set_current_state(TASK_INTERRUPTIBLE);      /*将任务设置为可中断睡眠状态   */
+schedule_timeout(s *HZ);        /*小睡一会，s秒后唤醒   */
+
+将相应的任务推入可中断睡眠队列（注意了，这里的进入睡眠队列，就意味着可以去执行其他任务了），睡眠s秒。
+在调用schedule_timeout()函数前必须首先将任务设置成TASK_INTERRUPTILE和TASK_UNINTERRUPTIBLE面两种状态之一，否则任务不会睡眠。
+调用代码绝对不能持有锁（因为持有锁的任务是不能睡眠的）。
+</pre>
+
+</ul>
+
+<hr />
+<h2 id="toc_0.6">调试经验</h2>
+<h3 id="toc_0.6.1">文件节点</h3>
+<table>
+<tr>
+<td>
+<strong>节点</strong>
+</td>
+<td>
+<strong>功能</strong>
+</td>
+</tr>
+<tr>
+<td>
+/sys/devices/system/clocksource/clocksource0/
+</td>
+<td>
+查看当前所有的可用的时钟源信息
+</td>
+</tr>
+<tr>
+<td>
+/proc/timer_list
+</td>
+<td>
+显示系统当前配置的所有时钟的详细情况，譬如当前系统活动的时钟源设备，时钟事件设备，tick device 等。
+</td>
+</tr>
+<tr>
+<td>
+/proc/timer_stats
+</td>
+<td>
+查看当前系统中所有正在使用的 timer 的统计信息。包括所有正在使用 timer 的进程，启动 / 停止 timer 的函数，timer 使用的频率等信息。</BR>内核需要配置 CONFIG_TIMER_STATS=y，而且在系统启动时这个功能是关闭的，需要通过如下命令激活"echo 1 &gt;/proc/timer_stats"。/proc/timer_stats 的显示格式如下所示：</BR>&lt;count&gt;, &lt;pid&gt; &lt;command&gt; &lt;start_func&gt; (&lt;expire_func&gt;)
+</td>
+</tr>
+<tr>
+<td>
+/proc/driver/rtc
+</td>
+<td>
+查看RTC信息
+</td>
+</tr>
+</table>
+
+<h3 id="toc_0.6.2">全局变量</h3>
+<h4 id="toc_0.6.2.1">clocksource_list</h4>
+<pre>
+clock source链表
+rating值越大，在链表上的位置越靠前
+</pre>
+
+<h4 id="toc_0.6.2.2">curr_clocksource</h4>
+<pre>
+当前的clock source
+</pre>
+
+<h4 id="toc_0.6.2.3">clockevent_devices</h4>
+<pre>
+系统中所有注册的clock_event_device都会挂在该链表下面
+</pre>
+
+<h4 id="toc_0.6.2.4">percpu_clockevent</h4>
+<pre>
+static DEFINE_PER_CPU(struct clock_event_device, percpu_clockevent);
+各个cpu的本地定时器
+</pre>
+
+<h4 id="toc_0.6.2.5">tick_cpu_device</h4>
+<pre>
+当内核没有配置成支持高精度定时器时，系统的tick由tick_device产生
+</pre>
+
+<h4 id="toc_0.6.2.6">clockevents_chain</h4>
+<pre>
+通用时间框架初始化时会注册一个通知链（NOTIFIER），当系统中的时钟时间设备的状态发生变化时，利用该通知链通知系统的其它模块。
+</pre>
+
+<h4 id="toc_0.6.2.7">timekeeper</h4>
+<pre>
+</pre>
+
+<h4 id="toc_0.6.2.8">tvec_bases</h4>
+<pre>
+kernel/kernel/timer.c
+static DEFINE_PER_CPU(struct tvec_base *, tvec_bases) = &amp;boot_tvec_bases;
+</pre>
+
+<h4 id="toc_0.6.2.9">hrtimer_bases</h4>
+<pre>
+kernel/kernel/hrtimer.c
+
+DEFINE_PER_CPU(struct hrtimer_cpu_base, hrtimer_bases)
+每个core上的高分辨率定时器
+</pre>
+
+<h4 id="toc_0.6.2.10">tick_cpu_sched</h4>
+<pre>
+DEFINE_PER_CPU(struct tick_sched, tick_cpu_sched);
+高分辨率下每个cpu模拟tick事件
+</pre>
+
+<hr />
+<h2 id="toc_0.7">参考资料</h2>
+<p>
+<a href="http://blog.csdn.net/droidphone/article/details/7975694">Linux时间子系统</a> [*]</BR>
+<a href="http://blog.chinaunix.net/uid-24774106-id-3902906.html">Linux时间管理</a></BR>
+<a href="http://www.ibm.com/developerworks/cn/linux/l-cn-timerm/">Linux 时钟管理</a></BR>
+</p>
+
+</body>
+</html>

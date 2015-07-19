@@ -1,0 +1,87 @@
+        WINCLEAR INFOS  
+        AREA.CREATE INFOS 80. 2000.
+        WinPOS 0,0,,,,, INFOS  
+        AREA.VIEW INFOS  
+        AREA.CLEAR INFOS  
+        AREA.SELECT INFOS  
+
+;;;;;;;;;;;;;;;;;;;
+;;;;; CONSTANT ;;;;
+;;;;;;;;;;;;;;;;;;;
+	&MEM_MAP_ADDR=v.value(mem_map)
+	&PAGE_SIZE=v.value(sizeof(struct page))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; ADDR_TO_PAGE		--  内存地址转page地址
+; PAGE_TO_ADDR		--  page地址转内存地址
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+&mem_ptr=0xEBCA7CC0
+
+&i=0.
+
+GOSUB ADDR_TO_PAGE &mem_ptr
+ENTRY &ret_page_ptr
+
+&page_ptr=&ret_page_ptr
+
+&flags=v.value(((struct page*)&page_ptr)->flags)
+if &flags!=0x80
+(
+	print "is not slab page"
+	enddo
+)
+
+&slab_cache=v.value(((struct page*)&page_ptr)->slab_cache)
+
+print "page addr: " &page_ptr
+print "slab_cache: " &slab_cache
+print "slab name: " v.string(((struct kmem_cache*)&slab_cache)->name)
+
+&slab_page_size=(1.<<(v.value(((struct kmem_cache*)&slab_cache)->oo.x)>>16.))*4096.
+&slab_object_size=v.value(((struct kmem_cache*)&slab_cache)->oo.x)&65535.
+print "total size in a slab: " &slab_page_size
+print "object size in a slab: " &slab_object_size
+
+&free_node=v.value(((struct page*)&page_ptr)->freelist)
+
+while &free_node!=0
+(
+	&i=&i+1
+	if &i>1000.
+	(
+		print "loop too many"
+		enddo
+	)
+
+	print &free_node
+
+	if &mem_ptr>=&free_node&&&mem_ptr<&free_node+&slab_object_size
+	(
+		print "memory " &mem_ptr " is freed!"
+		enddo
+	)
+	&free_node=v.value(*((unsigned int*)&free_node))
+)
+
+print "OK"
+enddo
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ADDR_TO_PAGE:
+	LOCAL &addr_ptr
+	ENTRY &addr_ptr
+
+	RETURN (&MEM_MAP_ADDR+((&addr_ptr-0xc0000000)>>12.)*&PAGE_SIZE)
+; END ADDR_TO_PAGE
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+PAGE_TO_ADDR:
+	LOCAL &page_ptr
+	ENTRY &page_ptr
+
+	RETURN (((&page_ptr-&MEM_MAP_ADDR)/&PAGE_SIZE)<<12.)+0xc0000000
+; END PAGE_TO_ADDR
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+

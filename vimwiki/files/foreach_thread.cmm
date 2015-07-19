@@ -1,0 +1,134 @@
+        WINCLEAR INFOS  
+        AREA.CREATE INFOS 80. 2000.
+        WinPOS 0,0,,,,, INFOS  
+        AREA.VIEW INFOS  
+        AREA.CLEAR INFOS  
+        AREA.SELECT INFOS  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; TRAVERSE_TASK		--  遍历所有task
+; PrintTaskInfo		--  在遍历task过程，打印task里的信息
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+&TASKS_OFFSET=v.value(&((struct task_struct*)0)->tasks)
+&THREAD_GROUP_OFFSET=v.value(&((struct task_struct*)0)->thread_group)
+
+&i=0
+GOSUB TRAVERSE_TASK
+print "OK"
+enddo
+
+TRAVERSE_TASK:
+	&task_list_head=v.value(init_task.tasks.next)
+
+	&task_ptr=&task_list_head-&TASKS_OFFSET
+	gosub TRAVERSE_THREAD &task_ptr
+
+	&task_list_cur=v.value(((struct list_head*)&task_list_head)->next)
+	while &task_list_cur!=&task_list_head&&&task_list_cur!=0
+	(
+		&task_ptr=&task_list_cur-&TASKS_OFFSET
+		gosub TRAVERSE_THREAD &task_ptr
+
+		&task_list_cur=v.value(((struct list_head*)&task_list_cur)->next)
+	)
+
+	RETURN
+; END TRAVERSE_TASK
+
+TRAVERSE_THREAD:
+	LOCAL &TASK_PTR
+	ENTRY &TASK_PTR
+
+	&thread_group_list_head=v.value(&((struct task_struct*)&TASK_PTR)->thread_group)
+
+	&task_ptr=&thread_group_list_head-&THREAD_GROUP_OFFSET
+	gosub PrintTaskInfo &task_ptr
+	
+	&thread_group_list_cur=v.value(((struct list_head*)&thread_group_list_head)->next)
+	while &thread_group_list_cur!=&thread_group_list_head&&&thread_group_list_cur!=0
+	(
+		&task_ptr=&thread_group_list_cur-&THREAD_GROUP_OFFSET
+		gosub PrintTaskInfo &task_ptr
+
+		if &i==1000
+		(
+			enddo
+		)
+
+		&thread_group_list_cur=v.value(((struct list_head*)&thread_group_list_cur)->next)
+	)
+
+	return
+; END TRAVERSE_THREAD
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;   print stack
+PrintTaskInfo0:
+	local &TASK_PTR
+	entry &TASK_PTR
+
+	if v.value(((struct task_struct*)&TASK_PTR)->on_cpu)!=1.
+	(
+		return
+	)
+	&i=&i+1.
+
+	print &i "  " v.value(&TASK_PTR) "  " v.string(((struct task_struct*)&TASK_PTR)->comm)
+	print "      " v.value(&TASK_PTR) "  " v.value(((struct task_struct*)&TASK_PTR)->stack)
+
+	return
+;;;;;;;;;;;;;;;;;;;;;;;;;;; end print stack
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;   print D state task
+PrintTaskInfo1:
+	local &TASK_PTR
+	entry &TASK_PTR
+
+	if v.value(((struct task_struct*)&TASK_PTR)->state)!=512.
+	(
+		return
+	)
+	&i=&i+1.
+
+	Var.Frame /Locals /Caller /Task &TASK_PTR
+;	print &i "  " v.value(&TASK_PTR) "  " v.string(((struct task_struct*)&TASK_PTR)->comm)
+
+	return
+;;;;;;;;;;;;;;;;;;;;;;;;;;; end PrintTaskInfo
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;	print task info
+PrintTaskInfo:
+	local &TASK_PTR &task_state &task_state_name
+	entry &TASK_PTR
+
+	&i=&i+1.
+
+	&task_state=v.string(((struct task_struct*)&TASK_PTR)->state)
+	if &task_state==0
+	(
+		&task_state_name="R"	; running
+	)
+	else if &task_state==1
+	(
+		&task_state_name="S"	; interruptible
+	)
+	else if &task_state==2
+	(
+		&task_state_name="D"	; uninterruptible
+	)
+	else if &task_state==512
+	(
+		&task_state_name="P"	; parked
+	)
+	else
+	(
+		&task_state_name="O"	; other
+	)
+
+	PRINT &i "  " v.value(&TASK_PTR) "  " v.string(((struct task_struct*)&TASK_PTR)->comm)
+	PRINT "      " v.value(((struct task_struct*)&TASK_PTR)->rcu_read_lock_nesting) "  " "&task_state_name"
+
+	return
+;;;;;;;;;;;;;;;;;;;;;;;;; end PrintTaskInfo

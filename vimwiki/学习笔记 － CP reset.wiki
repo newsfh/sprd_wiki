@@ -1,0 +1,223 @@
+%toc 目录
+
+----
+=== Detecting ===
+==== modem assert detect ====
+{{{
+When assert happens on CP side, it will send "Modem Assert" message to AP.
+AP can show a modem dead dialog or silent reset modem.
+}}}
+{{{
+File:
+vendor/sprd/open-source/apps/modemd/modemd_sipc.c
+
+Code:
+void* detect_sipc_modem(void *param)
+{
+    if(modem == TD_MODEM) {
+        property_get(TD_ASSERT_PROP, assert_dev, DEFAULT_TD_ASSERT_DEV);                    // get assert port, it's "/dev/spipe_td2"
+        snprintf(watchdog_dev, sizeof(watchdog_dev), "%s", TD_WATCHDOG_DEV);                // get watchdog port, it's "/proc/cpt/wdtirq"
+        property_get("ro.modem.t.diag", diag_chan, "not_find");                             // get diag port, it's defined in system.prop, "ro.modem.t.diag=/dev/slog_gge"
+    }
+
+    for (;;) {
+            if (FD_ISSET(assert_fd, &rfds)) {
+                fd = assert_fd;
+            } else if (FD_ISSET(watchdog_fd, &rfds)) {
+                fd = watchdog_fd;
+            }
+
+            numRead = read(fd, buf, sizeof(buf));
+            if(strstr(buf, "Modem Reset")) {
+                loop_info_sockclients(buf, numRead);
+                stop_service(modem, 0);
+                load_sipc_modem_img(modem, is_assert);
+            } else if(strstr(buf, "Modem Assert") || strstr(buf, "wdtirq")) {
+                is_assert = 1;
+                
+                loop_info_sockclients(buf, numRead);
+                stop_service(modem, 0);
+
+                property_get(MODEM_RESET_PROP, prop, "0");                                    // get whether need to reset modem, see below topic
+                is_reset = atoi(prop);
+
+                if(is_reset) {
+                    property_get("ro.debuggable", mkbuf, "");
+                    if (strcmp(mkbuf, "1") != 0) {
+                        diag_fd= open(diag_chan, O_RDWR);
+
+                        w_cnt = read(diag_fd, buf, sizeof(buf));
+                        if(w_cnt > 0){
+                            memset(buf,0, sizeof(buf));
+                        }
+                        w_cnt = write(diag_fd, s_reset_cmd, sizeof(s_reset_cmd));
+                    }           
+                    else{
+                        load_sipc_modem_img(modem, is_assert);
+                        is_assert = 0;
+                    }   
+                }
+            }
+    }
+}
+}}}
+
+==== modem block detect ====
+{{{
+AP will send "" message to CP side every . If it does not get the response, it means CP dies.
+Then AP will send "Modem Blocked" message to ModemD.
+}}}
+{{{
+Handle in checking side
+File:
+vendor/sprd/proprietories-source/phoneserver/adapter.c
+
+int adapter_cmux_write(cmux_t * mux, char *buf, int len, int to)
+{
+    int err = thread_cond_timedwait(&mux->cond_timeout, &mux->mutex_timeout,
+            &timeout);
+    if (err == ETIMEDOUT) {
+        mux->cp_blked += 1;
+        if(mux->cp_blked > BLOCKED_MAX_COUNT) {                                               // BLOCKED_MAX_COUNT = 5
+            mux->cp_blked = 0;
+            if(!strcmp(modem, "t")) {
+                strcpy(block_str, "TD Modem Blocked");
+            }
+            res = write(soc_client, block_str, strlen(block_str)+1);                          // this is a socket communication, see below
+        }
+    }
+}
+
+int soc_client = -1;
+static void *detect_at_no_response(void *par)
+{   
+    if(!strcmp(modem, "t")) {
+        strcpy(socket_name, "phstd");                                                         // this is socket name between phoneserver & modemd
+    }    
+
+    soc_fd = socket_local_server(socket_name,
+            ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
+    
+   for(;;) {
+        if ( (soc_client = accept(soc_fd, NULL, NULL)) == -1)
+        {
+            continue;
+        }
+    }   
+    close(soc_client);
+}           
+}}}
+{{{
+Handle in detecting side
+File:
+vendor/sprd/open-source/apps/modemd/modemd_sipc.c
+
+void *detect_modem_blocked(void *par)
+{
+    if(modem == TD_MODEM) {                                                                    // get socket name and connect it
+        strcpy(socket_name, PHSTD_SOCKET_NAME);
+    }
+    soc_fd = socket_local_client(socket_name,
+        ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
+
+    for(;;) {
+        numRead = read(soc_fd, buf, sizeof(buf));                                              // read socket
+        if(strstr(buf, "TD Modem Blocked") != NULL) {
+            ... ...
+        }
+
+        loop_info_sockclients(buf, numRead);
+        
+        property_get(MODEM_RESET_PROP, prop, "0");
+        is_reset = atoi(prop);
+        stop_service(modem, 0);
+        if(is_reset) {
+           load_sipc_modem_img(modem, is_assert);
+        }
+    }
+}
+}}}
+
+==== Enable modem reset ====
+{{{
+This property will decide whether modem will reset when assert.
+Please refer to detect_sipc_modem and MODEM_RESET_PROP.
+}}}
+{{{
+File:
+device/sprd/scx35/device.mk
+
+Code:
+ifeq ($(TARGET_BUILD_VARIANT),user)
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.sys.sprd.modemreset=1 \
+else
+PRODUCT_PROPERTY_OVERRIDES += \
+    persist.sys.sprd.modemreset=0 \
+endif # TARGET_BUILD_VARIANT == user
+}}}
+
+----
+=== Loading modem ===
+==== modemd ====
+{{{
+Load cp image
+}}}
+{{{
+File:
+vendor/sprd/open-source/apps/modemd/modemd_sipc.c
+
+static int load_sipc_modem_img(int modem, int is_modem_assert)
+{
+    property_get("ro.product.partitionpath", path, "");
+    system("echo load_modem_img >/sys/power/wake_lock");
+
+    if(modem == TD_MODEM) {
+        sipc_modem_size = TD_MODEM_SIZE;                                                    // modem size
+        sipc_dsp_size = TD_DSP_SIZE;                                                        // dsp size
+        strcat(persist_prop, "t.nvp");
+        property_get(TD_PROC_PROP, proc_prop, "");
+
+        /* write 1 to stop*/
+        strcpy(modem_stop, proc_prop);
+        strcat(modem_stop, MODEM_STOP);
+        write_proc_file(modem_stop, 0, "1");
+
+        strcpy(modem_bank, proc_prop);
+        strcat(modem_bank, MODEM_BANK);
+        strcpy(dsp_bank, proc_prop);
+        strcat(dsp_bank, DSP_BANK);
+        strcpy(modem_start, proc_prop);
+        strcat(modem_start, MODEM_START);
+
+        property_get(persist_prop,path_char,"");
+        if(0 == strlen(path_char)){
+              ret = 0;
+              goto unlock_wake_and_exit;
+         }
+        strcat(path,path_char);
+        strcpy(modem_partition,path);
+        strcpy(dsp_partition,path);
+        strcat(modem_partition,"modem");
+        strcat(dsp_partition,"dsp");
+
+        /* load modem */
+        load_sipc_image(modem_partition, 0, modem_bank, 0, sipc_modem_size);
+
+        /* load dsp */
+        load_sipc_image(dsp_partition, 0, dsp_bank, 0, sipc_dsp_size);
+    }
+
+    write_proc_file(modem_start, 0, "1");
+
+    system("echo load_modem_img >/sys/power/wake_unlock");
+}}}
+
+==== kernel ====
+{{{
+The main job is to stop and start cp.
+}}}
+{{{
+File:
+kernel/drivers/misc/sprd_cproc/sprd_cproc.c
+}}}

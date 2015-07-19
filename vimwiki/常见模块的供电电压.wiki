@@ -1,0 +1,46 @@
+%toc 目录
+
+----
+{{{
+如果模块不工作，很大可能是供电有误，导致模块驱动不起来
+1. 量它的电是否正常
+2. 如果不正常，看原理图，是谁给它供的电，是否配置正确
+}}}
+
+----
+=== EMMC ===
+{{{
+VCCQM - 1.8V  (对应vddcore)
+VCCM - 3.0V  （对应vddio）
+}}}
+{{local:images/tshark_core3_emmc_power.png}}
+
+----
+=== LCD ===
+{{{
+lcd - 3.0V
+}}}
+{{local:images/coreprimelite_lcd_power.png}}
+
+----
+=== I2C ===
+{{{
+不需要外接电压，和上拉电阻
+
+内部上拉电阻配置：WPUS(bit12) and WPU(bit7)
+bit7    bit12   
+1        0       20K
+0        1       4.7K
+1        1       1.8K
+
+驱动电流：bit19 and bit20.
+Bit20   bit19
+0         0      2mA
+0         1      4mA
+1         0      6mA
+1         1      8mA
+
+pin上供电可为1.8V或3.0V，要视外接器件所工作的电压
+}}}
+{{local:images/coreprimelite_i2c4.png}}
+

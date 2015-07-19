@@ -1,0 +1,40 @@
+diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
+index 26d7060..0802b72 100644
+--- a/drivers/of/fdt.c
++++ b/drivers/of/fdt.c
+@@ -120,6 +120,7 @@ static void * unflatten_dt_node(struct boot_param_header *blob,
+ 	int offset;
+ 	int has_name = 0;
+ 	int new_format = 0;
++	int i = 0;
+ 
+ 	pathp = fdt_get_name(blob, *poffset, &l);
+ 	if (!pathp)
+@@ -189,6 +190,7 @@ static void * unflatten_dt_node(struct boot_param_header *blob,
+ 			dad->next = np;
+ 		}
+ 		kref_init(&np->kref);
++printk("=================\n");
+ 	}
+ 	/* process properties */
+ 	for (offset = fdt_first_property_offset(blob, *poffset);
+@@ -229,6 +231,11 @@ static void * unflatten_dt_node(struct boot_param_header *blob,
+ 			pp->name = (char *)pname;
+ 			pp->length = sz;
+ 			pp->value = (__be32 *)p;
++printk("~~ prop: name=%s, len=%d, val=", pp->name, pp->length);
++for (i=0; i < sz; i++) {
++	printk("0x%02x ", (char)*(((char*)p)+i));
++}
++printk("\n");
+ 			*prev_pp = pp;
+ 			prev_pp = &pp->next;
+ 		}
+@@ -273,6 +280,7 @@ static void * unflatten_dt_node(struct boot_param_header *blob,
+ 			np->name = "<NULL>";
+ 		if (!np->type)
+ 			np->type = "<NULL>";
++printk("~~ dev: %s name=%s, type=%s\n", np->full_name, np->name, np->type);
+ 	}
+ 
+ 	old_depth = depth;

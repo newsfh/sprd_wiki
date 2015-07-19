@@ -1,0 +1,26 @@
+=== 工具 ===
+# gcom
+{{{
+命令：sudo gcom /dev/ttyUSB0
+注意：
+1. 工具见附件，将其copy到~/bin目录下，修改为可执行权限
+2. 平台手机端口为ttyUSB1
+}}}
+# putty
+{{{
+sudo apt-get install putty安装
+putty启动
+配置参数
+}}}
+# minicom
+=== 注意事项 ===
+{{{
+stop slog
+cat /proc/kmsg
+stop slog used for kernel log only output to screen, no need to send to slog, this can avoid stopping log at screen sometimes.
+
+因为三星jbox，插上会自动输出串口log，但是在uboot中,loglevel=1的情况下，到kernel会自动弹出: shell@xxx.pc, 这个adb命令行模式。
+这个时候如果我们想要开机的kernel log，如果我们想输入 cat /proc/kmsg，则发现，权限不够，需要输入su命令，然后就可以再输入kernel log
+
+第二个办法：在uboot中命令行，可以把loglevel改成loglevel=7，就可以自动输出kernel log了。
+}}}

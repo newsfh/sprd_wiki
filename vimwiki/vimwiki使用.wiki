@@ -1,0 +1,38 @@
+=== 关键字 ===
+*关键字：*
+{{{
+图片：{{local:images/ldo_gen1.png}}
+图片：{{http://www.berlinix.com/images/index-Vim.png}}
+附件：[[local:files/interactive_debug.patch|interactive_debug.patch]]</BR>
+换行：</BR>
+目录：%toc 目录
+}}}
+
+*Trac与VimWiki关键字转换：*
+{{{
+'''		=> *
+''		=> _
+\\		=> </BR>
+[[BR]]		=> </BR>
+[[Image(	=> {{local:images/
+)]]		=> }}
+||		=> |
+0. 		=> #
+}}}
+*命令：*
+{{{
+打开vimwiki：<leader>ww
+转成HTML：VimwikiAll2HTML
+}}}
+配置：
+{{{
+配置路径：
+let g:vimwiki_list = [{'path': '~/vimwiki/vimwiki/', 'path_html': '~/vimwiki/vimwiki_html/'}]
+}}}
+
+=== 资料 ===
+[[http://code.google.com/p/vim-script-cn/source/browse/trunk/doc/vimwiki.cnx]]
+
+=== 附件 ===
+[[local:files/vimwiki-2-1.vba|vimwiki-2-1.vba]]</BR>
+

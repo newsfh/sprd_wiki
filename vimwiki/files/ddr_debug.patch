@@ -1,0 +1,58 @@
+diff --git a/arch/arm/cpu/armv7/sc9630/mcu.c b/arch/arm/cpu/armv7/sc9630/mcu.c
+index ba60f77..d9ca489 100755
+--- a/arch/arm/cpu/armv7/sc9630/mcu.c
++++ b/arch/arm/cpu/armv7/sc9630/mcu.c
+@@ -16,6 +16,7 @@
+ #define DPLL_REFIN 26
+ #define NINT(FREQ,REFIN)	(FREQ/REFIN)
+ #define KINT(FREQ,REFIN)	((FREQ-(FREQ/REFIN)*REFIN)*1048576/REFIN)
++#define DCDC_MEM 1300
+ 
+ #if defined(CONFIG_CLK_PARA)
+ #include <asm/arch/clk_para_config.h>
+diff --git a/arch/arm/cpu/sprd_dmc/dram_cfg_28nm.c b/arch/arm/cpu/sprd_dmc/dram_cfg_28nm.c
+index 5d62e66..cdc4940 100644
+--- a/arch/arm/cpu/sprd_dmc/dram_cfg_28nm.c
++++ b/arch/arm/cpu/sprd_dmc/dram_cfg_28nm.c
+@@ -81,7 +81,7 @@ const DDR_ACTIMING_T LPDDR3_ACTIMING_NATIVE =
+ 	0,			/*tCKSRE*/
+ 	0,			/*tCKSRX*/
+ 	3,			/*cntRDMode*/
+-	4,			/*cntRDDLY*/
++	5,			/*cntRDDLY*/
+ 	2,			/*cntDQSGX*/
+ 	1,			/*cntPGWAIT*/
+ 	11,			/*cntZQDIV*/
+diff --git a/arch/arm/cpu/sprd_dmc/umctl_28nm.c b/arch/arm/cpu/sprd_dmc/umctl_28nm.c
+index b024b69..b047333 100755
+--- a/arch/arm/cpu/sprd_dmc/umctl_28nm.c
++++ b/arch/arm/cpu/sprd_dmc/umctl_28nm.c
+@@ -1259,6 +1259,19 @@ static void umctl_addrmap_init(DRAM_INFO_T *dram)
+ 		}
+ 		break;
+ 	}
++
++	REG32(0x0) = 0xeafffffe;
++	REG32(0x4) = 0xeafffffe;
++	REG32(0x8) = 0xeafffffe;
++	REG32(0xc) = 0xeafffffe;
++	REG32(0x10) = 0xeafffffe;
++	REG32(0x14) = 0xeafffffe;
++	REG32(0x18) = 0xeafffffe;
++	REG32(0x1c) = 0xeafffffe;
++	REG32(0x20) = 0xeafffffe;
++	REG32(0x24) = 0xeafffffe;
++	REG32(0x28) = 0xeafffffe;
++	REG32(0x2c) = 0xeafffffe;
+ }
+ /*
+  * saved the ddr CS size info for kernel reserved space,
+@@ -2277,7 +2290,7 @@ void ddr_lowpower_config(DRAM_INFO_T *dram)
+ 
+ 		if(dram->cs_num==1)
+         {
+-		    publ->publ_aciocr[3] = 0x2aaaa8a8;     //can not be enable when use lpddr3
++		    publ->publ_aciocr[3] = 0x2aaaa0a8;     //can not be enable when use lpddr3
+ 		    publ->publ_aciocr[4] = 0x15555454;
+         }
+ 

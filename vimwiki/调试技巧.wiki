@@ -1,0 +1,365 @@
+%toc 目录
+
+----
+== Deep Sleep ==
+{{{
+查看失败和成功次数
+cat /d/suspend_stats
+
+查看suspend时间窗体
+cat /d/suspend_time
+}}}
+{{local:images/1.png}}</BR>
+{{local:images/2.png}}</BR>
+{{local:images/3.png}}</BR>
+{{local:images/4.png}}</BR>
+{{{
+
+suspend_stats打印的是上次失败的lock，但并不一定是这个引起入睡失败。
+
+suspend时会去查询是否有lock，在wakelock.c的这个查询方法里加打印比较准确点，如下，
+
+/kernel/kernel/power/wakelock.c文件加打印
+237 static long has_wake_lock_locked(int type)
+238 {
+243     list_for_each_entry_safe(lock, n, &active_wake_locks[type], link) {
+244         if (lock->flags & WAKE_LOCK_AUTO_EXPIRE) {
+245             long timeout = lock->expires - jiffies;
+246             if (timeout <= 0)
+247                 expire_wake_lock(lock);
+248             else if (timeout > max_timeout) {
+249                 max_timeout = timeout;
+250 printk("~~~~ %s, %d expire: %s\n", __FUNCTION__, __LINE__, lock->name);
+251             }
+252         } else {
+253 printk("~~~~ %s, %d lock: %s\n", __FUNCTION__, __LINE__, lock->name);
+254             return -1;
+255         }
+256     }
+257     return max_timeout;
+258 }
+}}}
+
+----
+== 开机初始化 ==
+=== fdl1初始化 ===
+{{{
+$ git diff nand_fdl/fdl-1/src/init.S
+diff --git a/nand_fdl/fdl-1/src/init.S b/nand_fdl/fdl-1/src/init.S
+index 3f14e55..fedf9ca 100644
+--- a/nand_fdl/fdl-1/src/init.S
++++ b/nand_fdl/fdl-1/src/init.S
+@@ -81,6 +81,7 @@ _vol_para:
+  */
+ 
+ reset:
++b reset
+        /*
+         * set the cpu to SVC32 mode
+         */
+}}}
+
+=== spl初始化 ===
+{{{
+chipram的起始地址：0x50003000
+}}}
+{{{
+diff --git a/nand_spl/board/spreadtrum/sc8830/sec_start.S b/nand_spl/board/spreadtrum/sc8830/sec_start.S
+index a34ff57..0e0b598 100755
+--- a/nand_spl/board/spreadtrum/sc8830/sec_start.S
++++ b/nand_spl/board/spreadtrum/sc8830/sec_start.S
+@@ -52,6 +52,7 @@ reset:
+        /*
+         * set the cpu to SVC32 mode
+         */
++b reset
+        mrs     r0, cpsr
+        bic     r0, r0, #0x1f
+        orr     r0, r0, #0xd3
+}}}
+{{{
+diff --git a/nand_spl/board/spreadtrum/sc8830/spl_start.S b/nand_spl/board/spreadtrum/sc8830/spl_start.S
+index 6f61a82..7efd502 100755
+--- a/nand_spl/board/spreadtrum/sc8830/spl_start.S
++++ b/nand_spl/board/spreadtrum/sc8830/spl_start.S
+@@ -74,6 +74,7 @@ reset:
+        /*
+         * set the cpu to SVC32 mode
+         */
++b reset
+        mrs     r0, cpsr
+        bic     r0, r0, #0x1f
+        orr     r0, r0, #0xd3
+}}}
+=== u-boot初始化 ===
+{{{
+u-boot的起始地址：0x8f800000
+其值定义在chipram(u-boot)/include/configs/<project>.h里
+#define CONFIG_SYS_NAND_U_BOOT_DST	0x8f800000
+}}}
+{{{
+diff --git a/arch/arm/cpu/armv7/start.S b/arch/arm/cpu/armv7/start.S
+index c036cad..8e25cbc 100755
+--- a/arch/arm/cpu/armv7/start.S
++++ b/arch/arm/cpu/armv7/start.S
+@@ -189,6 +189,7 @@ reset:
+        /*
+         * set the cpu to SVC32 mode
+         */
++       b reset
+ #ifndef CONFIG_SKIP_LOWLEVEL_INIT
+ #ifdef SPRD_EVM_TAG_ON
+        ldr r0,=SPRD_EVM_ADDR_START
+}}}
+=== kernel初始化 ===
+# asm初始化
+{{{
+kernel的起始地址：0xc0008000
+}}}
+{{{
+diff --git a/arch/arm/kernel/head.S b/arch/arm/kernel/head.S
+index 8bac553..af2022a 100644
+--- a/arch/arm/kernel/head.S
++++ b/arch/arm/kernel/head.S
+@@ -83,6 +83,8 @@ ENTRY(stext)
+  THUMB(        .thumb                  )       @ switch to Thumb now.
+  THUMB(1:                      )
+ 
++reset:
++       b reset
+ #ifdef CONFIG_ARM_VIRT_EXT
+        bl      __hyp_stub_install
+ #endif
+}}}
+# C code初始化
+{{{
+start_kernel @ /android_shark/kernel/init/main.c
+}}}
+# kernel各模块初始化
+{{{
+各模块初始化接口的调用，在调用初始化前后加打印，看哪个模块操作某值
+
+diff --git a/init/main.c b/init/main.c
+index bd98381..de0066b 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -86,6 +86,9 @@
+ #ifdef CONFIG_X86_LOCAL_APIC
+ #include <asm/smp.h>
+ #endif
++#include <mach/adi.h>
++#include <mach/hardware.h>
++#include <mach/sci_glb_regs.h>
+ 
+ static int kernel_init(void *);
+ 
+@@ -698,10 +701,12 @@ int __init_or_module do_one_initcall(initcall_t fn)
+        initcall_debug =1;
+ #endif
+ 
++printk("~~~~~~~ %s %d, %pF, 0x%08x\n", __FUNCTION__, __LINE__, fn, sci_adi_read(ANA_REG_GLB_LDO_V_CTRL0));
+        if (initcall_debug)
+                ret = do_one_initcall_debug(fn);
+        else
+                ret = fn();
++printk("~~~~~~~ %s %d, 0x%08x\n", __FUNCTION__, __LINE__, sci_adi_read(ANA_REG_GLB_LDO_V_CTRL0 ));
+ 
+        msgbuf[0] = 0;
+}}}
+
+== 读寄存器函数 ==
+=== a-die ===
+{{{
+头文件：
+#include <mach/adi.h>
+#include <mach/hardware.h>
+#include <mach/sci_glb_regs.h>
+
+方法：
+sci_adi_read(ANA_REG_GLB_LDO_V_CTRL0)
+}}}
+=== d-die ===
+# __raw_readl
+{{{
+#include <asm/io.h>
+static inline u32 __raw_readl(const volatile void __iomem *addr)
+}}}
+# sci_glb_read
+{{{
+u32 sci_glb_read(u32 reg, u32 msk)
+{
+    return __raw_readl(reg) & msk;
+}
+}}}
+# sci_glb_raw_read
+{{{
+#include <mach/sci.h>
+#define sci_glb_raw_read(reg)           sci_glb_read(reg, -1UL)
+}}}
+
+----
+== I2C ==
+{{{
+I2C的scl/sda引脚上的电压，需要根据外围设备而定，现在有1.8v/3.0v两档，如果电压不对应，也会没有信号，需根据实际情况配置电压或pinctrl
+
+根据原理图，看有没有接上拉电阻，如果没有接的话，pinmap里需要配成WPU
+}}}
+{{{
+以下命令可以下一个start命令，再量scl/sda上有没有相应信号
+ lookat -s 0x007de800 0x71300000
+ lookat -s 0x1a 0x70800000
+ lookat -s 0xa024 0x70800004
+}}}
+
+----
+== lockup ==
+[[http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/TRACE32%E6%9F%A5%E7%9C%8BSOC%E6%A3%80%E6%9F%A5%E8%84%9A%E6%9C%AC|trace32看定屏问题]]
+
+----
+== log ==
+=== spl ===
+{{{
+#define UART1_TX_BUF_ADDR 0X70100000
+#define UART1_TX_BUF_CNT ((REG32(0x70100000 + 0xc)>>8)&0xff)
+void spl_print(const unsigned char *string)
+{
+    unsigned char *s1 = NULL;
+
+    s1 = string;
+
+    while (*s1 != NULL)
+    {    
+        //wait until uart1 tx fifo empty
+        while(UART1_TX_BUF_CNT != 0);
+
+        //put out char by uart1 tx fifo
+        REG32(UART1_TX_BUF_ADDR) = *s1; 
+        s1++;
+    }    
+}
+}}}
+
+=== u-boot ===
+{{{
+实现代码：u-boot/common/console.c
+
+如果定义CONFIG_RAM_CONSOLE，可以从memory里看u-boot的log
+addr：0x8f800000 + 0x600000 = 0x8fe00000
+size：0x80000
+
+184 /* Load U-Boot to this address */
+185 #define CONFIG_SYS_NAND_U_BOOT_DST  0x8f800000
+186 #define CONFIG_SYS_NAND_U_BOOT_START    CONFIG_SYS_NAND_U_BOOT_DST
+
+449 #define CONFIG_RAM_CONSOLE
+450 
+451 #ifdef CONFIG_RAM_CONSOLE
+452 #define CONFIG_RAM_CONSOLE_SIZE        0x80000
+453 #define CONFIG_RAM_CONSOLE_START    (CONFIG_SYS_NAND_U_BOOT_START + 0x600000)
+454 #endif
+}}}
+
+=== log in TW dump file ===
+{{{
+kernel is stored at specific address on TW version. As GetLog only gets 512K from the dump file, so this log is detailed than got from GetLog tool.
+The address is different among projects. You can get it from parselog.txt after using GetLog. Or get it from the global variable: marks_var_mark, kernel_log_mark, plat_log_mark, frame_buf_mark
+
+take CorePrimeLite(SharkL) for example,
+kernel log address is 0xc6b00000
+use d.save.b d:\kernel.log 0xc6b00000++0x100000 to save kernel log
+}}}
+
+=== init log ===
+{{{
+modify the log level in system/core/include/cutils/klog.h
+
+diff --git a/include/cutils/klog.h b/include/cutils/klog.h
+index d5ae6d7..ebe9554 100644
+--- a/include/cutils/klog.h
++++ b/include/cutils/klog.h
+@@ -44,6 +44,6 @@ __END_DECLS
+ #define KLOG_INFO(tag,x...)    klog_write(KLOG_INFO_LEVEL, "<6>" tag ": " x)
+ #define KLOG_DEBUG(tag,x...)   klog_write(KLOG_DEBUG_LEVEL, "<7>" tag ": " x)
+ 
+-#define KLOG_DEFAULT_LEVEL  3  /* messages <= this level are logged */
++#define KLOG_DEFAULT_LEVEL  7  /* messages <= this level are logged */
+ 
+ #endif
+}}}
+
+----
+== trace32使用技巧 ==
+=== 看a-die寄存器 ===
+{{{
+通过修改0x40030024这个寄存器，再看0x40030028的返回值
+如要看0x40038100寄存器，则修改0x40030024的值为0x40038100，在0x40030028会返回01000004的值
+其中0x40030028的后16位为对应寄存器的内容，往上12位为寄存器偏移，高31是否读取完成
+写a-die寄存器的话，直接往地址写就可以了
+}}}
+
+=== 通过task推调用栈 ===
+{{local:images/stack.png}}</BR>
+{{local:images/dump_callstack_from_sp.PNG}}
+
+=== 通过FP推调用栈 ===
+{{local:images/dump_callstack_from_fp.PNG}}
+
+=== 通过thread_info的cpu_context看task栈 ===
+{{{
+sl  ->  R14
+fp  ->  R11
+sp  ->  R13
+pc  ->  pc
+
+或者通过v.f /task <task_ptr>来看
+}}}
+
+=== 枚举task脚本 ===
+[[local:files/foreach_process.cmm|foreach_process.cmm]]</BR>
+[[local:files/foreach_thread.cmm|foreach_thread.cmm]]</BR>
+
+----
+== adb命令 ==
+=== dumpsys ===
+{{{
+打印当前服务的信息，可以用下面的命令查看哪些服务可以dump
+1、dumpsys | grep DUMP
+2、service list
+然后用命令dumpsys <service_name>
+常用：
+dumpsys meminfo PID        显示进程的内存使用情况
+}}}
+
+=== procrank ===
+{{{
+显示所有进程的内存使用情况
+VSS - Virtual Set Size 虚拟耗用内存（包含共享库占用的内存）
+RSS - Resident Set Size 实际使用物理内存（包含共享库占用的内存）
+PSS - Proportional Set Size 实际使用的物理内存（比例分配共享库占用的内存）
+USS - Unique Set Size 进程独自占用的物理内存（不包含共享库占用的内存）
+}}}
+
+=== dumpstate ===
+
+=== debuggerd ===
+{{{
+打印某进程内所有线程的调用栈
+debuggerd -b PID
+}}}
+
+=== strace ===
+
+=== list process maps ===
+{{{
+cd /proc
+cat ./*/maps
+}}}
+
+----
+== 附件 ==
+[[local:files/TShark_check.cmm|TShark_check.cmm]]</BR>
+[[local:files/gen_trace_reg.sh|gen_trace_reg.sh]]</BR>
+[[local:files/定屏死机问题分析.docx|定屏死机问题分析.docx]]</BR>
+[[local:files/read_2723.sh|read_2723.sh]]</BR>
+[[local:files/read_tshark.sh|read_tshark.sh]]</BR>
+

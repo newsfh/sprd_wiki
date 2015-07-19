@@ -1,0 +1,57 @@
+{{{
+1. 解压ramdisk
+通过file命令可以查看ramdisk.img文件的类型：
+root@mail:/opt/myandroid_R9.2.1/out/target/product/imx51_bbg# file ramdisk.img 
+ramdisk.img: gzip compressed data, from Unix
+
+由此，可知其文件类型为gzip类型的。解压的步骤如下：
+ 1》.先将ramdisk.img文件重命名为ramdisk.img.gzip文件
+ 2》.使用gunzip ramdisk.img.gz对其进行解压得到ramdisk.img文件。
+    有人可能要问，怎么文件名又改回去了?其实不然，使用file ramdisk.img查看一下就知道了：
+　　解压前：ramdisk.img: gzip compressed data, from Unix
+　　解压后：ramdisk.img: ASCII cpio archive (SVR4 with no CRC)
+ 3》.使用cpio提取ramdisk.img文件中的内容
+   新建一个temp目录：
+　　mkdir temp
+　　cd temp
+　　cpio -i -F ../ramdisk.img
+   解压以后可以在temp目录下看到ramdisk.img中的内容。
+
+2. 打包ramdisk.img
+  cd /temp
+  find . |cpio -ov -H newc |gzip > ../ramdisk.img
+  cd ..
+  ls
+  可以看到生成的ramdisk.img文件。
+
+3. 将ramdisk.img文件生成uramdisk.img文件
+在终端执行下面命令：
+/opt/myandroid_R9.2.1/bootable/bootloader/uboot-imx/tools/mkimage -A arm -O linux -T ramdisk -C none -a 0x90C00000 -n "Android Root Filesystem" -d ./ramdisk.img ./uramdisk.img
+
+4.uramdisk.img文件还原到ramdisk.img
+其实由ramdisk.img~uramdisk.img文件的转换过程，就是在ramdisk.img文件中的前加入一些字节。
+所以由uramdisk.img文件还原到ramdisk.img的步骤如下：
+sudo dd if=./uramdisk.img of=./ramdisk.img bs=1024 skip=1    
+}}}
+{{{
+（注：mkbootfs, mkbootimg可以从out/host/linux-x86/bin/获取）
+ 
+mkdir boot
+cd boot
+adb pull /dev/block/platform/sprd-sdhci.3/by-name/KERNEL b.img
+split_bootimg.pl b.img
+ln -s b.img kernel
+mkdir root
+cd root
+gunzip -c ../b.img-ramdisk.gz | cpio -i
+ 
+vim *.rc 编辑你想要的
+ 
+cd ..
+mkbootfs root | minigzip > ramdisk.img
+mkbootimg --ramdisk ramdisk.img  --kernel kernel  --cmdline "console=ttyS1,115200n8" -o boot.img
+ 
+adb push boot.img /data/
+adb shell dd if=/data/boot.img of=/dev/block/platform/sprd-sdhci.3/by-name/KERNEL
+adb reboot
+}}}

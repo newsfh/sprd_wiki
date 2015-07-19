@@ -1,0 +1,62 @@
+%toc 目录
+
+----
+=== Introduction ===
+{{{
+}}}
+
+=== Configuration ===
+{{{
+kernel driver file:
+ sprd_2713s_thm.c and sprd_thm.c in kernel/drivers/thermal/
+
+macro:
+ CONFIG_THERMAL_SC2713S
+
+sensor config:
+ kernel/arch/arm/boot/dts/sprd-scx35l_coreprimelite.dts
+    sprd_thermal {
+        compatible = "sprd,sprd-thermal";
+        id = <0>;
+        interrupts = <0 26 0x0>;
+        reg = <0xf5260000 0x1000>;
+        trip_points_active = <56 60 90 110>;
+        trip_points_lowoff = <0 46 50 80>;
+        trip_points_critical = <110>;
+        trip_num = <5>;
+    };
+
+    sprd_thermal1 {
+        compatible = "sprd,sprd-thermal";
+        id = <1>; 
+        interrupt-parent = <&adi>;
+        interrupts = <9 0x0>;
+        reg = <0xf51c8280 0x1000>;
+        trip_points_active = <100>;
+        trip_points_lowoff = <90>; /*no use, jut for compatiable*/
+        trip_points_critical = <114>;
+        trip_num = <2>; 
+    };
+
+    sprd_thermal2 {
+        compatible = "sprd,sprd-thermal";
+        id = <2>; 
+        interrupts = <0 26 0x0>;
+        reg = <0xf5260000 0x1000>;
+        trip_points_active = <100>;
+        trip_points_lowoff = <90>;
+        trip_points_critical = <110>;
+        trip_num = <2>; 
+    };   
+thermal:  arm
+thermal1: a-die
+thermal2: GPU
+now, thermal is used.
+}}}
+
+=== Debug ===
+{{{
+/sys/class/thermal/thermal_zone1
+
+temp: current temperature
+}}}

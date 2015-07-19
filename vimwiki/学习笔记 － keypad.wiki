@@ -1,0 +1,233 @@
+%toc 目录
+
+----
+== 键盘类型 ==
+=== 矩阵键盘 ===
+|*配置*|*内容*|
+|kernel|CONFIG_INPUT_MATRIXKMAP</BR>CONFIG_KEYBOARD_SC|
+|device/sprd|sci-keypad.kl|
+
+=== gpio键盘 ===
+|*配置*|*内容*|
+|kernel|CONFIG_KEYBOARD_GPIO_SPRD|
+|device/sprd|gpio-keys.kl|
+
+=== eic键盘 ===
+|*配置*|*内容*|
+|kernel|CONFIG_KEYBOARD_SPRD_EIC|
+|device/sprd|sprd-eic-keys.kl|
+
+----
+== 键盘配置 ==
+pinmap configuration is in u-boot/board/spreadtrum/kanas_w/pinmap.c
+{{{
+{REG_PIN_KEYOUT0,           PIN_NULL,   FUNC0,   PIN_NULL,    PIN_NULL,     DS_L1,    SLP_OE,          PIN_NULL,      SLP_AP},
+{REG_PIN_KEYOUT1,           PIN_NULL,   FUNC0,   PIN_NULL,    PIN_NULL,     DS_L1,    SLP_OE,          PIN_NULL,      SLP_AP},
+
+{REG_PIN_KEYIN0,            PIN_NULL,   FUNC0,   FUNC_WPU,    SLP_WPU,      DS_L1,    SLP_IE,          PIN_NULL,      SLP_AP},
+{REG_PIN_KEYIN1,            PIN_NULL,   FUNC0,   FUNC_WPU,    SLP_WPU,      DS_L1,    SLP_IE,          PIN_NULL,      SLP_AP},
+}}}
+
+keymap configuration is in /kernel/arch/arm/mach-sc/board-kanas_w.c
+{{{
+/*keypad define */
+#define CUSTOM_KEYPAD_ROWS          (SCI_ROW0 | SCI_ROW1)
+#define CUSTOM_KEYPAD_COLS          (SCI_COL0 | SCI_COL1)
+#define ROWS    (2)
+#define COLS    (2)
+
+static const unsigned int board_keymap[] = {
+    KEY(0, 0, KEY_VOLUMEDOWN),
+    KEY(1, 0, KEY_VOLUMEUP),
+    KEY(0, 1, KEY_HOME),
+};
+//## KEY definition
+//#define KEY(row, col, val)	((((row) & (MATRIX_MAX_ROWS - 1)) << 24) |\
+//				 (((col) & (MATRIX_MAX_COLS - 1)) << 16) |\
+//				 ((val) & 0xffff))
+//#@@ row is KEYOUT, col is KEYIN
+
+static const struct matrix_keymap_data customize_keymap = {
+    .keymap = board_keymap,
+    .keymap_size = ARRAY_SIZE(board_keymap),
+};
+
+static struct sci_keypad_platform_data sci_keypad_data = {
+    .rows_choose_hw = CUSTOM_KEYPAD_ROWS,
+    .cols_choose_hw = CUSTOM_KEYPAD_COLS,
+    .rows_number = ROWS,
+    .cols_number = COLS,
+    .keymap_data = &customize_keymap,
+    .support_long_key = 1, 
+    .repeat = 0, 
+    .debounce_time = 5000,
+};
+}}}
+
+keyboard device is defined in kernel/arch/arm/mach-sc/devices-sc8830.c
+{{{
+static struct resource sci_keypad_resources[] = {
+    {    
+            .start = IRQ_KPD_INT,
+            .end = IRQ_KPD_INT,
+            .flags = IORESOURCE_IRQ,
+    },   
+};
+
+struct platform_device sprd_keypad_device = {
+    .name = "sci-keypad",
+    .id             = -1,
+    .num_resources = ARRAY_SIZE(sci_keypad_resources),
+    .resource = sci_keypad_resources,
+};
+}}}
+
+app key configuration is in device/sprd/scx35/sci-keypad.kl
+{{{
+key 116   POWER             WAKE
+key 114   VOLUME_DOWN       WAKE
+key 115   VOLUME_UP         WAKE
+key 9     CAMERA
+key 102   HOME         WAKE
+}}}
+
+----
+== 代码分析 ==
+Keyboard driver is in kernel/drivers/input/keyboard/sc_keypad.c</BR>
+key matrix map is in kernel/drivers/input/matrix-keymap.c
+=== probe ===
+{{{
+static int sci_keypad_probe(struct platform_device *pdev)
+{
+    sci_kpd->irq = platform_get_irq(pdev, 0);
+    if (sci_kpd->irq < 0) {
+        error = -ENODEV;
+        dev_err(&pdev->dev, "Get irq number error,Keypad Module\n");
+        goto out2;
+    }   
+    error =
+        request_irq(sci_kpd->irq, sci_keypad_isr, IRQF_NO_SUSPEND, "sci-keypad", sci_kpd);
+    if (error) {
+        dev_err(&pdev->dev, "unable to claim irq %d\n", sci_kpd->irq);
+        goto out2;
+    }
+        
+    input_dev->name = pdev->name;
+    input_dev->phys = "sci-key/input0";
+    input_dev->dev.parent = &pdev->dev;
+    input_set_drvdata(input_dev, sci_kpd);
+    
+    input_dev->id.bustype = BUS_HOST;
+    input_dev->id.vendor = 0x0001;
+    input_dev->id.product = 0x0001;
+    input_dev->id.version = 0x0100;
+    
+    input_dev->keycode = &sci_kpd[1];
+    input_dev->keycodesize = sizeof(unsigned short);
+    input_dev->keycodemax = keycodemax;
+    
+// set keymap
+    matrix_keypad_build_keymap(pdata->keymap_data, NULL, pdata->rows_number, pdata->cols_number,
+                   input_dev->keycode, input_dev);
+}
+}}}
+
+In kernel/drivers/input/matrix-keymap.c
+{{{
+155int matrix_keypad_build_keymap(const struct matrix_keymap_data *keymap_data,
+156			       const char *keymap_name,
+157			       unsigned int rows, unsigned int cols,
+158			       unsigned short *keymap,
+159			       struct input_dev *input_dev)
+160{
+186	if (keymap_data) {
+187		for (i = 0; i < keymap_data->keymap_size; i++) {
+188			unsigned int key = keymap_data->keymap[i];
+189
+   // it will build up a matrix for whole key-row-col and key-value
+190			if (!matrix_keypad_map_key(input_dev, rows, cols,
+191						   row_shift, key))
+192				return -EINVAL;
+193		}
+199	}
+200
+201	__clear_bit(KEY_RESERVED, input_dev->keybit);
+202
+203	return 0;
+204}
+
+30static bool matrix_keypad_map_key(struct input_dev *input_dev,
+31				  unsigned int rows, unsigned int cols,
+32				  unsigned int row_shift, unsigned int key)
+33{
+34	unsigned short *keymap = input_dev->keycode;
+35	unsigned int row = KEY_ROW(key);
+36	unsigned int col = KEY_COL(key);
+37	unsigned short code = KEY_VAL(key);
+38
+39	if (row >= rows || col >= cols) {
+40		dev_err(input_dev->dev.parent,
+41			"%s: invalid keymap entry 0x%x (row: %d, col: %d, rows: %d, cols: %d)\n",
+42			__func__, key, row, col, rows, cols);
+43		return false;
+44	}
+45
+46	keymap[MATRIX_SCAN_CODE(row, col, row_shift)] = code;
+47	__set_bit(code, input_dev->keybit);
+48
+49	return true;
+50}
+}}}
+
+=== isr ===
+{{{
+static irqreturn_t sci_keypad_isr(int irq, void *dev_id)
+{
+    unsigned short key = 0;
+    unsigned long value;
+    struct sci_keypad_t *sci_kpd = dev_id;
+// read which keyboard interrupt source
+    unsigned long int_status = __raw_readl(KPD_INT_MASK_STATUS);
+// read which row and col
+    unsigned long key_status = __raw_readl(KPD_KEY_STATUS);
+    unsigned short *keycodes = sci_kpd->input_dev->keycode;
+    unsigned int row_shift = get_count_order(sci_kpd->cols);
+    int col, row;
+
+    value = __raw_readl(KPD_INT_CLR);
+    value |= KPD_INT_ALL;
+    __raw_writel(value, KPD_INT_CLR);
+
+// check key int source
+    if ((int_status & KPD_PRESS_INT0)) {
+// get col and row
+        col = KPD_INT0_COL(key_status);
+        row = KPD_INT0_ROW(key_status);
+// get key value
+        key = keycodes[MATRIX_SCAN_CODE(row, col, row_shift)];
+// invoke key msg
+        input_report_key(sci_kpd->input_dev, key, 1); 
+        input_sync(sci_kpd->input_dev);
+        printk("%03dD\n", key);
+    }   
+    if (int_status & KPD_RELEASE_INT0) {
+        col = KPD_INT0_COL(key_status);
+        row = KPD_INT0_ROW(key_status);
+        key = keycodes[MATRIX_SCAN_CODE(row, col, row_shift)];
+
+        input_report_key(sci_kpd->input_dev, key, 0); 
+        input_sync(sci_kpd->input_dev);
+        printk("%03dU\n", key);
+    }
+......
+
+    return IRQ_HANDLED;
+}
+}}}
+
+== 注意事项 ==
+{{{
+1、kl文件，需要跟驱动节点名一致，否则找不到相应的键值
+2、uboot里配置的键盘，需要跟实际键盘一致
+}}}
+

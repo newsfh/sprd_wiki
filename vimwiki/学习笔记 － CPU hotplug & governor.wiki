@@ -1,0 +1,51 @@
+%toc 目录
+
+----
+=== hotplug ===
+==== code and macro ====
+{{{
+file: kernel/drivers/cpuhotplug/sprd_hotplug.c
+macro: CONFIG_SPRD_CPU_DYNAMIC_HOTPLUG
+}}}
+
+==== control sys node ====
+{{{
+/sys/devices/system/cpu/cpuhotplug/cpu_hotplug_disable
+}}}
+
+==== hotplug stage ====
+{{{
+There are 3 context where the cpu_up() is being called and one context where cpu_down() is being called. 
+
+1.  From Touch interrupt,
+
+ist30xx_irq_thread() ->  report_input_data() -> print_tsp_event() -> _store_cpu_num_min_limit() -> sd_check_cpu_sprd() -> schedule_delayed_work_on() – unplug_work OR plugin_work
+
+unplug_work ==> sprd_unplug_one_cpu_ss() -> cpu_down()   [Depending on no of CPU and cpu_hotplug_disable]
+
+plugin_work ==> sprd_plugin_one_cpu_ss() -> cpu_up()            [Depending on no of CPU limit and cpu_hotplug_disable]
+
+2.  From SSRM i.e CustomFrequencyManager.java file,
+    store_cpu_hotplug_disable() -> cpu_up()
+
+3.       From hotplug kernel thread,
+sprd_hotplug [kernel thread] -> dbs_check_cpu_sprd() -> sd_check_cpu_sprd() ----<   >----> cpu_up()/cpu_down() 
+
+The cpu_up() and cpu_down() both are holding the mutex “cpu_add_remove_lock” as shown below,
+A.      cpu_up() -> cpu_maps_update_begin() -- Hold Mutex "cpu_add_remove_lock"
+          -> _cpu_up()   -> cpu_hotplug_begin() -- Hold mutex "cpu_hotplug.lock"
+          -> __cpu_up() -- wait for CPU up OR timeout and come back
+          -> cpu_hotplug_done() -- Release the mutex     "cpu_hotplug.lock"
+          -> cpu_maps_update_done() -- Release Mutex "cpu_add_remove_lock"
+
+B.      cpu_down() -> cpu_maps_update_begin() -- Hold Mutex "cpu_add_remove_lock"
+        -> _cpu_down() -> cpu_hotplug_begin() -- Hold mutex "cpu_hotplug.lock"
+        -> __cpu_die() -- wait for CPU up OR timeout and come back
+        -> cpu_hotplug_done() -- Release the mutex              "cpu_hotplug.lock"
+        -> cpu_maps_update_done() -- Release Mutex "cpu_add_remove_lock"
+}}}
+
+----
+=== 附件 ===
+[[local:files/dvfs.ppt|dvfs.ppt]]</BR>
+[[local:files/Spreadtrum_Power_Management_SharkL.docx|Spreadtrum_Power_Management_SharkL.docx]]</BR>

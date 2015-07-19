@@ -1,0 +1,33 @@
+%toc 目录
+
+----
+== 开机方式 ==
+电池电压范围：3.05V<VBAT<5.2V</BR>
+</BR>
+3种开机方式
+* 按power键(PBINT/PBINT2)
+* USB充电
+* RTC闹钟
+
+== 开机时序 ==
+* 开机键开机过程
+{{local:images/power-on-progress.png}}
+
+* 开机时序及Timing
+{{local:images/power-on_power-off_sequence.png}}
+
+* 开机上电时序
+{{local:images/poweron-ldo-sequence.png}}
+
+== Reset ==
+=== External Pin Reset ===
+{{local:images/external_reset.png}}
+
+=== VBAT Monitor Reset ===
+
+=== Watchdog Reset ===
+
+=== Power Key 7s Reset ===
+==== One-key mode ====
+==== Two-key mode ====
+

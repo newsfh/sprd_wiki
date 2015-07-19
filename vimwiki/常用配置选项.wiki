@@ -1,0 +1,24 @@
+%toc 目录
+
+----
+=== DVFS ===
+{{{
+CPU Power Management  --->
+    CPU Frequency scaling  --->
+        [ ] CPU Frequency scaling
+}}}
+
+----
+=== DFS ===
+{{{
+Power management options  --->
+    Operating Performance Point (OPP) Layer library
+    将此关闭，则DFS就不起作用了
+
+Device Drivers  --->
+    Generic Dynamic Voltage and Frequency Scaling (DVFS) support  --->
+        再先governor和driver
+}}}
+
+----
+=== Memory Size ===

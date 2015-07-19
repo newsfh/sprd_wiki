@@ -1,0 +1,63 @@
+=== 学习笔记 ===
+[[设备驱动]]</BR>
+[[常见模块的供电电压]]</BR>
+[[常用调试节点]]</BR>
+[[常用配置选项]]</BR>
+[[学习笔记 － linux kernel]]</BR>
+[[学习笔记 － linux kernel常用信息]]</BR>
+[[学习笔记 － u-boot]]</BR>
+[[学习笔记 － 中断]]</BR>
+[[学习笔记 － sleep]]</BR>
+[[学习笔记 － SIPC]]</BR>
+[[学习笔记 － calibration]]</BR>
+[[学习笔记 － engmode]]</BR>
+[[学习笔记 － slog]]</BR>
+[[学习笔记 － CP reset]]</BR>
+[[学习笔记 － CPU hotplug & governor]]</BR>
+[[学习笔记 － power_on & power_off]]</BR>
+[[学习笔记 － ldo]]</BR>
+[[学习笔记 － pin & gpio]]</BR>
+[[学习笔记 － I2C]]</BR>
+[[学习笔记 － keypad]]</BR>
+[[学习笔记 － clock]]</BR>
+[[学习笔记 － timer]]</BR>
+[[学习笔记 － bus monitor]]</BR>
+[[学习笔记 － 7s reset]]</BR>
+[[学习笔记 － DDR]]</BR>
+[[学习笔记 － thermal]]</BR>
+[[学习笔记 － MUIC & SUB PMIC]]</BR>
+[[学习笔记 － IRAM]]</BR>
+[[学习笔记 － Marlin]]</BR>
+[[学习点滴]]</BR>
+
+----
+=== 调试技巧 ===
+[[sysdump调试步骤]]</BR>
+[[lockup调试步骤]]</BR>
+[[调试技巧]]</BR>
+[[经典调试案例]]</BR>
+[[问题及解决]]</BR>
+
+----
+=== 工具使用 ===
+[[git学习]]</BR>
+[[adb使用]]</BR>
+[[MobileTester]]</BR>
+[[ubuntu串口工具]]</BR>
+[[vmware]]</BR>
+[[Trace32使用]]</BR>
+[[crash tool]]</BR>
+[[crash command]]</BR>
+[[ramdisk的打包和解压]]</BR>
+[[SS Tool]]</BR>
+[[DS-5]]</BR>
+[[FPGA开发板的使用]]</BR>
+[[PADS工具使用]]</BR>
+[[vimwiki使用]]</BR>
+[[建git服务器]]</BR>
+
+----
+=== 网络资料 ===
+[[http://developer.android.com/index.html|android官方网站]]</BR>
+[[http://kb.cnblogs.com/zt/android/|博客园android专题]]</BR>
+

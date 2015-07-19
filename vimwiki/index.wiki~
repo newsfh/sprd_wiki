@@ -1,0 +1,110 @@
+%toc 目录
+----
+
+----
+=== 学习笔记 ===
+[[设备驱动]]
+
+[[常见模块的供电电压]]
+
+[[常用调试节点]]
+
+[[常用配置选项]]
+
+[[学习笔记 － linux kernel]]
+
+[[学习笔记 － linux kernel常用信息]]
+
+[[学习笔记 － u-boot]]
+
+[[学习笔记 － 中断]]
+
+[[学习笔记 － sleep]]
+
+[[学习笔记 － SIPC]]
+
+[[学习笔记 － calibration]]
+
+[[学习笔记 － engmode]]
+
+[[学习笔记 － slog]]
+
+[[学习笔记 － CP reset]]
+
+[[学习笔记 － CPU hotplug & governor]]
+
+[[学习笔记 － power_on & power_off]]
+
+[[学习笔记 － ldo]]
+
+[[学习笔记 － pin & gpio]]
+
+[[学习笔记 － I2C]]
+
+[[学习笔记 － keypad]]
+
+[[学习笔记 － clock]]
+
+[[学习笔记 － timer]]
+
+[[学习笔记 － 7s reset]]
+
+[[学习笔记 － DDR]]
+
+[[学习笔记 － thermal]]
+
+[[学习笔记 － MUIC & SUB PMIC]]
+
+[[学习笔记 － IRAM]]
+
+[[学习笔记 － Marlin]]
+
+[[学习点滴]]
+
+----
+=== 调试技巧 ===
+[[sysdump调试步骤]]
+
+[[lockup调试步骤]]
+
+[[调试技巧]]
+
+[[经典调试案例]]
+
+[[问题及解决]]
+
+----
+=== 工具使用 ===
+[[git学习]]
+
+[[adb使用]]
+
+[[MobileTester]]
+
+[[ubuntu串口工具]]
+
+[[vmware]]
+
+[[Trace32使用]]
+
+[[crash tool]]
+
+[[crash command]]
+
+[[ramdisk的打包和解压]]
+
+[[SS Tool]]
+
+[[DS-5]]
+
+[[FPGA开发板的使用]]
+
+[[PADS工具使用]]
+
+[[常用工具操作]]
+
+----
+=== 网络资料 ===
+[[http://developer.android.com/index.html|android官方网站]]
+
+[[http://kb.cnblogs.com/zt/android/|博客园android专题]]

@@ -1,0 +1,214 @@
+%toc 目录
+
+----
+== 配置 ==
+This configuration is defined in u-boot/include/configs/kanas_w.h
+|*宏*|*功能*|
+|CONFIG_MODEM_CALIBERATE|是否有校准能力|
+|CONFIG_MODEM_CALI_UART|USB校准还是UART校准|
+|CALIBRATE_ENUM_MS 3000|UART侦测超时时间|
+|CALIBRATE_IO_MS 2000|USB侦测超时时间|
+|CALIBRATION_FLAG_WCDMA|W的校准地址|
+|CALIBRATION_FLAG|TD的校准地址|
+
+----
+== 代码分析 ==
+In u-boot/property/cmd_cboot.c, check function 'do_cboot'
+{{{
+int do_cboot(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
+{
+    unsigned rst_mode = check_reboot_mode();
+
+// As we do not press the power key, so boot_pwr_check will return 0. rst_mode also is 0. So it will enter into calibration_detect.
+    if(cali_file_check() && !boot_pwr_check()&&
+    (!rst_mode || (rst_mode == CALIBRATION_MODE))&&
+    (!alarm_triggered())){
+        calibration_detect(2);
+    }
+}
+}}}
+
+In u-boot/property/calibration_detect.c
+{{{
+void calibration_detect(int key)
+{
+    printf("%s\n", "uart calibrate detecting");
+
+// Check whether using calibration mode
+    start_time = get_timer_masked();
+    while (1) {
+// Tool will send signals to device, u-boot will receive them
+        got = receive_caliberation_response(buf, sizeof(buf));
+        if (caliberate_device == CALIBERATE_DEVICE_UART)
+            break;
+
+// if time-out, not calibration mode, return
+        now_time = get_timer_masked();
+        if ((now_time - start_time) > CALIBRATE_ENUM_MS) {
+            printf("usb calibrate configuration timeout\n");
+            return;
+        }   
+    }   
+
+// print information
+    printf("caliberate : what got from host total %d is \n", got);
+    for (i = 0; i < got; i++)
+        printf("0x%x ", buf[i]);
+    printf("\n");
+
+    caliberate_mode = check_caliberate(buf, CALIBERATE_STRING_LEN);
+    if (!caliberate_mode) {
+        printf("func: %s line: %d caliberate failed\n", __func__, __LINE__);
+        return;
+    } else {
+// set calibration info to kernel
+        if (caliberate_device == CALIBERATE_DEVICE_UART)
+            sprintf(cmd_buf, " androidboot.mode=cali calibration=%d,%d,130 ", caliberate_mode&0xff, (caliberate_mode&(~0xff)) >> 8);
+
+// enter into recovery kernel, backlight off
+        vlx_nand_boot(RECOVERY_PART,cmd_buf, BACKLIGHT_OFF);
+    }
+}
+}}}
+
+In system/core/init/init.c, it will parse cmd line from u-boot.
+{{{
+static void import_kernel_nv(char *name, int for_emulator)
+{
+    char *value = strchr(name, '=');
+    int name_len = strlen(name);
+
+    if (value == 0) return;
+    *value++ = 0;
+    if (name_len == 0) return;
+
+    if (for_emulator) {
+        /* in the emulator, export any kernel option with the 
+         * ro.kernel. prefix */
+        char buff[PROP_NAME_MAX];
+        int len = snprintf( buff, sizeof(buff), "ro.kernel.%s", name );
+
+        if (len < (int)sizeof(buff))
+            property_set( buff, value );
+        return;
+    }   
+
+    if (!strcmp(name,"qemu")) {
+        strlcpy(qemu, value, sizeof(qemu));
+    } else if (!strncmp(name, "androidboot.", 12) && name_len > 12) {
+        const char *boot_prop_name = name + 12; 
+        char prop[PROP_NAME_MAX];
+        int cnt;
+
+        cnt = snprintf(prop, sizeof(prop), "ro.boot.%s", boot_prop_name);
+        if (cnt < PROP_NAME_MAX)
+            property_set(prop, value);
+    }   
+}
+}}}
+we can check the 'androidboot.' part, it will change to 'ro.boot.'. Find 'ro.boot', there is an array.
+{{{
+struct {
+    const char *src_prop;
+    const char *dest_prop;
+    const char *def_val;
+} prop_map[] = {
+    { "ro.boot.serialno", "ro.serialno", "", },
+    { "ro.boot.mode", "ro.bootmode", "unknown", },
+    { "ro.boot.baseband", "ro.baseband", "unknown", },
+    { "ro.boot.bootloader", "ro.bootloader", "unknown", },
+};  
+}}}
+So 'androidboot.mode=cali' will finally change to 'ro.bootmode'.
+
+In system/core/init/init.c
+{{{
+int main(int argc, char **argv)
+{
+/* SPRD: add calibration mode in recovery @{ */
+    if (!strcmp(bootmode, "cali")) {
+        action_for_each_trigger("cali", action_add_queue_tail);
+    } else {
+        action_for_each_trigger("normal", action_add_queue_tail);
+    }
+}
+}}}
+
+In device/sprd/scx35/recovery/init.rc
+{{{
+on cali
+    ubiattach 0 ubipac
+    mount_all /fstab.sc8830
+    class_start cali
+    insmod /system/lib/modules/mali.ko
+    insmod /system/lib/modules/trout_fm.ko
+}}}
+
+----
+== u-boot Log ==
+如果进入校准模式
+{{{
+uart calibrate detecting
+caliberate : what got from host total 10 is
+0x7e 0x0 0x0 0x0 0x0 0x8 0x0 0xfe 0x8b 0x7e
+}}}
+否则，
+{{{
+uart calibrate detecting
+usb calibrate configuration timeout
+}}}
+
+----
+== Tool ==
+=== Diag Command ===
+{{local:images/diag_message.png}}</BR>
+{{{
+#define    RM_U0_AS_DIAG                 0x80          // uart0 used as diag port(debug)
+typedef enum
+{      
+    RM_NORMAL_MODE                  = 0x00,
+
+    // GSM 
+    RM_CALIBRATION_MODE             = 0x01,         // in calibration mode.
+    RM_CALIBR_POST_MODE             = 0x05,         // in calibration post mode
+    
+    // TD
+    RM_TD_CALITRATION_MODE          = 0x07,         // in td calibration mode.        
+    RM_TD_CALIBR_POST_MODE          = 0x08,         // in td calibration post mode  
+
+    // WCDMA
+    RM_WCDMA_CALIBRATION_MODE       = 0x0B,
+    RM_WCDMA_CALIBR_POST_MODE       = 0x0C,
+
+    // GSM mode witch with WCDMA moudule
+    RM_WCDMA_GSM_CALIBR_CAL_MODE    = 0x0E,
+    RM_WCDMA_GSM_CALIBR_POST_MODE   = 0x0F,
+        
+    // LTE
+    RM_LTE_CALIBRATION_MODE         = 0x10,         // in LTE calibration mode 
+    RM_LTE_CALIBR_POST_MODE         = 0x11,         // in LTE calibration post mode
+
+}RM_MODE_ENUM;
+
+
+0x8X 那个BYTE其实计算方法是这样的： RM_U0_AS_DIAG | RM_MODE_ENUM
+
+    比如LTE:
+
+    RM_U0_AS_DIAG | RM_CALIBRATION_MODE = 0x80 | 0x01 = 0x81
+    
+    GSM:
+    RM_U0_AS_DIAG | RM_LTE_CALIBRATION_MODE = 0x80 | 0x10 = 0x90
+}}}
+
+----
+== 杂记 ==
+=== USB校准 ===
+{{{
+usb校准需要两次枚举
+在uboot阶段会枚举一次，然后在kernel里再枚举一次
+在kernel里的枚举是由engpc完成，在vlog.c的eng_vdiag_rthread里，调用eng_usb_enable
+}}}
+
+----
+== 附件 ==

@@ -1,0 +1,18 @@
+%toc 目录
+
+----
+== 中断向量表 ==
+|*地址*|*异常种类*|
+|FFFF0000|复位|
+|FFFF0004|未定义指令|
+|FFFF0008|软中断（swi）|
+|FFFF000C|Prefetch abort|
+|FFFF0010|Data abort|
+|FFFF0014|保留|
+|FFFF0018|IRQ|
+|FFFF001C|FIQ|
+该向量表定义在kernel/arch/arm/kernel/entry-armv.S
+
+----
+== 参考资料 ==
+[[http://blog.csdn.net/DroidPhone/article/category/1118447|Linux中断子系统]]

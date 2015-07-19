@@ -1,0 +1,21 @@
+%toc 目录
+
+----
+=== PCB图 ===
+==== 图层过滤 ====
+{{{
+Setup => display Colors 或者 Ctrl+Alt+C
+只要把Top和Bottom两层选中即可
+}}}
+
+----
+=== SCH图 ===
+==== 关联PCB ====
+{{{
+Tools => PADS Layout 或者 Ctrl+Shift+O
+}}}
+
+==== 背景颜色 ====
+{{{
+Setup => display Colors 或者 Ctrl+Alt+C
+}}}

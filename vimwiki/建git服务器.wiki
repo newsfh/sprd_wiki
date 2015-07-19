@@ -1,0 +1,11 @@
+server端：
+{{{
+git init --bare --shared wiki.git
+}}}
+
+client端：
+{{{
+git clone SPREADTRUM\\hua.fang@10.1.91.31:/home/likewise-open/SPREADTRUM/hua.fang/git/wiki.git
+
+git push origin master
+}}}
