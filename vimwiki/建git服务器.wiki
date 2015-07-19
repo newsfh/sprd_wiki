@@ -9,3 +9,12 @@ git clone SPREADTRUM\\hua.fang@10.1.91.31:/home/likewise-open/SPREADTRUM/hua.fan
 
 git push origin master
 }}}
+
+----
+github：
+{{{
+https://github.com
+
+git clone git@github.com:newsfh/sprd_wiki.git
+git push -u origin master
+}}}
