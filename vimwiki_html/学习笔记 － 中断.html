@@ -236,6 +236,27 @@ mem map
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/irq_mem_map.png" />
 </p>
 
+<pre>
+mask:
+最终产生的中断位，是raw &amp; enable后的值
+
+raw:
+原始中断数据位，只要有中断，就会被设置，不管是否使能
+
+enable:
+中断使能位
+写操作：
+1：使能；0：保持原值。如果想要关闭某中断，需要设置disable寄存器
+读操作：
+1：开启；0：关闭
+
+disable:(WO)
+1：关闭某中断；0：保持原值
+
+soft:
+产生软件中断
+</pre>
+
 <hr />
 <h2 id="toc_0.4">调试相关</h2>
 <ul>
