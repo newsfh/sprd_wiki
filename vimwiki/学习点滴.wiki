@@ -1521,3 +1521,62 @@ sp = thread_info + 0x2000
 edap:0x81410000
 }}}
 
+=== u-boot read/write EMMC ===
+{{{
+u-boot里读写EMMC：
+int do_fs_file_read(char *mpart, char *filenm, void *buf, int len)
+
+int do_raw_data_write(char *part, u32 updsz, u32 size, u32 off, char *buf)
+int do_raw_data_read(char *part, u32 size, u32 off, char *buf)
+// part：分区名
+// updsz：total size
+// size：write/read size
+// off：offset
+// buf：write/read buffer
+}}}
+
+=== u-boot read/write usb ===
+{{{
+u-boot里对usb的操作：
+gs_open();
+gs_write(buf, 20);
+gs_read(buf, &count);
+usb_trans_status
+
+255 void cali_usb_debug(uint8_t *buf)
+256 {
+257     int i, ret;
+258     for(i = 0; i<20; i++)
+259     buf[i] = i+'a';
+260     while(!usb_serial_configed)
+261         usb_gadget_handle_interrupts();
+262     printf("USB SERIAL CONFIGED\n");
+263     gs_open();
+264 #if WRITE_DEBUG
+265     while(1){
+266         ret = gs_write(buf, 20);
+267         printf("func: %s waitting write done\n", __func__);
+268         if(usb_trans_status)
+269             printf("func: %s line %d usb trans with error %d\n", __func__, __LINE__, usb_trans_status);
+270         usb_wait_trans_done(1);
+271         printf("func: %s readly send %d\n", __func__, ret);
+272     }
+273 #else
+274     while(1){
+275         int count = 20;
+276         usb_wait_trans_done(0);
+277         if(usb_trans_status)
+278             printf("func: %s line %d usb trans with error %d\n", __func__, __LINE__, usb_trans_status);
+279         ret = gs_read(buf, &count);
+280         printf("func: %s readly read %d\n", __func__, count);
+281         if(usb_trans_status)
+282             printf("func: %s line %d usb trans with error %d\n", __func__, __LINE__, usb_trans_status);
+283         for(i = 0; i<count; i++)
+284             printf("%c ", buf[i]);
+285         printf("\n");
+286     }
+287 
+288 #endif
+289 }
+}}}
+
