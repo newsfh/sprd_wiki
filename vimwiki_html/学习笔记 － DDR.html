@@ -36,6 +36,9 @@
 <hr />
 <h3 id="toc_0.0.1">DDR clock</h3>
 <h4 id="toc_0.0.1.1">how to check current DDR clock</h4>
+<p>
+<strong>通过clk_summary看</strong>
+</p>
 <pre>
 adb shell cat /d/clk/clk_summary | grep clk_emc?
 
@@ -46,6 +49,37 @@ $ adb shell cat /d/clk/clk_summary | grep clk_emc
        clk_emc                  0           0            768000000 
 
 then the current ddr frequence is 384M
+</pre>
+<p>
+<strong>通过PLL寄存器看</strong>
+</p>
+<pre>
+1、通过REG_AON_CLK_EMC_CFG看选择哪个PLL
+ 6：代表在TWPLL上，384M
+ 3：代表在TWPLL上，192M
+ 7：落在DPLL上，通过2来计算
+2、DPLL的计算公式
+ REG_AON_APB_DPLL_CFG看REFIN
+ REG_AON_APB_DPLL_CFG1查看NINT和KINT
+ 计算公式：REFIN*(NINT+KINT/1024/1024)/2
+
+读0x402e3004（REG_AON_APB_DPLL_CFG），bit24~bit25 represent REF clk，00-&gt;2M 01-&gt;4M 10-&gt;13M 11-&gt;26M。
+如值为0x03100029，3代表的那两个bit表示选择的REFIN，3表示选择26M clock。 
+读0x402e3074(REG_AON_APB_DPLL_CFG1)，bit12~bit31 represent KINT, bit0~bit5 represent NINT,计算公式为：(NINT + KINT/1024/1024) * REFIN。
+如值为0xd89d8463， NINT--&gt;0x23--&gt;35, KINT--&gt;0xd89d8--&gt;887256，则（30+887256/1024/1024）*26 = （35+0.85）*26 = 932M。 
+读0x402d0024（REG_AON_CLK_EMC_CFG），bit0~bit1 represent PLL source,bit8~bit9 represent 分频系数div。
+如值为0x00000003，div=0，则此时的ddr freq为932/(1+div)/2 = 466M 
+
+TShark:
+REG_AON_CLK_EMC_CFG：0x402d0024
+REG_AON_APB_DPLL_CFG：0x402e3004
+REG_AON_APB_DPLL_CFG1：0x402e3074
+
+SharkLT8：
+计算公式同上
+REG_AON_APB_DPLL_CFG1：0x402e004c, [19:18]是REFIN
+REG_AON_APB_DPLL_CFG2：0x402e0050，[29:24]是NINT，[19:0]是KINT
+REG_AON_CLK_EMC_CFG：0x50820010，[1:0]是PLL选择，7代表DPLL，6代表TWPLL384M，3代表TWPLL192M
 </pre>
 
 <h4 id="toc_0.0.1.2">clock register</h4>
