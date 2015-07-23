@@ -14,7 +14,13 @@
 <ul>
 <li><a href="#toc_0.0.1.1">寄存器域</a>
 <li><a href="#toc_0.0.1.2">Reg Memory Map</a>
+<ul>
+<li><a href="#toc_0.0.1.2.1">CTRL Reg</a>
+<li><a href="#toc_0.0.1.2.2">COMMAND Reg</a>
+</ul>
 <li><a href="#toc_0.0.1.3">设置时钟频率</a>
+<li><a href="#toc_0.0.1.4">相关寄存器</a>
+<li><a href="#toc_0.0.1.5">使用案例</a>
 </ul>
 <li><a href="#toc_0.0.2">I2C协议</a>
 <ul>
@@ -50,14 +56,53 @@
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/i2c_reg_memory_map.png" />
 </p>
-
+<h5 id="toc_0.0.1.2.1">CTRL Reg</h5>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/i2c_reg_control.png" />
+</p>
+<h5 id="toc_0.0.1.2.2">COMMAND Reg</h5>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/i2c_reg_command.png" />
+</p>
 <h4 id="toc_0.0.1.3">设置时钟频率</h4>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/i2c_reg_clock_setting.png" />
 </p>
 
+<h4 id="toc_0.0.1.4">相关寄存器</h4>
+<pre>
+以I2C1为例
+1、INTC
+   0x71400000[12]
+2、CLK
+   0x7120007c
+3、I2C1
+   0x70600000
+4、APB
+   0x71300000[9] : I2C1_EB
+   0x71300004[9] : I2C1_SOFT_RST
+</pre>
+
+<h4 id="toc_0.0.1.5">使用案例</h4>
+<pre>
+通过寄存器发送一次I2C传输数据
+w2s_rst       = 0x0000;    //   
+w2s_dividor0  = 0x0040;    //   
+w2s_dividor1  = 0x0000;    //   
+w2s_control   = 0x0018;    // 2ws_en = 1; 2ws_ie = 1 
+w2s_command   = 0x9C25;    // 1001110    0      0010 0101 
+                           // ADDRESS    W        S   W ClearInt
+w2s_command   = 0xFE05;    // 11111110          0000 0101 
+                           //    DATA                 W ClearInt
+w2s_command   = 0xFE15;    // 11111110          0001 0101 
+                           // DATA                 P  W ClearInt
+</pre>
+
 <hr />
 <h3 id="toc_0.0.2">I2C协议</h3>
+<p>
+<strong>传输协议简介</strong>
+</p>
 <pre>
 数据传输：
 SCL拉低时，SDA可以变化
@@ -74,6 +119,21 @@ SCL拉低时，SDA可以变化
 
 ACK应答信号：
 如果为低电平，则表示接收器已接收成功，否则表示不成功
+</pre>
+
+<p>
+<strong>SCL信号</strong>
+</p>
+<pre>
+SCL高，SDA从高到低，开始一个I2C的传输过程
+一个I2C信号有9个SCL周期组成
+第一个信号发送的是地址，代表的内容见上面的描述
+第二个信号之后，都是发送的数据，代表的内容见上
+在一次信号传输后，不管master/slave有没有处理，SCL一直拉低，并维持这个状态，直到一次新的传输，或发送一个stop信号，或是reset为止
+SCL高，SDA从低到高，I2C传输过程结束
+
+deepsleep后，I2C模块的clk会关闭，所以即使之前是低的，在sleep后，由于有上拉，所以SCL会变高
+在wakeup后，I2C又恢复之前的状态，SCL又拉低
 </pre>
 <h4 id="toc_0.0.2.1">速度</h4>
 <pre>
