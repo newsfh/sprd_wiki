@@ -5,6 +5,7 @@
 [[常用配置选项]]</BR>
 [[学习笔记 － linux kernel]]</BR>
 [[学习笔记 － linux kernel常用信息]]</BR>
+[[学习笔记 － Android]]</BR>
 [[学习笔记 － u-boot]]</BR>
 [[学习笔记 － 中断]]</BR>
 [[学习笔记 － sleep]]</BR>

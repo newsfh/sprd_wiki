@@ -1,0 +1,116 @@
+%toc 目录
+
+----
+=== 加载Android hw so库 ===
+{{{
+hw库有一定命名规则：
+1、命名一般为<module>.<prop>.so
+2、module为hw名，如gps
+3、获取prop
+ 3.1 先看ro.hardware.<module>是否有定义
+ 3.2 再从variant_keys定义的prop取，是否有定义
+ 3.3 再定义为default
+
+加载so的文件：hardware/libhardware/hardware.c
+
+函数：
+int hw_get_module(const char *id, const struct hw_module_t **module)
+{
+    return hw_get_module_by_class(id, NULL, module);
+}
+
+int hw_get_module_by_class(const char *class_id, const char *inst,
+                           const struct hw_module_t **module)
+{
+    int i;
+    char prop[PATH_MAX];
+    char path[PATH_MAX];
+    char name[PATH_MAX];
+    char prop_name[PATH_MAX];
+
+// 定义模块名
+    if (inst)
+        snprintf(name, PATH_MAX, "%s.%s", class_id, inst);
+    else
+        strlcpy(name, class_id, PATH_MAX);
+
+// 1. 先看ro.hardware.%s是否有定义
+    snprintf(prop_name, sizeof(prop_name), "ro.hardware.%s", name);
+    if (property_get(prop_name, prop, NULL) > 0) {
+        if (hw_module_exists(path, sizeof(path), name, prop) == 0) {
+            goto found;
+        }
+    }
+
+// 2. 再从variant_keys里看是否有定义
+    for (i=0 ; i<HAL_VARIANT_KEYS_COUNT; i++) {
+        if (property_get(variant_keys[i], prop, NULL) == 0) {
+            continue;
+        }
+        if (hw_module_exists(path, sizeof(path), name, prop) == 0) {
+            goto found;
+        }
+    }
+
+// 3. 最后看<module>.default.so
+    if (hw_module_exists(path, sizeof(path), name, "default") == 0) {
+        goto found;
+    }
+
+    return -ENOENT;
+
+found:
+    return load(class_id, path, module);
+}
+
+// 判断so文件是否存在
+static int hw_module_exists(char *path, size_t path_len, const char *name,
+                            const char *subname)
+{
+// 先从system/lib/hw里找
+    snprintf(path, path_len, "%s/%s.%s.so",
+             HAL_LIBRARY_PATH2, name, subname);
+    if (access(path, R_OK) == 0)
+        return 0;
+
+// 再到vendor/lib/hw里找
+    snprintf(path, path_len, "%s/%s.%s.so",
+             HAL_LIBRARY_PATH1, name, subname);
+    if (access(path, R_OK) == 0)
+        return 0;
+
+    return -ENOENT;
+}
+
+
+
+/**
+ * There are a set of variant filename for modules. The form of the filename
+ * is "<MODULE_ID>.variant.so" so for the led module the Dream variants
+ * of base "ro.product.board", "ro.board.platform" and "ro.arch" would be:
+ *
+ * led.trout.so
+ * led.msm7k.so
+ * led.ARMV6.so
+ * led.default.so
+ */
+static const char *variant_keys[] = {
+    "ro.hardware",  /* This goes first so that it can pick up a different
+                       file on the emulator. */
+    "ro.product.board",
+    "ro.board.platform",
+    "ro.arch"
+};
+
+
+
+/** Base path of the hal modules */
+#if defined(__LP64__)
+#define HAL_LIBRARY_PATH1 "/system/lib64/hw"
+#define HAL_LIBRARY_PATH2 "/vendor/lib64/hw"
+#else
+#define HAL_LIBRARY_PATH1 "/system/lib/hw"
+#define HAL_LIBRARY_PATH2 "/vendor/lib/hw"
+#endif
+}}}
+
