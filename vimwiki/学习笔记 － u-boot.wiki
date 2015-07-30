@@ -44,3 +44,8 @@ void fdt_fixup_all(void)
     return;
 }
 }}}
+
+----
+=== 资料 ===
+[[http://www.crifan.com/files/doc/docbook/uboot_starts_analysis/release/html/uboot_starts_analysis.html|Uboot中start.S源码的指令级的详尽解析]]</BR>
+
