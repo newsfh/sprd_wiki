@@ -1599,5 +1599,11 @@ usb_trans_status
 289 }
 </pre>
 
+<h3 id="toc_0.84.5">git commit comment检查</h3>
+<pre>
+git commit时会检查comment是否合法，这个是通过git的hook来实现的
+具体在仓库的.git/hooks目录下的commit-msg脚本，最终指向.repo/repo/hooks这个目录
+</pre>
+
 </body>
 </html>

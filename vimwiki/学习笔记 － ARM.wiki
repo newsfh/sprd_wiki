@@ -1,0 +1,26 @@
+%toc 目录
+
+----
+=== 指令 ===
+==== MRS/MSR ====
+{{{
+MRS
+将状态寄存器的内容传送至通用寄存器。
+MRS{<cond>}<Rd>, CPSR
+MRS{<cond>}<Rd>, SPSR
+
+MSR
+将通用寄存器的内容传送至状态寄存器。
+MSR{<cond>} CPSR_<fields>, #<immediate>
+MSR{<cond>} CPSR_<fields>, <Rm> 
+MSR{<cond>} SPSR_<fields>, #<immediate>
+MSR{<cond>} SPSR_<fields>, <Rm> 
+<fields>设置状态寄存器中需要操作的位。状态寄存器的32位可以分为4个8位的域：
+ f: 指示bits[31 : 24]，又名条件标志位域
+ s: 指示bits[23 : 16]，又名状态标志位域
+ x: 指示bits[15 : 8]， 又名扩展位域
+ c: 指示bits[7 : 0]，又名控制位
+}}}
+[[http://freesoftman.iteye.com/blog/1827249|汇编指令状态寄存器访问指令（MRS,MSR）]]<BR>
+
+
