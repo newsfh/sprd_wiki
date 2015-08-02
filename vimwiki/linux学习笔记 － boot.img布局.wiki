@@ -1,3 +1,7 @@
+%toc 目录
+
+----
+=== boot.img头信息 ===
 {{{
 30struct boot_img_hdr
 31{
@@ -53,3 +57,7 @@
 81**    else: jump to kernel_addr
 82*/
 }}}
+
+=== 附件 ===
+[[local:files/parse_bootimg.pl|解析boot.img]]</BR>
+
