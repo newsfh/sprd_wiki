@@ -1,5 +1,5 @@
 diff --git a/drivers/of/fdt.c b/drivers/of/fdt.c
-index 26d7060..d33d4e3 100644
+index 26d7060..287d5de 100644
 --- a/drivers/of/fdt.c
 +++ b/drivers/of/fdt.c
 @@ -120,6 +120,7 @@ static void * unflatten_dt_node(struct boot_param_header *blob,
@@ -23,13 +23,13 @@ index 26d7060..d33d4e3 100644
  			pp->length = sz;
  			pp->value = (__be32 *)p;
 +printk("~~ prop: name=%s, len=%d, val=", pp->name, pp->length);
-+if (strcmp(pp->name, "compatible") == 0) {
++if (strcmp(pp->name, "compatible") == 0 || strcmp(pp->name, "bootargs") == 0) {
 +	for (i=0; i < sz; i++) {
 +		printk("%c", (char)*(((char*)p)+i));
 +	}
 +} else {
 +	for (i=0; i < sz; i++) {
-+		printk("0x%02x ", (char)*(((char*)p)+i));
++		printk("%02x ", (char)*(((char*)p)+i));
 +	}
 +}
 +printk("\n");
