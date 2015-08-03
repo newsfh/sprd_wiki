@@ -1,0 +1,42 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>study_notes_script</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">perl</a>
+<ul>
+<li><a href="#toc_0.0.1.1">perl中十进制和16进制的转换</a>
+<li><a href="#toc_0.0.1.2">Perl函数pack/unpack解释</a>
+</ul>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">perl</h3>
+<h4 id="toc_0.0.1.1">perl中十进制和16进制的转换</h4>
+<pre>
+十进制转换成十六进制用sprintf():
+my $one=255;
+my $two=sprintf("%1x", $one);
+
+十六进制转换成十进制用hex():
+my $two="ff";
+my $one=hex($two);
+</pre>
+
+<h4 id="toc_0.0.1.2">Perl函数pack/unpack解释</h4>
+<p>
+ <a href="http://blog.csdn.net/eroswang/article/details/2032564">http://blog.csdn.net/eroswang/article/details/2032564</a>
+</p>
+
+</body>
+</html>

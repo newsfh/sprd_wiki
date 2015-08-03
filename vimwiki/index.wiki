@@ -4,6 +4,7 @@
 [[常用调试节点]]</BR>
 [[常用配置选项]]</BR>
 [[学习笔记 － ARM]]</BR>
+[[study_notes_script|学习笔记 － 脚本]]<BR>
 [[学习笔记 － linux kernel]]</BR>
 [[学习笔记 － linux kernel常用信息]]</BR>
 [[学习笔记 － Android]]</BR>

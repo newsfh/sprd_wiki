@@ -1,0 +1,19 @@
+%toc 目录
+
+----
+=== perl ===
+==== perl中十进制和16进制的转换 ====
+{{{
+十进制转换成十六进制用sprintf():
+my $one=255;
+my $two=sprintf("%1x", $one);
+
+十六进制转换成十进制用hex():
+my $two="ff";
+my $one=hex($two);
+}}}
+
+==== Perl函数pack/unpack解释 ====
+ [[http://blog.csdn.net/eroswang/article/details/2032564]]
+
+
