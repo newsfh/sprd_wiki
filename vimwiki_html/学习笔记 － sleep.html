@@ -25,7 +25,7 @@
 <ul>
 <li><a href="#toc_0.3.1">deepsleep调试技巧</a>
 <li><a href="#toc_0.3.2">deep sleep相关log</a>
-<li><a href="#toc_0.3.3">deep sleep相关log</a>
+<li><a href="#toc_0.3.3">light sleep相关log</a>
 <li><a href="#toc_0.3.4">文件节点</a>
 </ul>
 <li><a href="#toc_0.4">相关文件</a>
@@ -230,9 +230,9 @@ wake_lock: pm_message_wakelock, type 0的打印之后，会有芯片寄存器和
 </pre>
 
 <h3 id="toc_0.3.2">deep sleep相关log</h3>
-<p>
- 0. deepsleep suspend log
-</p>
+<ol>
+<li>
+deepsleep suspend log
 <pre>
 request_suspend_state: sleep (0-&gt;3) at 49334489540 (2012-01-01 00:01:20.908825271 UTC)
 
@@ -360,9 +360,9 @@ PWR_STATUS1_DBG	0x00777770
 PWR_STATUS2_DBG	0x07777777
 PWR_STATUS3_DBG	0x00070000                                                              ;; show_deep_reg_status (kernel/arch/arm/mach-sc/pm-scx35.c)
 </pre>
-<p>
- 0. deepsleep wakeup log
-</p>
+
+<li>
+deepsleep wakeup log
 <pre>
 from deep!Zret 1 not from idle
 DDR test: read times: 0
@@ -413,9 +413,9 @@ late_resume: calling &lt;late resume handler&gt;
 -------- resume  &lt;late resume handler&gt; 
 late_resume: done
 </pre>
-<p>
- 0. pm print log
-</p>
+
+<li>
+pm print log
 <pre>
 ###---- REG_AP_AHB_AP_SYS_AUTO_SLEEP_CFG : 0x0000013b
 ###---- REG_AP_APB_APB_EB : 0x007de000
@@ -446,7 +446,9 @@ active wake lock PowerManagerService.Display
 active wake lock main
 </pre>
 
-<h3 id="toc_0.3.3">deep sleep相关log</h3>
+</ol>
+
+<h3 id="toc_0.3.3">light sleep相关log</h3>
 <pre>
 打开/sys/module/cpuidle_scx35/parameters/cpuidle_debug后，会有相关寄存器的打印：
 &lt;4&gt;[  201.031463] c0 *** sc_cpuidle_debug, REG_AP_AHB_MCU_PAUSE:0xa ***

@@ -1,0 +1,88 @@
+%toc 目录
+
+----
+=== 快捷键 ===
+|x|删除字符|
+|dd|删除一行|
+|J|删除换行符,把两行合并为一行|
+|u|撤消|
+|CTRL-R|重做|
+|ZZ|保存当前文件并退出Vim|
+|:e!|放弃所有修改并重新载入该文件的原始内容|
+|w/b/e/ge| |
+|0/^/$| |
+|fx/Fx/tx/Tx|在当前行上查找下/上一个字符x|
+|%|跳转到与当前光标下的括号相匹配的那一个括号上去|
+|nG/n%|跳转到指定行／按百分比跳转|
+|H/M/L|跳转到屏幕的顶/中间/底|
+|CTRL-G|显示文件信息，包括总行数|
+|g CTRL-G|显示行数、字数|
+|CTRL-U/CTRL-D|显示文本的窗口向上／下滚动了半屏|
+|CTRL-F/CTRL-B|要向前/后滚动一整屏|
+|zz/zt/zb|把当前行置为屏幕正中央/顶部/底部|
+|:set ignorecase/:set noignorecase|忽略大小写|
+|*/#|把光标定位于这个word上,然后按下"*"键。Vim将会取当前光标所在的word并将它作用目标字符串进行搜索。#则相反|
+|/\<the\>|"\>"1 是一个特殊的记法,它只匹配一个word的结束处。近似地,"\<"匹配到一个word的开始处|
+|:nohlsearch/:set nohlsearch/:set hlsearch|去掉当前的高亮显示|
+|``|跳回到你刚才的出发点|
+|CTRL-O/CTRL-I|跳转到你更早些时间停置光标的位置/跳回到后来停置光标的更新的位置|
+|ma/`a/marks|设置标签/跳转至标签/列举所有标签|
+|cw/x/X/D/C/s/S/rX|删改一单词／删除光标下的字／删除光标前一字／删除至行尾／修改至行尾／修改一字／修改一行／修改一字为X|
+|.|重复上一次做出的改动|
+|v/V/ctrl-v|选择模式／行选择／块选择|
+|o|在VISUL模式下，选择另外一端|
+|daw/dis/das|删除一个单词／删除一个句子／删除一个句子（不保留空格）|
+|~|改变大小写|
+|"+y|复制到系统剪贴板|
+|"+p|粘贴系统剪贴板的内容|
+
+----
+=== 常用设置 ===
+|set mouse=a     |使鼠标有效|
+|set nu　　　　　　|显示行数|
+
+----
+=== 插件 ===
+* tags插件
+{{{
+安装插件　sudo apt-get install exuberant-ctags
+在目录下执行命令：ctags -R，会生成tags文件
+进入vim，切到相应的目录，如:cd ~/project，设置tags，如:set tags=tags，这样就设置好了tags，用命令tag xxx就可以找xxx
+
+:tag {ident}          跳转到指定的标签
+:tags                 显示标签栈
+CTRL-]                跳转到当前光标下的标签
+CTRL-T                跳到标签栈中较早的标签
+强烈建议程序员完整的阅读usr_29.txt和usr_30.txt，如果想更深入了解tag命令和相关知识,可以":help tagsrch"
+}}}
+
+* taglist
+{{{
+下载：http://www.vim.org/scripts/script.php?script_id=273
+下载后,把该文件在~/.vim/目录中解压缩,这会在你的~/.vim/plugin和~/.vim/doc目录中各放
+入一个文件
+使用下面的命令生成帮助标签(下面的操作在vim中进行):
+:helptags ~/.vim/doc
+}}}
+
+* netrw插件
+{{{
+netrw.vim是vim的标准插件,它已经伴随vim而发行,不需要安装。
+我们在vim中执行命令":e ~/src/vim70/src/"
+Netrw插件中常用键绑定有:
+回车　　　　　如果光标下为目录,则进入该目录;如果光标下是文件,则用vim打开该文件
+-　　　　　　返回上级目录
+c　　　　　　切换vim的当前工作目录为正在浏览的目录
+d　　　　　　创建目录
+D　　　　　　删除文件或目录
+i　　　　　　切换显示方式
+R　　　　　　改名文件或目录
+s　　　　　　选择排序方式
+x　　　　　　定制浏览方式,使用你指定的程序打开该文件
+}}}
+
+----
+=== 资料网站 ===
+[[http://easwy.com/blog/archives/vim-resources-collection|vim资源收集]]
+[[http://www.ibm.com/developerworks/cn/linux/l-tip-vim1/|Vim 实用技术，第 1 部分: 实用技巧]]
+[[http://easwy.com/blog/archives/advanced-vim-skills-catalog|vi/vim使用进阶]]

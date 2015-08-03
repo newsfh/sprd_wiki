@@ -196,7 +196,7 @@ wake_lock: pm_message_wakelock, type 0的打印之后，会有芯片寄存器和
 }}}
 
 === deep sleep相关log ===
- 0. deepsleep suspend log
+ # deepsleep suspend log
 {{{
 request_suspend_state: sleep (0->3) at 49334489540 (2012-01-01 00:01:20.908825271 UTC)
 
@@ -324,7 +324,7 @@ PWR_STATUS1_DBG	0x00777770
 PWR_STATUS2_DBG	0x07777777
 PWR_STATUS3_DBG	0x00070000                                                              ;; show_deep_reg_status (kernel/arch/arm/mach-sc/pm-scx35.c)
 }}}
- 0. deepsleep wakeup log
+ # deepsleep wakeup log
 {{{
 from deep!Zret 1 not from idle
 DDR test: read times: 0
@@ -375,7 +375,7 @@ late_resume: calling <late resume handler>
 -------- resume  <late resume handler> 
 late_resume: done
 }}}
- 0. pm print log
+ # pm print log
 {{{
 ###---- REG_AP_AHB_AP_SYS_AUTO_SLEEP_CFG : 0x0000013b
 ###---- REG_AP_APB_APB_EB : 0x007de000
@@ -406,7 +406,7 @@ active wake lock PowerManagerService.Display
 active wake lock main
 }}}
 
-=== deep sleep相关log ===
+=== light sleep相关log ===
 {{{
 打开/sys/module/cpuidle_scx35/parameters/cpuidle_debug后，会有相关寄存器的打印：
 <4>[  201.031463] c0 *** sc_cpuidle_debug, REG_AP_AHB_MCU_PAUSE:0xa ***

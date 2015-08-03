@@ -1,0 +1,250 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>tool_ubuntu</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">快捷键</a>
+<li><a href="#toc_0.0.2">命令</a>
+<li><a href="#toc_0.0.3">查看各种设备和资源的命令汇总</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">快捷键</h3>
+<p>
+<strong>常用：</strong><BR>
+复制为ctrl-shift-c<BR>
+粘贴为ctrl-shift-v<BR>
+tab=补全<BR>
+ctrl+a=开始位置<BR>
+ctrl+e=最后位置<BR>
+ctrl+k=删除此处至末尾所有内容<BR>
+ctrl+u= 删除此处至开始所有内容<BR>
+Ctrl-L -刷新屏幕<BR>
+Ctrl-C -杀死当前任务<BR>
+<BR>
+<strong>较完整：</strong><BR>
+窗口操作：<BR>
+Shift+Ctrl+T:新建标签页 <BR>
+Shift+Ctrl+W: 关闭标签页 <BR>
+Ctrl+PageUp:前一标签页 <BR>
+Ctrl+PageDown:后一标签页 <BR>
+Shift+Ctrl+PageUp:标签页左移 <BR>
+Shift+Ctrl+PageDown:标签页右移 <BR>
+Alt+1:切换到标签页1 <BR>
+Alt+2:切换到标签页2 <BR>
+Alt+3:切换到标签页3 <BR>
+Shift+Ctrl+N:新建窗口 <BR>
+Shift+Ctrl+Q:关闭终端 <BR>
+<BR>
+终端中的复制／粘贴: <BR>
+Shift+Ctrl+C:复制 <BR>
+Shift+Ctrl+V:粘贴 <BR>
+<BR>
+终端改变大小： <BR>
+F11：全屏 <BR>
+Ctrl+plus:放大 <BR>
+Ctrl+minus: 减小 <BR>
+Ctrl+0:原始大小 <BR>
+<BR>
+history 显示命令历史列表 <BR>
+↑(Ctrl+p) 显示上一条命令 <BR>
+↓(Ctrl+n) 显示下一条命令 <BR>
+!num 执行命令历史列表的第num条命令 <BR>
+!! 执行上一条命令 <BR>
+!?string? 执行含有string字符串的最新命令 <BR>
+Ctrl+r 然后输入若干字符，开始向上搜索包含该字符的命令，继续按Ctrl+r，搜索上一条匹配的命令 <BR>
+Ctrl+s 与Ctrl+r类似,只是正向检索 <BR>
+Alt+&lt; 历史列表第一项 <BR>
+Alt+&gt; 历史列表最后一项 <BR>
+Ctrl+f 光标向前移动一个字符,相当与-&gt; <BR>
+Ctrl+b 光标向后移动一个字符,相当与&lt;- <BR>
+Alt+f 光标向前移动一个单词 <BR>
+Alt+b 光标向后移动一个单词 <BR>
+ls !$ 执行命令ls，并以上一条命令的参数为其参数 <BR>
+Ctrl+a 移动到当前行的开头 <BR>
+Ctrl+e 移动到当前行的结尾 <BR>
+Esc+b 移动到当前单词的开头 <BR>
+Esc+f 移动到当前单词的结尾 <BR>
+Ctrl+l 清屏 <BR>
+Ctrl+u 剪切命令行中光标所在处之前的所有字符（不包括自身） <BR>
+Ctrl+k 剪切命令行中光标所在处之后的所有字符（包括自身） <BR>
+Ctrl+d 删除光标所在处字符 <BR>
+Ctrl+h 删除光标所在处前一个字符 <BR>
+Ctrl+y 粘贴刚才所删除的字符 <BR>
+Ctrl+w 剪切光标所在处之前的一个词（以空格、标点等为分隔符） <BR>
+Alt+d 剪切光标之后的词 <BR>
+Esc+w 删除光标所在处之前的字符至其单词尾（以空格、标点等为分隔符） <BR>
+Ctrl+t 颠倒光标所在处及其之前的字符位置，并将光标移动到下一个字符 <BR>
+Alt+t 交换当前与以前单词的位置 <BR>
+Alt+u 把当前词转化为大写 <BR>
+Alt+l 把当前词转化为小写 <BR>
+Alt+c 把当前词汇变成首字符大写 <BR>
+Ctrl+v 插入特殊字符,如Ctrl+v+Tab加入Tab字符键 <BR>
+Esc+t 颠倒光标所在处及其相邻单词的位置 <BR>
+Ctrl+c 删除整行 <BR>
+Ctrl+(x u) 按住Ctrl的同时再先后按x和u，撤销刚才的操作 <BR>
+Ctrl+s 挂起当前shell <BR>
+Ctrl+q 重新启用挂起的shell <BR>
+<BR>
+</p>
+
+<p>
+<strong>修改终端提示符</strong>
+</p>
+<pre>
+在~/.bashrc文件中添加下列語句：
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;31m\]\u@\t\[\033[00m\]:\[\033[01;34m\]\n\[\033[00m\]\$ '
+其中01;31m代表红色的riusksk@ubuntu，01;34m代表目录为蓝色。
+\n 回车
+\t 时间
+\d 日期
+\w 当前路径
+\u 用户名
+</pre>
+
+<hr />
+<h3 id="toc_0.0.2">命令</h3>
+<ul>
+<li>
+nautilus
+<pre>
+打开文件夹，类似于windows的explorer，如
+nautilus . 就是打开当前文件夹
+</pre>
+
+<li>
+xsel
+<pre>
+输入输出重定向，可以把输出定向到剪贴板中，如
+xsel -b -i 为把内容输入到剪贴板中
+xsel -b -o 为输出剪贴板的内容
+</pre>
+
+<li>
+alias
+<pre>
+设置命令的别名，如
+alias cls=clear，把clear重命名为熟悉的cls
+</pre>
+
+<li>
+rdesktop
+<pre>
+远程登录windows
+rdesktop 10.0.0.25 -f
+退出全屏: ctrl+alt+enter
+</pre>
+
+</ul>
+
+<ul>
+<li>
+批量替换文件的内容
+<pre>
+格式: sed -i "s/查找字段/替换字段/g" `grep 查找字段 -rl 路径`
+sed -i "s/oldstring/newstring/g" `grep oldstring -rl yourdir`
+</pre>
+
+</ul>
+
+<ul>
+<li>
+查找不是某类型的文件
+<pre>
+find . ! -name "*.h"
+</pre>
+
+</ul>
+
+<ul>
+<li>
+cd
+<pre>
+cd -         #回到上次所在目录，这个技巧我原来还真是不知道，感觉还是比较有用，省略了很多输入。
+cd !$       #把上个命令的参数作为输入。
+cd           #回到主目录
+cd ~        #同样也是回到主目录
+</pre>
+
+</ul>
+
+<ul>
+<li>
+mount file system
+<pre>
+挂接ssh文件系统：
+sshfs -o allow_other huafang@10.0.0.180:/home3/huafang ~/server_ss
+
+挂接远程文件系统：
+sudo mount -t cifs -o username=&lt;your_account&gt;,password=&lt;your_psw&gt;,uid=$(id -u),gid=$(id -g) //10.0.0.165/thinclient ~/net_folder/n_folder
+</pre>
+
+<li>
+split
+<pre>
+模式一：指定分割后文件行数
+　　对与txt文本文件，可以通过指定分割后文件的行数来进行文件分割。
+　　命令：split -l 300 large_file.txt new_file_prefix
+
+模式二：指定分割后文件大小
+　　split -b 10m server.log waynelog
+　　对二进制文件我们同样也可以按文件大小来分隔。
+</pre>
+
+</ul>
+
+<hr />
+<h3 id="toc_0.0.3">查看各种设备和资源的命令汇总</h3>
+<pre>
+
+一、系统信息
+    1.查看内核信息：                                            $uname -a
+    2.查看操作系统版本:                                         $head -n 1 /etc/issue
+    3.查看CPU的信息:                                           $cat /proc/cpuinfo
+    4.查看计算机名称:                                           $hostname
+    5.列出所有PCI设备信息:                                      $lspci -tv
+    6.列出所有USB设备信息:                                      $lsusb -tv
+    7.列出系统加载的模块信息:                                    $lsmod
+二、系统资源的使用情况
+    1.查看内存和交换分区的使用情况：                               $free -m
+    2.查看硬盘分区的使用情况：                                    $df -h
+    3.查看某个目录的大小：                                       $du -sh&lt;目录&gt;
+    4.查看内存总量和空闲内存量：                                  $grep MemTotal /proc/meminfo
+                                                             $grep MemFree /proc/meminfo
+    5.查看系统运行时间、用户数和负载：                             $uptime
+    6.查看系统负载：                                            $cat /proc/loadavg
+三、硬盘和分区信息
+    1.查看挂载分区信息：                                        $mount |column -t
+    2.查看硬盘分区信息：                                        $sudo fdisk -l
+    3.查看所有交换分区信息：                                     $swapon -s
+    4.查看硬盘参数信息：                                        $sudo hdparm -i /dev/had
+四、网络信息
+    1.查看网络接口信息：                                        $ifconfig
+    2.查看防火墙设置信息：                                       $iptables -L
+    3.查看路由表信息：                                          $route -n
+    4.查看所有监听端口的信息：                                   $netstat -lntp
+    5.查看所有已建立的连接的信息：                                $netstat -antp
+    6.查看网络统计的信息：                                      $netstat -s
+五、查看系统进程的信息
+    1.查看所有进程的信息：                                      $ps -ef
+    2.查看当前进程的信息：                                      $top
+六、查看关于用户的信息
+    1.查看当前活动的信息：                                      $w  或 $who
+    2.查看指定用户的信息：                                      $id&lt;用户名&gt;
+    3.查看用户登录日志：                                        $last
+    4.查看当前用户的计划任务：                                  $crontab -l
+七、查看安装软件包的信息：                                      $dpkg -L&lt;软件名称&gt;
+</pre>
+
+</body>
+</html>

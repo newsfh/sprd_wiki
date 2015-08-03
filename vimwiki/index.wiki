@@ -43,6 +43,7 @@
 
 ----
 === 工具使用 ===
+[[tool_ubuntu|ubuntu使用]]<BR>
 [[git学习]]</BR>
 [[adb使用]]</BR>
 [[MobileTester]]</BR>
@@ -56,6 +57,7 @@
 [[DS-5]]</BR>
 [[FPGA开发板的使用]]</BR>
 [[PADS工具使用]]</BR>
+[[tool_vi|vi使用]]<BR>
 [[vimwiki使用]]</BR>
 [[建git服务器]]</BR>
 
