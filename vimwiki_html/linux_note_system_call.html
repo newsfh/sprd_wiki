@@ -1,0 +1,35 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>linux_note_system_call</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">杂记</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">杂记</h3>
+<pre>
+EABI (Extended ABI),说的是这样的一种新的系统调用方式
+
+mov r7, #num 
+swi 0x0
+
+原来的系统调用方式是这样， 
+swi (#num | 0x900000) (0x900000是个magic值)
+
+也就是说原来的调用方式(Old ABI)是通过跟随在swi指令中的调用号来进行的，现在的是根据r7中的值。
+
+</pre>
+
+</body>
+</html>

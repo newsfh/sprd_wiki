@@ -1586,3 +1586,49 @@ git commit时会检查comment是否合法，这个是通过git的hook来实现�
 具体在仓库的.git/hooks目录下的commit-msg脚本，最终指向.repo/repo/hooks这个目录
 }}}
 
+=== sd card权限问题 ===
+{{{
+SS T8用主干后，发现t卡不能使用，需要修改权限ss_sharklt8_2731.mk:
+STORAGE_ORIGINAL := true => STORAGE_ORIGINAL := false
+}}}
+
+=== nvitem header ===
+{{{
+手机里的nvitem有一个header，记录了当前nvitem的一些信息
+在原始的nvitem.bin里，是没有这个header的，它在下载阶段由fdl2添加的
+
+代码在：u-boot64/common/dloader/dl_emmc_operate.c
+930 int _nv_img_check_and_write(uchar * partition, uint32_t size)
+931 {   
+937     uint8_t header_buf[EFI_SECTOR_SIZE];
+938     nv_header_t *nv_header_p = NULL;
+940     
+946     memset(header_buf, 0x00, EFI_SECTOR_SIZE);
+947     nv_header_p = header_buf;
+948     nv_header_p->magic = NV_HEAD_MAGIC;
+949     nv_header_p->len = size; 
+950     nv_header_p->checksum = (uint32_t) fdl_calc_checksum(g_eMMCBuf, size);
+951     nv_header_p->version = NV_VERSION;
+
+其中nv_header_t定义在u-boot64/common/loader/loader_common.h
+92typedef struct _NV_HEADER {
+93    uint32_t magic;
+94    uint32_t len;
+95    uint32_t checksum;
+96    uint32_t version;
+97} nv_header_t;
+
+nvitem服务在vendor/sprd/open-source/apps/nvitem/nvitem_fs.c这个文件里对这个header进行操作
+353 BOOLEAN ramDisk_Write(RAMDISK_HANDLE handle, uint8* buf, uint32 size)
+354 {
+361     char header_buf[RAMNV_SECT_SIZE];
+362     nv_header_t *header_ptr = NULL;
+363 
+368     memset(header_buf,0x00,RAMNV_SECT_SIZE);
+369     header_ptr = header_buf;
+370     header_ptr->magic = NV_HEAD_MAGIC;
+371     header_ptr->len = size;
+372     header_ptr->version = NV_VERSION;
+373     header_ptr->checksum = (uint32)calc_checksum(buf,size);
+}}}
+
