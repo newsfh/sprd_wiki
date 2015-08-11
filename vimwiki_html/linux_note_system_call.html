@@ -10,14 +10,33 @@
 <h1>目录</h1>
 <div class="toc">
 <ul>
-<li><a href="#toc_0.0.1">杂记</a>
+<li><a href="#toc_0.0.1">原理</a>
+<li><a href="#toc_0.0.2">杂记</a>
+<li><a href="#toc_0.0.3">代码阅读</a>
+<ul>
+<li><a href="#toc_0.0.3.1">系统调用swi处理函数vector_swi</a>
+<li><a href="#toc_0.0.3.2">系统调用表</a>
+</ul>
+<li><a href="#toc_0.0.4">调用栈</a>
+<li><a href="#toc_0.0.5">参考资料</a>
 </ul>
 </ul>
 </ul>
 </div>
 
 <hr />
-<h3 id="toc_0.0.1">杂记</h3>
+<h3 id="toc_0.0.1">原理</h3>
+<pre>
+首先是用户态执行swi指令，swi指令使得cpu陷入svc状态，并跳转到固定地址去执行系统调用处理过程。
+用户态通过两种方法传递给内核执行系统调用的系统调用号。
+内核执行系统调用处理过程，首先保存cpu现场，之后会获取到系统调用号，以系统调用地址表的基地址，加系统调用号做偏移，跳转到相应的系统调用例程做相应的处理。
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_kernel_systemcall_principle.jpg" />
+</p>
+
+<hr />
+<h3 id="toc_0.0.2">杂记</h3>
 <pre>
 EABI (Extended ABI),说的是这样的一种新的系统调用方式
 
@@ -30,6 +49,161 @@ swi (#num | 0x900000) (0x900000是个magic值)
 也就是说原来的调用方式(Old ABI)是通过跟随在swi指令中的调用号来进行的，现在的是根据r7中的值。
 
 </pre>
+
+<hr />
+<h3 id="toc_0.0.3">代码阅读</h3>
+<h4 id="toc_0.0.3.1">系统调用swi处理函数vector_swi</h4>
+<pre>
+代码：kernel/arch/arm/kernel/entry-common.S
+
+352ENTRY(vector_swi)
+353	sub	sp, sp, #S_FRAME_SIZE
+354	stmia	sp, {r0 - r12}			@ Calling r0 - r12
+// 保存r0~r12之间的寄存器
+355 ARM(	add	r8, sp, #S_PC		)
+356 ARM(	stmdb	r8, {sp, lr}^		)	@ Calling sp, lr
+357 THUMB(	mov	r8, sp			)
+358 THUMB(	store_user_sp_lr r8, r10, S_SP	)	@ calling sp, lr
+// 保存用户态的sp/lr
+359	mrs	r8, spsr			@ called from non-FIQ mode, so ok.
+360	str	lr, [sp, #S_PC]			@ Save calling PC
+// 保存pc
+361	str	r8, [sp, #S_PSR]		@ Save CPSR
+// 保存cpsr
+362	str	r0, [sp, #S_OLD_R0]		@ Save OLD_R0
+// 保存r0
+363	zero_fp
+364
+365#ifdef CONFIG_ALIGNMENT_TRAP
+366	ldr	ip, __cr_alignment
+367	ldr	ip, [ip]
+368	mcr	p15, 0, ip, c1, c0		@ update control register
+369#endif
+370
+371	enable_irq
+372	ct_user_exit
+373	get_thread_info tsk
+374
+375	/*
+376	 * Get the system call number.
+377	 */
+378
+379#if defined(CONFIG_OABI_COMPAT)
+380
+381	/*
+382	 * If we have CONFIG_OABI_COMPAT then we need to look at the swi
+383	 * value to determine if it is an EABI or an old ABI call.
+384	 */
+385#ifdef CONFIG_ARM_THUMB
+386	tst	r8, #PSR_T_BIT
+387	movne	r10, #0				@ no thumb OABI emulation
+388 USER(	ldreq	r10, [lr, #-4]		)	@ get SWI instruction
+389#else
+390 USER(	ldr	r10, [lr, #-4]		)	@ get SWI instruction
+391#endif
+392 ARM_BE8(rev	r10, r10)			@ little endian instruction
+393
+394#elif defined(CONFIG_AEABI)
+395
+396	/*
+397	 * Pure EABI user space always put syscall number into scno (r7).
+398	 */
+399#elif defined(CONFIG_ARM_THUMB)
+400	/* Legacy ABI only, possibly thumb mode. */
+401	tst	r8, #PSR_T_BIT			@ this is SPSR from save_user_regs
+402	addne	scno, r7, #__NR_SYSCALL_BASE	@ put OS number in
+403 USER(	ldreq	scno, [lr, #-4]		)
+404
+405#else
+406	/* Legacy ABI only. */
+407 USER(	ldr	scno, [lr, #-4]		)	@ get SWI instruction
+408#endif
+409
+410	adr	tbl, sys_call_table		@ load syscall table pointer
+411
+412#if defined(CONFIG_OABI_COMPAT)
+413	/*
+414	 * If the swi argument is zero, this is an EABI call and we do nothing.
+415	 *
+416	 * If this is an old ABI call, get the syscall number into scno and
+417	 * get the old ABI syscall table address.
+418	 */
+419	bics	r10, r10, #0xff000000
+420	eorne	scno, r10, #__NR_OABI_SYSCALL_BASE
+421	ldrne	tbl, =sys_oabi_call_table
+422#elif !defined(CONFIG_AEABI)
+423	bic	scno, scno, #0xff000000		@ mask off SWI op-code
+424	eor	scno, scno, #__NR_SYSCALL_BASE	@ check OS number
+425#endif
+426
+427local_restart:
+428	ldr	r10, [tsk, #TI_FLAGS]		@ check for syscall tracing
+429	stmdb	sp!, {r4, r5}			@ push fifth and sixth args
+// 保存r4/r5
+430
+431	tst	r10, #_TIF_SYSCALL_WORK		@ are we tracing syscalls?
+432	bne	__sys_trace
+433
+434	cmp	scno, #NR_syscalls		@ check upper syscall limit
+435	adr	lr, BSYM(ret_fast_syscall)	@ return address
+436	ldrcc	pc, [tbl, scno, lsl #2]		@ call sys_* routine
+// 跳转到系统调用函数
+437
+438	add	r1, sp, #S_OFF
+4392:	mov	why, #0				@ no longer a real syscall
+440	cmp	scno, #(__ARM_NR_BASE - __NR_SYSCALL_BASE)
+441	eor	r0, scno, #__NR_SYSCALL_BASE	@ put OS number back
+442	bcs	arm_syscall
+443	b	sys_ni_syscall			@ not private func
+444
+445#if defined(CONFIG_OABI_COMPAT) || !defined(CONFIG_AEABI)
+446	/*
+447	 * We failed to handle a fault trying to access the page
+448	 * containing the swi instruction, but we're not really in a
+449	 * position to return -EFAULT. Instead, return back to the
+450	 * instruction and re-enter the user fault handling path trying
+451	 * to page it in. This will likely result in sending SEGV to the
+452	 * current task.
+453	 */
+4549001:
+455	sub	lr, lr, #4
+456	str	lr, [sp, #S_PC]
+457	b	ret_fast_syscall
+458#endif
+459ENDPROC(vector_swi)
+</pre>
+
+<h4 id="toc_0.0.3.2">系统调用表</h4>
+<pre>
+代码：kernel/arch/arm/kernel/calls.S
+
+12/* 0 */		CALL(sys_restart_syscall)
+13		CALL(sys_exit)
+14		CALL(sys_fork)
+15		CALL(sys_read)
+16		CALL(sys_write)
+17/* 5 */		CALL(sys_open)
+18		CALL(sys_close)
+19		CALL(sys_ni_syscall)		/* was sys_waitpid */
+20		CALL(sys_creat)
+21		CALL(sys_link)
+....
+</pre>
+
+<hr />
+<h3 id="toc_0.0.4">调用栈</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_kernel_systemcall_stack.PNG" />
+</p>
+
+<hr />
+<h3 id="toc_0.0.5">参考资料</h3>
+<p>
+<a href="http://blog.csdn.net/tommy_wxie/article/details/7610118">ARM Linux系统调用的原理</a><BR>
+<a href="http://my.oschina.net/raybin/blog/100379">ARM-Linux系统调用吐槽</a><BR>
+<a href="http://blog.chinaunix.net/uid-28458801-id-3468966.html">linux下的系统调用函数到内核函数的追踪</a><BR>
+<a href="http://blog.chinaunix.net/uid-28236237-id-3404140.html">arm linux 系统调用浅析</a><BR>
+</p>
 
 </body>
 </html>

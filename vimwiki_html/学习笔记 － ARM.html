@@ -14,6 +14,7 @@
 <ul>
 <li><a href="#toc_0.0.1.1">MRS/MSR</a>
 <li><a href="#toc_0.0.1.2">stdmfd,ldmfd,ldmia,ldmib</a>
+<li><a href="#toc_0.0.1.3">^ !</a>
 </ul>
 <li><a href="#toc_0.0.2">寄存器</a>
 <ul>
@@ -68,8 +69,6 @@ FA： 满递增堆栈；
 EA： 空递增堆栈。
 
 格式：STMFD  Rn{!},{reglist}{^}
-后缀“!”表示最后的地址写回到Rn中
-后缀“^”表示不允许在用户模式下使用
 
 I开头的，寄存器列表的顺序是从左到右；
 D开头的，寄存器列表的顺序是从右到左。
@@ -77,6 +76,19 @@ D开头的，寄存器列表的顺序是从右到左。
 <p>
 <a href="http://www.bubuko.com/infodetail-729580.html">LDMIA、LDMIB、LDMDB、LDMDA、STMIA、LDMFD、LDMFA、LDMED、LDMEA等指令详解</a><BR>
 </p>
+
+<h4 id="toc_0.0.1.3">^ !</h4>
+<pre>
+'^'是一个后缀标志,不能在User模式和Sys系统模式下使用该标志.该标志有两个存在目的:
+1.对于LDM操作,同时恢复的寄存器中含有pc(r15)寄存器,那么指令执行的同时cpu自动将spsr拷贝到cpsr中
+  如:在IRQ中断返回代码中
+  ldmfd {r4}           //读取sp中保存的的spsr值到r4中
+  msr spsr_cxsf,r4     //对spsr的所有控制为进行写操作,将r4的值全部注入spsr
+  ldmfd {r0-r12,lr,pc}^//当指令执行完毕,pc跳转之前,将spsr的值自动拷贝到cpsr中
+2.数据的送入、送出发生在User用户模式下的寄存器,而非当前模式寄存器
+  如:ldmdb sp,{r0 - lr}^;表示sp栈中的数据回复到User分组寄存器r0-lr中,而不是恢复到当前模式寄存器r0-lr
+  当然对于User,System,IRQ,SVC,Abort,Undefined这6种模式来说[gliethttp]r0-r12是共用的,只是r13和r14为分别独有,对于FIQ模式,仅仅r0-r7是和前6中模式的r0-r7共用,r8-r14都是FIQ模式下专有.
+</pre>
 
 <hr />
 <h3 id="toc_0.0.2">寄存器</h3>
