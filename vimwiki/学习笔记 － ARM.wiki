@@ -23,6 +23,28 @@ MSR{<cond>} SPSR_<fields>, <Rm>
 }}}
 [[http://freesoftman.iteye.com/blog/1827249|汇编指令状态寄存器访问指令（MRS,MSR）]]<BR>
 
+==== stdmfd,ldmfd,ldmia,ldmib ====
+{{{
+多寄存器寻址：LDMIA，LDMIB，STMIA，STMIB，LDMDA，LDMDB，STMDA，STMDB
+堆栈寻址：LDMFA，LDMFD，STMFA，STMFD，LDMEA，LDMED，STMEA，STMED
+IA： 每次传送后地址加4；
+IB： 每次传送前地址加4；
+DA： 每次传送后地址减4；
+DB： 每次传送前地址减4；
+FD： 满递减堆栈；
+ED： 空递减堆栈；
+FA： 满递增堆栈；
+EA： 空递增堆栈。
+
+格式：STMFD  Rn{!},{reglist}{^}
+后缀“!”表示最后的地址写回到Rn中
+后缀“^”表示不允许在用户模式下使用
+
+I开头的，寄存器列表的顺序是从左到右；
+D开头的，寄存器列表的顺序是从右到左。
+}}}
+[[http://www.bubuko.com/infodetail-729580.html|LDMIA、LDMIB、LDMDB、LDMDA、STMIA、LDMFD、LDMFA、LDMED、LDMEA等指令详解]]<BR>
+
 ----
 === 寄存器 ===
 ==== SPSR/CPSR ====
@@ -52,7 +74,45 @@ CPSR的低八位I、F、T、M[4:0]统称为控制位。当异常中断发生时�
 | 0b11011 | 未定义模式 | PC,CPSR,SPSR_und,R14_und~R13_und,R0~R12 | PC,CPSR,SPSR_und,LR_und,SP_und,R0~R  |
 | 0b11111 | 系统模式   | PC,CPSR,R0~R14                          | PC,CPSR,LR,SP,R0~R74                 |
 
+----
+=== gcc内联汇编 ===
+==== 语法 ====
+{{{
+格式：
+  asm(汇编语句模板: 输出操作列表: 输入操作列表: 破坏描述部分);
 
+示例：
+  asm("mov %[result], %[value], ror #1"
+             : [result]"=r" (y) /* Rotation result. */
+             : [value]"r" (x) /* Rotated value. */
+             : /* No clobbers */
+  );
+
+汇编语句模板：由汇编语句序列组成，语句之间使用“;”、“\n”或“\n\t”分开。
+输出操作列表：每一个条目是由一对[]（方括号）和被他包括的符号名组成，它后面跟着限制性字符串，再后面是圆括号和它括着的C变量。
+输入操作列表：语法和输入操作列表一样
+破坏描述符：用于通知编译器我们使用了哪些寄存器或内存，由逗号格开的字符串组成，每个字符串描述一种情况，一般是寄存器名；除寄存器外还有“memory”。
+
+上面的4个部分中只要后面的还要使用，前面的部分没有使用也不能省略，必须空但是保留冒号。
+}}}
+==== 操作列表符 ====
+| Constraint | Usage in ARM state                                                                | Usage in Thumb state                                                                    |
+| f          | Floating point registers f0 .. f7                                                 | Not available                                                                           |
+| h          | Not available                                                                     | Registers r8..r15                                                                       |
+| G          | Immediate floating point constant                                                 | Not available                                                                           |
+| H          | Same a G, but negated                                                             | Not available                                                                           |
+| I          | Immediate value in data processing instructions<BR>e.g. ORR R0, R0, #operand      | Constant in the range 0 .. 255<BR>e.g. SWI operand                                      |
+| J          | Indexing constants -4095 .. 4095<BR>e.g. LDR R1, [PC, #operand]                   | Constant in the range -255 .. -1<BR>e.g. SUB R0, R0, #operand                           |
+| K          | Same as I, but inverted                                                           | Same as I, but shifted                                                                  |
+| L          | Same as I, but negated                                                            | Constant in the range -7 .. 7<BR>e.g. SUB R0, R1, #operand                              |
+| l          | Same as r                                                                         | Registers r0..r7<BR>e.g. PUSH operand                                                   |
+| M          | Constant in the range of 0 .. 32 or a power of 2<BR>e.g. MOV R2, R1, ROR #operand | Constant that is a multiple of 4 in the range of 0 .. 1020<BR>e.g. ADD R0, SP, #operand |
+| m          | Any valid memory address                                                          |                                                                                         |
+| N          | Not available                                                                     | Constant in the range of 0 .. 31<BR>e.g. LSL R0, R1, #operand                           |
+| O          | Not available                                                                     | Constant that is a multiple of 4 in the range of -508 .. 508<BR>e.g. ADD SP, #operand   |
+| r          | General register r0 .. r15<BR>e.g. SUB operand1, operand2, operand3               | Not available                                                                           |
+| w          | Vector floating point registers s0 .. s31                                         | Not available                                                                           |
+| X          | Any operand                                                                       |                                                                                         |
 
 
 
