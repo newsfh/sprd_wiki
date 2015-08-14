@@ -554,4 +554,6 @@ kmem_cacheslab有两种管理方式：
 [[http://blog.csdn.net/xiaojsj111/article/details/11065717|ARM MMU框架]]</BR>
 [[http://blog.csdn.net/cosmoslhf/article/details/42742975|arm的2级页表在Linux内核创建过程解析]]</BR>
 [[http://blog.csdn.net/hsly_support/article/details/7463609|浅析linux内核内存管理之分页]]</BR>
+[[http://www.360doc.com/content/13/1225/14/10366845_339992189.shtml|Android/Linux Kernel 記憶體管理-入門筆記]]<BR>
+
 
