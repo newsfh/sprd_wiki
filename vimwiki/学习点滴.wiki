@@ -1641,4 +1641,8 @@ qHD:960x540
 }}}
 {{local:images/resolution.png}}
 
+=== manifest提交 ===
+{{{
+pushfile.sh platform/manifest sprdroid5.1_prime_15a_GED
+}}}
 
