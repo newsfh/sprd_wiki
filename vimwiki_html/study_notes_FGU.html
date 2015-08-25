@@ -1,0 +1,415 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>study_notes_FGU</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">寄存器</a>
+<li><a href="#toc_0.0.2">获取/设置电池属性</a>
+<ul>
+<li><a href="#toc_0.0.2.1">属性枚举</a>
+<li><a href="#toc_0.0.2.2">方法psy_do_property</a>
+</ul>
+<li><a href="#toc_0.0.3">电压-adc转换</a>
+<li><a href="#toc_0.0.4">保存电量</a>
+<li><a href="#toc_0.0.5">电量监测work</a>
+<li><a href="#toc_0.0.6">Log</a>
+<ul>
+<li><a href="#toc_0.0.6.1">初始化</a>
+<li><a href="#toc_0.0.6.2">监测work</a>
+</ul>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">寄存器</h3>
+<pre>
+0x40038500
+</pre>
+
+<hr />
+<h3 id="toc_0.0.2">获取/设置电池属性</h3>
+<h4 id="toc_0.0.2.1">属性枚举</h4>
+<pre>
+95	POWER_SUPPLY_PROP_STATUS = 0,
+96	POWER_SUPPLY_PROP_CHARGE_TYPE,
+97	POWER_SUPPLY_PROP_HEALTH,
+98	POWER_SUPPLY_PROP_PRESENT,
+99	POWER_SUPPLY_PROP_ONLINE,
+100	POWER_SUPPLY_PROP_AUTHENTIC,
+101	POWER_SUPPLY_PROP_TECHNOLOGY,
+102	POWER_SUPPLY_PROP_CYCLE_COUNT,
+103	POWER_SUPPLY_PROP_VOLTAGE_MAX,
+104	POWER_SUPPLY_PROP_VOLTAGE_MIN,
+105	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
+106	POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN,
+107	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+108	POWER_SUPPLY_PROP_VOLTAGE_AVG,
+109	POWER_SUPPLY_PROP_VOLTAGE_OCV,
+110	POWER_SUPPLY_PROP_CURRENT_MAX,
+111	POWER_SUPPLY_PROP_CURRENT_NOW,
+112	POWER_SUPPLY_PROP_CURRENT_AVG,
+113	POWER_SUPPLY_PROP_POWER_NOW,
+114	POWER_SUPPLY_PROP_POWER_AVG,
+115	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+116	POWER_SUPPLY_PROP_CHARGE_EMPTY_DESIGN,
+117	POWER_SUPPLY_PROP_CHARGE_FULL,
+118	POWER_SUPPLY_PROP_CHARGE_EMPTY,
+119	POWER_SUPPLY_PROP_CHARGE_NOW,
+120	POWER_SUPPLY_PROP_CHARGE_AVG,
+121	POWER_SUPPLY_PROP_CHARGE_COUNTER,
+122	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
+123	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,
+124	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+125	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+126	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
+127	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX,
+128	POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
+129	POWER_SUPPLY_PROP_ENERGY_EMPTY_DESIGN,
+130	POWER_SUPPLY_PROP_ENERGY_FULL,
+131	POWER_SUPPLY_PROP_ENERGY_EMPTY,
+132	POWER_SUPPLY_PROP_ENERGY_NOW,
+133	POWER_SUPPLY_PROP_ENERGY_AVG,
+134	POWER_SUPPLY_PROP_CAPACITY, /* in percents! */
+135	POWER_SUPPLY_PROP_CAPACITY_ALERT_MIN, /* in percents! */
+136	POWER_SUPPLY_PROP_CAPACITY_ALERT_MAX, /* in percents! */
+137	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
+138	POWER_SUPPLY_PROP_TEMP,
+139	POWER_SUPPLY_PROP_TEMP_ALERT_MIN,
+140	POWER_SUPPLY_PROP_TEMP_ALERT_MAX,
+141	POWER_SUPPLY_PROP_TEMP_AMBIENT,
+142	POWER_SUPPLY_PROP_TEMP_AMBIENT_ALERT_MIN,
+143	POWER_SUPPLY_PROP_TEMP_AMBIENT_ALERT_MAX,
+144	POWER_SUPPLY_PROP_TIME_TO_EMPTY_NOW,
+145	POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG,
+146	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
+147	POWER_SUPPLY_PROP_TIME_TO_FULL_AVG,
+148	POWER_SUPPLY_PROP_TYPE, /* use power_supply.type instead */
+149	POWER_SUPPLY_PROP_SCOPE,
+151	POWER_SUPPLY_PROP_USB_HC,
+152	POWER_SUPPLY_PROP_USB_OTG,
+153	POWER_SUPPLY_PROP_CHARGE_ENABLED,
+155	POWER_SUPPLY_PROP_CHARGE_COUNTER_EXT,
+157	POWER_SUPPLY_PROP_MODEL_NAME,
+158	POWER_SUPPLY_PROP_MANUFACTURER,
+159	POWER_SUPPLY_PROP_SERIAL_NUMBER,
+160	POWER_SUPPLY_PROP_CHARGE_OTG_CONTROL,
+161	POWER_SUPPLY_PROP_POWER_STATUS
+</pre>
+
+<h4 id="toc_0.0.2.2">方法psy_do_property</h4>
+<pre>
+608#define psy_do_property(name, function, property, value) \
+609{	\
+610	struct power_supply *psy;	\
+611	int ret;	\
+612	psy = get_power_supply_by_name((name));	\
+613	if (!psy) {	\
+614		pr_err("%s: Fail to "#function" psy (%s)\n",	\
+615				__func__, (name));	\
+616		value.intval = 0;	\
+617	} else {	\
+618		if (psy-&gt;function##_property != NULL) { \
+619			ret = psy-&gt;function##_property(psy, (property), &amp;(value)); \
+620			if (ret &lt; 0) {	\
+621				pr_err("%s: Fail to "#name" "#function" (%d=&gt;%d)\n", \
+622						__func__, (property), ret);	\
+623				value.intval = 0;	\
+624			}	\
+625		}	\
+626	}	\
+627}
+
+它其实调用的是kernel/drivers/battery/sec_fuelgauge.c里的sec_fg_get_property/sec_fg_set_property
+该方法还会调用sec_hal_fg_get_property方法，它定义在kernel/drivers/battery/sprd27x3_fuelgauge4samsung.c里
+</pre>
+
+<hr />
+<h3 id="toc_0.0.3">电压-adc转换</h3>
+<pre>
+ 350 static u32 sprdfgu_adc2vol_mv(u32 adc)
+ 351 {   
+ 352     return ((adc + fgu_cal.vol_offset) * 1000) / fgu_cal.vol_1000mv_adc;
+ 353 }
+ 354 
+ 355 static u32 sprdfgu_vol2adc_mv(u32 vol) 
+ 356 {
+ 357     return (vol * fgu_cal.vol_1000mv_adc) / 1000 - fgu_cal.vol_offset;
+ 358 }
+ 359 
+ 360 static int sprdfgu_adc2cur_ma(int adc)
+ 361 {
+ 362     return (adc * 1000) / fgu_cal.cur_1000ma_adc;
+ 363 }
+ 364 
+ 365 static u32 sprdfgu_cur2adc_ma(u32 cur)
+ 366 {
+ 367     return (cur * fgu_cal.cur_1000ma_adc) / 1000;
+ 368 }
+</pre>
+
+<hr />
+<h3 id="toc_0.0.4">保存电量</h3>
+<ul>
+<li>
+寄存器
+<pre>
+0x00A0  USER_WRITE_SET0  User write set
+0x00A4  USER_WRITE_CLR0  User write clear
+0x00A8  USER_WRITE_STS0  User write status
+0x00C0  USER_WRITE_SET1 
+0x00C4  USER_WRITE_CLR1
+0x00C8  USER_WRITE_STS1
+USER_WRITE_STS0/USER_WRITE_STS1寄存器里的值，会一直保存
+
+现在USER_WRITE_STS0被用来保存电池电量值
+其中低12位保存着电池电量值，高4位保存是否第一次开机
+#define BITS_POWERON_TYPE(_x_)           ( (_x_) &lt;&lt; 12 &amp; (0xF000))          // 是否第一次开机
+#define BITS_RTC_AREA(_x_)               ( (_x_) &lt;&lt; 0 &amp; (0xFFF) )           // 保存的电量值
+</pre>
+
+<li>
+保存电量值的代码
+<pre>
+371static void sprdfgu_rtc_reg_write(uint32_t val)
+372{
+373	sci_adi_write(REG_FGU_USER_AREA_CLEAR, BITS_RTC_AREA(~val),
+374		      BITS_RTC_AREA(~0));
+375	sci_adi_write(REG_FGU_USER_AREA_SET, BITS_RTC_AREA(val),
+376		      BITS_RTC_AREA(~0));
+377}
+</pre>
+
+<li>
+FGU在初始化时，会读取初始电量值
+<pre>
+如果这是第一次开机，那会重新读取初始电量值，并将此值设置到寄存器里永久保存；否则就从寄存器里取出上次的电量值。
+
+877static void sprdfgu_hw_init(void)
+878{
+907	if ((FIRST_POWERTON == sprdfgu_poweron_type_read())
+908	    || (sprdfgu_rtc_reg_read() == 0xFFF) || (sprdfgu_rtc_reg_read() == 0)) {
+909		FGU_DEBUG("FIRST_POWERTON- = 0x%x\n",
+910			  sprdfgu_poweron_type_read());
+938		sprdfgu_rtc_reg_write(sprdfgu_data.init_cap);
+939	} else {
+940		sprdfgu_data.init_cap = sprdfgu_rtc_reg_read();
+941		FGU_DEBUG("NORMAIL_POWERTON-- sprdfgu_data.init_cap= %d\n",
+942			  sprdfgu_data.init_cap);
+943	}
+</pre>
+
+<li>
+保存电量值
+<pre>
+系统在读取电量时，会将电量值保存到寄存器里
+
+259bool sec_hal_fg_get_property(fuelgauge_variable_t * fg_var,
+260			       enum power_supply_property psp,
+261			       union power_supply_propval *val)
+262{
+264	switch (psp) {
+294	case POWER_SUPPLY_PROP_CAPACITY:
+312			int cap = sprdbat_update_capacty();
+328	pr_info("sec_hal_fg_get_property-%d,val-&gt;intval = %d\n", psp,
+329		val-&gt;intval);
+330	return true;
+331}
+</pre>
+
+</ul>
+
+<hr />
+<h3 id="toc_0.0.5">电量监测work</h3>
+<ul>
+<li>
+代码路径
+<pre>
+kernel/drivers/battery/sec_battery.c
+</pre>
+
+</ul>
+
+<ul>
+<li>
+监测sec_bat_monitor_work
+<pre>
+1832static void sec_bat_monitor_work(
+1833				struct work_struct *work)
+1834{
+1849	sec_bat_get_battery_info(battery);
+1886
+1887continue_monitor:
+1888	dev_info(battery-&gt;dev,
+1889		"%s: Status(%s), mode(%s), Health(%s), Cable(%d), siop_level(%d)\n",
+1890		__func__,
+1891		sec_bat_status_str[battery-&gt;status],
+1892		sec_bat_charging_mode_str[battery-&gt;charging_mode],
+1893		sec_bat_health_str[battery-&gt;health],
+1894		battery-&gt;cable_type, battery-&gt;siop_level);
+1913}
+</pre>
+
+</ul>
+
+<ul>
+<li>
+sec_bat_get_battery_info
+<pre>
+1540static void sec_bat_get_battery_info(
+1541				struct sec_battery_info *battery)
+1542{
+...	更新电池电量状态
+1637	dev_info(battery-&gt;dev,
+1638		"%s:Vnow(%dmV),Inow(%dmA),Imax(%dmA),SOC(%d%%),Tbat(%d)\n",
+1639		__func__,
+1640		battery-&gt;voltage_now, battery-&gt;current_now,
+1641		battery-&gt;current_max, battery-&gt;capacity, battery-&gt;temperature);
+1649}
+</pre>
+
+</ul>
+
+<ul>
+<li>
+polling时间
+<pre>
+时间定义在dts里：
+battery,polling_time = &lt;10 30 30 30 3600&gt;;
+
+各时间的含义：
+108enum sec_battery_polling_time_type {
+109	/* same order with power supply status */
+110	SEC_BATTERY_POLLING_TIME_BASIC = 0,
+111	SEC_BATTERY_POLLING_TIME_CHARGING,
+112	SEC_BATTERY_POLLING_TIME_DISCHARGING,
+113	SEC_BATTERY_POLLING_TIME_NOT_CHARGING,
+114	SEC_BATTERY_POLLING_TIME_SLEEP,
+115};
+
+1679static unsigned int sec_bat_get_polling_time(
+1680	struct sec_battery_info *battery)
+1681{
+1728	if (battery-&gt;polling_short)
+1729		return battery-&gt;pdata-&gt;polling_time[
+1730			SEC_BATTERY_POLLING_TIME_BASIC];
+1731	else
+1732		return battery-&gt;polling_time;
+1733}
+</pre>
+
+</ul>
+
+<hr />
+<h3 id="toc_0.0.6">Log</h3>
+<h4 id="toc_0.0.6.1">初始化</h4>
+<pre>
+[    8.942352] c2 [sec_fuelgauge_init] start !!!!! 
+[    8.947052] c2 sec_fuelgauge_probe: SEC Fuelgauge Driver Loading
+[    9.134063] c2 sec_hal_fg_get_property-39,val-&gt;intval = 500
+[    9.139648] c2 register sec_hal_fg_init
+[    9.143463] c2 sprdbat pdata: chg_bat_safety_vol:4600
+[    9.148498] c2 sprdbat pdata: irq_fgu:470
+[    9.152496] c2 sprdbat pdata: fgu_mode:0
+[    9.156402] c2 sprdbat pdata: alm_soc:5
+[    9.160217] c2 sprdbat pdata: alm_vol:3500
+[    9.164306] c2 sprdbat pdata: soft_vbat_uvlo:3050
+[    9.169036] c2 sprdbat pdata: soft_vbat_ovp:0
+[    9.173339] c2 sprdbat pdata: rint:160
+[    9.177093] c2 sprdbat pdata: cnom:2000
+[    9.180908] c2 sprdbat pdata: rsense_real:206
+[    9.185272] c2 sprdbat pdata: rsense_spec:200
+[    9.189605] c2 sprdbat pdata: relax_current:50
+[    9.194030] c2 sprdbat pdata: fgu_cal_ajust:0
+[    9.198394] c2 sprdbat pdata: qmax_update_period:0
+[    9.203155] c2 sprdbat pdata: ocv_tab_size:21
+[    9.207519] c2 sprdbat pdata: ocv_tab i=0 x:4355,y:100
+[    9.212646] c2 sprdbat pdata: ocv_tab i=1 x:4332,y:95
+[    9.217712] c2 sprdbat pdata: ocv_tab i=2 x:4277,y:90
+[    9.222717] c2 sprdbat pdata: ocv_tab i=3 x:4221,y:85
+[    9.227783] c2 sprdbat pdata: ocv_tab i=4 x:4166,y:80
+[    9.232818] c2 sprdbat pdata: ocv_tab i=5 x:4113,y:75
+[    9.237854] c2 sprdbat pdata: ocv_tab i=6 x:4063,y:70
+[    9.242889] c2 sprdbat pdata: ocv_tab i=7 x:4018,y:65
+[    9.247955] c2 sprdbat pdata: ocv_tab i=8 x:3977,y:60
+[    9.252960] c2 sprdbat pdata: ocv_tab i=9 x:3933,y:55
+[    9.258026] c2 sprdbat pdata: ocv_tab i=10 x:3881,y:50
+[    9.263153] c2 sprdbat pdata: ocv_tab i=11 x:3850,y:45
+[    9.268280] c2 sprdbat pdata: ocv_tab i=12 x:3826,y:40
+[    9.273406] c2 sprdbat pdata: ocv_tab i=13 x:3807,y:35
+[    9.278533] c2 sprdbat pdata: ocv_tab i=14 x:3791,y:30
+[    9.283660] c2 sprdbat pdata: ocv_tab i=15 x:3778,y:25
+[    9.288787] c2 sprdbat pdata: ocv_tab i=16 x:3762,y:20
+[    9.293914] c2 sprdbat pdata: ocv_tab i=17 x:3742,y:15
+[    9.299072] c2 sprdbat pdata: ocv_tab i=18 x:3711,y:10
+[    9.304168] c2 sprdbat pdata: ocv_tab i=19 x:3683,y:5
+[    9.309234] c2 sprdbat pdata: ocv_tab i=20 x:3400,y:0
+[    9.314361] c2 sci_efuse_fgu_cal_get 4.2 data data:0x114
+[    9.319641] c2 sci_efuse_fgu_cal_get 3.6 data data:0xb
+[    9.324768] c2 sci_efuse_fgu_cal_get 0 data data:0x100
+[    9.329864] c2 sprdfgu fgu_data: 0xb47 0x9b2,0x2000,0x0!
+[    9.335144] c2 sprdfgu: sprdfgu_cal_from_chip
+[    9.339477] c2 sprdfgu: sprdfgu_data.pdata-&gt;fgu_cal_ajust = 0
+[    9.345245] c2 sprdfgu: sprdfgu_cal_init fgu_nv_4200mv = 2887,fgu_nv_3600mv = 2482,fgu_0_cur_adc = 8192
+[    9.354614] c2 sprdfgu: sprdfgu_cal_init fgu_cal.cur_1000ma_adc = 2781,fgu_cal.vol_1000mv_adc = 675,fgu_cal.vol_offset = -52,fgu_cal.cur_offset = 0		// 计算电压时用
+[    9.367828] c2 sprdfgu: FGU_Init
+[    9.371215] c2 sprdfgu: fgu delta_vol_raw: 0xb69 delta_current_raw 0x1e4b!
+[    9.378021] c2 sprdfgu: fgu cmd_vol_raw: 0x0 cmd_cur_raw 0x0!
+[    9.383728] c2 sprdfgu: sprdfgu_cal_battery_impedance warning.....!
+[    9.390045] c2 sprdfgu: REG_FGU_USER_AREA_STATUS- = 0xffff
+[    9.395507] c2 sprdfgu: FIRST_POWERTON- = 0xf
+[    9.399841] c2 sprdfgu: poci_raw:0x1ffa,poci_current:-2,p_softocv:4305,sprdfgu_data.init_cap:93
+[    9.408691] c2 sprdfgu: pocv_raw = 0xb8e,pocv_voltage = 4305
+[    9.414276] c2 sprdfgu: current voltage raw_data =  0xb69,cur voltage = 4250
+[    9.421325] c2 sprdfgu: ocv_raw: 0xb7d,ocv voltage = 4280
+[    9.426727] c2 sprdfgu: current_raw: 0x1e4b,current = -157
+[    9.432189] c2 sprdfgu: poweron_clbcnt: 0x2384910,cur_cc0x2384910
+[    9.438293] c2 sprdfgu: sprdfgu_data.poweron_rint = 160
+[    9.443817] c2 sprdfgu: sprdfgu_init end
+[    9.447814] c2 power_supply sec-fuelgauge: driver failed to report `status' property: -22
+[    9.701385] c2 thermal thermal_zone0: failed to read out thermal zone 0
+[    9.708038] c2 power_supply sec-fuelgauge: driver failed to report `status' property: -22
+[    9.716186] c2 sec_fuelgauge_probe: SEC Fuelgauge Driver Loaded
+</pre>
+
+<h4 id="toc_0.0.6.2">监测work</h4>
+<pre>
+[   16.839477] c2 alarm set by [kworker/u8:3], triggered at 2012-1-1 0:0:8
+[   17.135162] c2 sec_hal_fg_get_property-12,val-&gt;intval = 4220														// POWER_SUPPLY_PROP_VOLTAGE_NOW
+[   17.341705] c2 sec_hal_fg_get_property-13,val-&gt;intval = 4220														// POWER_SUPPLY_PROP_VOLTAGE_AVG(vol)
+[   17.423736] c2 sec_hal_fg_get_property-13,val-&gt;intval = 4256														// POWER_SUPPLY_PROP_VOLTAGE_AVG(ocv)
+[   17.423919] c2 sec_hal_fg_get_property-16,val-&gt;intval = -253														// POWER_SUPPLY_PROP_CURRENT_NOW
+[   17.424041] c2 sec_hal_fg_get_property-17,val-&gt;intval = -253														// POWER_SUPPLY_PROP_CURRENT_AVG
+[   17.424194] c2 sprdfgu: sprdfgu_read_soc delta 0mAh,sprdfgu_data.init_clbcnt:37243152
+[   17.424194] c2 sprdfgu: sprdfgu_read_soc delta capacity 0,full capacity 2000
+[   17.424194] c2 sprdfgu: sprdfgu_read_soc soc 93,sprdfgu_data.init_cap 93
+[   17.424224] c2 fgu_capacity: = 93,flush_time: = 8,period_time:=2
+[   17.424255] c2 sec_hal_fg_get_property-39,val-&gt;intval = 930														// POWER_SUPPLY_PROP_CAPACITY(cap=val/10)
+[   17.424346] c2 read channel [1943]
+[   17.424438] c2 read channel [1943]
+[   17.424530] c2 read channel [1942]
+[   17.424621] c2 read channel [1937]
+[   17.424713] c2 read channel [1942]
+[   17.424713] c2 sec-battery sec-battery.6: sec_bat_get_temperature_by_adc: Temp(95), Temp-ADC(1942)
+[   17.424835] c2 read channel [1944]
+[   17.424926] c2 read channel [1941]
+[   17.425018] c2 read channel [1944]
+[   17.425109] c2 read channel [1942]
+[   17.425201] c2 read channel [1942]
+[   17.425201] c2 sec-battery sec-battery.6: sec_bat_get_temperature_by_adc: Temp(95), Temp-ADC(1942)
+[   17.425231] c2 sec-battery sec-battery.6: sec_bat_get_battery_info:Vnow(4220mV),Inow(-253mA),Imax(0mA),SOC(93%),Tbat(95)		// 电压4220mv, 电量93%
+[   17.425659] c2 SM5701_get_battery_present: SM5701_STATUS1 (0x08)
+[   17.425689] c2 sec-battery sec-battery.6: sec_bat_battery_cable_check: Battery Connected
+[   17.425689] c2 sec-battery sec-battery.6: sec_bat_monitor_work: Status(Discharging), mode(None), Health(Good), Cable(1), siop_level(100)
+</pre>
+
+</body>
+</html>

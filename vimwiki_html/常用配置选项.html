@@ -13,6 +13,9 @@
 <li><a href="#toc_0.0.1">DVFS</a>
 <li><a href="#toc_0.0.2">DFS</a>
 <li><a href="#toc_0.0.3">Memory Size</a>
+<ul>
+<li><a href="#toc_0.0.3.1">CP size</a>
+</ul>
 </ul>
 </ul>
 </ul>
@@ -40,6 +43,55 @@ Device Drivers  ---&gt;
 
 <hr />
 <h3 id="toc_0.0.3">Memory Size</h3>
+<h4 id="toc_0.0.3.1">CP size</h4>
+<pre>
+u-boot：
+1）工程头文件
+u-boot64/include/configs/sharkls_j1mini.h
+#define LTE_GDSP_LOAD_OFFSET    0x20000
+#define LTE_FIXNV_SIZE 0x0006C000 // 272K the max size is 512k
+#define LTE_RUNNV_SIZE 0x00090000 // 400k the max size is 512k
+#define LTE_FIXNV_ADDR 0x8AA42000
+#define LTE_RUNNV_ADDR (LTE_FIXNV_ADDR + LTE_FIXNV_SIZE)
+#define LTE_MODEM_SIZE 0x00C00000
+#define LTE_MODEM_ADDR 0x8AB48000
+#define LTE_LDSP_SIZE  0x00b00000
+#define LTE_LDSP_ADDR  0x89900000
+#define LTE_GDSP_SIZE 0x002E0000
+#define LTE_GDSP_ADDR (0x89600000 + LTE_GDSP_LOAD_OFFSET)
+#define WL_WARM_SIZE 0x00200000
+#define WL_WARM_ADDR 0x8CE80000
+
+
+kernel：
+1）dts
+/memreserve/ 0x89600000 0x4000000; /* Offset:150M, Size:64M*/
+scproc_cp1: scproc@0x89600000 {
+	...
+}
+2）工程头文件
+kernel/include/soc/sprd/__board-sharkls_j1mini.h
+#define LTE_START_ADDR      (CONFIG_PHYS_OFFSET + 150 * SZ_1M)
+#define LTE_TOTAL_SIZE      (SZ_1M * 64)
+#define LTE_RING_ADDR       (LTE_START_ADDR + LTE_TOTAL_SIZE - SZ_4K)
+#define LTE_RING_SIZE       (SZ_4K)
+#define LTE_SMEM_SIZE       (SZ_1M * 2)
+
+
+device/sprd：
+device/sprd/scx35l_sharkls_j1mini/system.prop
+ro.modem.l.fixnv_size=0x6C000
+ro.modem.l.runnv_size=0x90000
+
+
+vendor：
+vendor/sprd/open-source/apps/modem_control/modem_control.h
+#define L_MODEM_SIZE               (0xbb0000)
+#define L_TGDSP_SIZE               (0x2e0000)
+#define L_LDSP_SIZE                (0x1c0000)
+#define L_WARM_SIZE                (0x280000)
+
+</pre>
 
 </body>
 </html>

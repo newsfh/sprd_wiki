@@ -29,6 +29,7 @@
 [[学习笔记 － DDR]]</BR>
 [[学习笔记 － thermal]]</BR>
 [[学习笔记 － MUIC & SUB PMIC]]</BR>
+[[study_notes_FGU|学习笔记 － FGU]]<BR>
 [[学习笔记 － IRAM]]</BR>
 [[学习笔记 － Marlin]]</BR>
 [[学习点滴]]</BR>
