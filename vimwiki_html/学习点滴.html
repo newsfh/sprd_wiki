@@ -1766,5 +1766,24 @@ kernel将其解析为ro.boot.serialno，最后解析成ro.serialno。
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/分区描述.xlsx">分区描述.xlsx</a></BR>
 </p>
 
+<h3 id="toc_0.83.14">查看分支信息</h3>
+<pre>
+repo info .
+</pre>
+
+<h3 id="toc_0.83.15">反汇编bin</h3>
+<pre>
+arm-linux-objdump -D -b binary -m arm xxx.bin &gt; xxx.asm
+</pre>
+
+<h3 id="toc_0.83.16">Android属性</h3>
+<pre>
+adb shell可以通过getprop/setprop来改属性值
+C代码可以通过property_set来修改
+
+ro开头的属性为只读，不能修改
+persist开头的属性，会保存在/data/property/目录下，下次开机时还会存在该值
+</pre>
+
 </body>
 </html>

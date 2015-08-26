@@ -40,3 +40,15 @@ lookat -s 0x7FFF 0x400388c8
 lookat -s 0xFFF 0x400388cc
 lookat -s 0x7FFF 0x400388d0
 }}}
+
+=== 数据网络 ===
+{{{
+1. 已经注册了4G 数据网络
+01-01 09:02:07.605   203   258 D use-Rlog/RLOG-AT: [0] Channel2: AT< +CEREG:2,1,"0000","00A2B79A",6
+01-01 09:02:11.689   203   258 D use-Rlog/RLOG-AT: [0] Channel1: AT< +CEREG:2,1,"183C","0081B71F",7
+
+2. 建立了数据连接
+01-01 09:02:03.941   203   254 D use-Rlog/RLOG-AT: [0] Channel1: AT>AT+CGDCONT?
+01-01 09:02:03.941   203   258 D use-Rlog/RLOG-AT: [0] Channel1: AT<+CGDCONT:1,"IP","3gnet","10.63.107.158",0,0,"210.22.70.3","210.22.84.3"
+}}}
+

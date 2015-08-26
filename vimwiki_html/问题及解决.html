@@ -13,6 +13,7 @@
 <li><a href="#toc_0.0.1">SIM卡识别</a>
 <li><a href="#toc_0.0.2">读clk寄存器卡死原因</a>
 <li><a href="#toc_0.0.3">sleep/wakeup不稳定问题</a>
+<li><a href="#toc_0.0.4">数据网络</a>
 </ul>
 </ul>
 </ul>
@@ -57,6 +58,17 @@ lookat -s 0xFFFF 0x400388c4
 lookat -s 0x7FFF 0x400388c8
 lookat -s 0xFFF 0x400388cc
 lookat -s 0x7FFF 0x400388d0
+</pre>
+
+<h3 id="toc_0.0.4">数据网络</h3>
+<pre>
+1. 已经注册了4G 数据网络
+01-01 09:02:07.605   203   258 D use-Rlog/RLOG-AT: [0] Channel2: AT&lt; +CEREG:2,1,"0000","00A2B79A",6
+01-01 09:02:11.689   203   258 D use-Rlog/RLOG-AT: [0] Channel1: AT&lt; +CEREG:2,1,"183C","0081B71F",7
+
+2. 建立了数据连接
+01-01 09:02:03.941   203   254 D use-Rlog/RLOG-AT: [0] Channel1: AT&gt;AT+CGDCONT?
+01-01 09:02:03.941   203   258 D use-Rlog/RLOG-AT: [0] Channel1: AT&lt;+CGDCONT:1,"IP","3gnet","10.63.107.158",0,0,"210.22.70.3","210.22.84.3"
 </pre>
 
 </body>
