@@ -16,6 +16,12 @@
 
 ----
 === 相关目录文件、数据结构、全局变量 ===
+==== 相关配置 ====
+{{{
+kernel里打开CONFIG_PROC_DEVICETREE开关
+ls -al /proc/device-tree
+}}}
+
 ==== 相关文件 ====
 |*内容*|*说明*|
 |kernel/drivers/of|所在目录|

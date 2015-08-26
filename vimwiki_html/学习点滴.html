@@ -70,11 +70,6 @@ eng_modem2server  从phonserver读取内容
 http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/cai_20130807_logan_tw_make_boot
 </pre>
 
-<h3 id="toc_0.2.3">MHC版本地址</h3>
-<pre>
-smb://yongjungepc/samsung/6820i/Kernel/0823_MHC%20SDK
-</pre>
-
 <hr />
 <h2 id="toc_0.3">20130906</h2>
 <h3 id="toc_0.3.1">LCD分频计算方式</h3>
@@ -293,13 +288,7 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/samsung%20kernel%2
 
 <hr />
 <h2 id="toc_0.18">20131115</h2>
-<h3 id="toc_0.18.1">三星分支</h3>
-<pre>
-分支: sprdroid4.1_3.4_ss_dev
-工程：sp8830ssdbase-userdebug
-</pre>
-
-<h3 id="toc_0.18.2">列出指定后缀的文件列表</h3>
+<h3 id="toc_0.18.1">列出指定后缀的文件列表</h3>
 <pre>
 在源代码的根目录下执行以下命令
 find . -wholename ./out -prune -o -wholename ./.repo -prune -o -type f -regextype posix-extended -iregex ".*\.(h|c|cpp|java|mk|cc)$" -o -type f -iname "makefile" &gt; filelist.txt
@@ -363,20 +352,8 @@ BeyondCompare对比两个目录，列出所有不一样的文件
 </pre>
 
 <hr />
-<h2 id="toc_0.24">20140110</h2>
-<h3 id="toc_0.24.1">android服务器</h3>
-<pre>
-服务器名：
-android10
-...
-android19
-密码：
-PSD#sciuser
-</pre>
-
-<hr />
-<h2 id="toc_0.25">20140210</h2>
-<h3 id="toc_0.25.1">连接服务器</h3>
+<h2 id="toc_0.24">20140210</h2>
+<h3 id="toc_0.24.1">连接服务器</h3>
 <pre>
 ssh本机：
 ssh spreadtrum\\hua.fang@10.0.33.5
@@ -389,15 +366,15 @@ sudo mount -t cifs -o username=hua.fang,password=12abAB,uid=$(id -u),gid=$(id -g
 </pre>
 
 <hr />
-<h2 id="toc_0.26">20140211</h2>
-<h3 id="toc_0.26.1">切换到tag</h3>
+<h2 id="toc_0.25">20140211</h2>
+<h3 id="toc_0.25.1">切换到tag</h3>
 <pre>
 repo forall -c "git checkout &lt;TAG_name&gt;"
 </pre>
 
 <hr />
-<h2 id="toc_0.27">20140226</h2>
-<h3 id="toc_0.27.1">修改CP基址和大小</h3>
+<h2 id="toc_0.26">20140226</h2>
+<h3 id="toc_0.26.1">修改CP基址和大小</h3>
 <pre>
 u-boot部分：
 ****  include/configs/sp8830ssw.h  ****
@@ -496,8 +473,8 @@ static struct cproc_init_data sprd_cproc_td_pdata = {
 </pre>
 
 <hr />
-<h2 id="toc_0.28">20140313</h2>
-<h3 id="toc_0.28.1">拉分支</h3>
+<h2 id="toc_0.27">20140313</h2>
+<h3 id="toc_0.27.1">拉分支</h3>
 <pre>
 给summer.duan发邮件，让她拉分支。
 分支信息：
@@ -511,23 +488,23 @@ static struct cproc_init_data sprd_cproc_td_pdata = {
 </pre>
 
 <hr />
-<h2 id="toc_0.29">20140325</h2>
-<h3 id="toc_0.29.1">DS-5</h3>
+<h2 id="toc_0.28">20140325</h2>
+<h3 id="toc_0.28.1">DS-5</h3>
 <pre>
 http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/%E4%BD%BF%E7%94%A8DS-5%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%B7%A5%E5%85%B7
 http://10.0.64.31/AP-Android/attachment/wiki/DebugTools/DS-5%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA.odt
 </pre>
 
 <hr />
-<h2 id="toc_0.30">20140410</h2>
-<h3 id="toc_0.30.1">SS SDK git</h3>
+<h2 id="toc_0.29">20140410</h2>
+<h3 id="toc_0.29.1">SS SDK git</h3>
 <pre>
 repo init -b Samsung_Kernel_Base -u gitosis@sprdroid.git.spreadtrum.com.cn:SSKernel/manifest --repo-url=gitosis@sprdroid.git.spreadtrum.com.cn:tools/repo.git
 </pre>
 
 <hr />
-<h2 id="toc_0.31">20140412</h2>
-<h3 id="toc_0.31.1">烧image</h3>
+<h2 id="toc_0.30">20140412</h2>
+<h3 id="toc_0.30.1">烧image</h3>
 <pre>
 1. 从手机里提取image
 手机里运行命令
@@ -542,8 +519,8 @@ dd if=/data/boot.img of=/dev/block/platform/sprd-sdhci.3/by-name/KERNEL
 </pre>
 
 <hr />
-<h2 id="toc_0.32">20140507</h2>
-<h3 id="toc_0.32.1">通过adb发AT命令</h3>
+<h2 id="toc_0.31">20140507</h2>
+<h3 id="toc_0.31.1">通过adb发AT命令</h3>
 <pre>
 1. 找到对应的SIPC通道，
 在vendor/sprd/open-source/apps/engmode/eng_pcclient.c的at_chan变量里找
@@ -568,31 +545,31 @@ ro.modem.tl.tty=/dev/stty_lte
 
 
 <hr />
-<h2 id="toc_0.33">20140702</h2>
-<h3 id="toc_0.33.1">sysdump搜log</h3>
+<h2 id="toc_0.32">20140702</h2>
+<h3 id="toc_0.32.1">sysdump搜log</h3>
 <pre>
 strings sysdump.core.01_0x80000000-0x87ffffff_dump.lst &gt; a.txt
 搜索"Modules linked"，上下就是sysdump时的打印
 </pre>
 
 <hr />
-<h2 id="toc_0.34">20140708</h2>
-<h3 id="toc_0.34.1">samsung doc</h3>
+<h2 id="toc_0.33">20140708</h2>
+<h3 id="toc_0.33.1">samsung doc</h3>
 <pre>
 \\hw06\HW_Doc\2 Function\10 T1\SAMSUNG
 </pre>
 
 <hr />
-<h2 id="toc_0.35">20140731</h2>
-<h3 id="toc_0.35.1">公共盘</h3>
+<h2 id="toc_0.34">20140731</h2>
+<h3 id="toc_0.34.1">公共盘</h3>
 <pre>
 \\shnas2\Dept_Folder\FPD          ----用来存放临时文件及log等，记得经常清空
 P:\PLD\Samsung                    ----用来存放项目相关的文档、patch、binary、Tools等
 </pre>
 
 <hr />
-<h2 id="toc_0.36">20140819</h2>
-<h3 id="toc_0.36.1">light sleep</h3>
+<h2 id="toc_0.35">20140819</h2>
+<h3 id="toc_0.35.1">light sleep</h3>
 <pre>
 echo any_wake_lock &gt; /sys/power/wake_lock
 然后等灭屏后，电流大约到20mA左右就说明进入light sleep
@@ -602,8 +579,8 @@ echo 1 &gt; /sys/module/cpuidle_scx35/parameters/cpuidle_debug
 </pre>
 
 <hr />
-<h2 id="toc_0.37">20140827</h2>
-<h3 id="toc_0.37.1">CSFB多形态命名方案建议</h3>
+<h2 id="toc_0.36">20140827</h2>
+<h3 id="toc_0.36.1">CSFB多形态命名方案建议</h3>
 <pre>
 总体命名：CCD5
  
@@ -628,36 +605,36 @@ CPD3   (针对公开市场3mode)
 </pre>
 
 <hr />
-<h2 id="toc_0.38">20140902</h2>
-<h3 id="toc_0.38.1">Power Management</h3>
+<h2 id="toc_0.37">20140902</h2>
+<h3 id="toc_0.37.1">Power Management</h3>
 <p>
 <a href="http://10.0.64.31/AP-Android/wiki/Power%20Management">Power Management</a>
 </p>
 
-<h3 id="toc_0.38.2">快速编译</h3>
+<h3 id="toc_0.37.2">快速编译</h3>
 <p>
 <a href="http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/%E5%B7%A5%E7%A8%8B%E5%BF%AB%E9%80%9F%E7%BC%96%E8%AF%91%E8%84%9A%E6%9C%AC">快速编译</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/build.patch">不用搜所有Android.mk的patch</a>
 </p>
 
 <hr />
-<h2 id="toc_0.39">20140906</h2>
-<h3 id="toc_0.39.1">parse log</h3>
+<h2 id="toc_0.38">20140906</h2>
+<h3 id="toc_0.38.1">parse log</h3>
 <p>
-[[<a href="http://10.0.64.31/AP-Android/wiki/parse_log|parse">http://10.0.64.31/AP-Android/wiki/parse_log|parse</a> log]</BR>
+<a href="http://10.0.64.31/AP-Android/wiki/parse_log">parse log</a></BR>
 <a href="http://10.0.64.31/AP-Android/wiki/DebugTools">debug tools</a>
 </p>
 
 <hr />
-<h2 id="toc_0.40">20140923</h2>
-<h3 id="toc_0.40.1">WIKI format</h3>
+<h2 id="toc_0.39">20140923</h2>
+<h3 id="toc_0.39.1">WIKI format</h3>
 <p>
 <a href="http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/WikiFormatting">WikiFormat</a>
 </p>
 
 <hr />
-<h2 id="toc_0.41">20140929</h2>
-<h3 id="toc_0.41.1">cp log</h3>
+<h2 id="toc_0.40">20140929</h2>
+<h3 id="toc_0.40.1">cp log</h3>
 <pre>
 GED cp LOG：
 *#*#83781#*#*打开debug页面，将arm log的开关打开
@@ -667,15 +644,15 @@ GED cp LOG：
 </pre>
 
 <hr />
-<h2 id="toc_0.42">20141006</h2>
-<h3 id="toc_0.42.1">modify modem size</h3>
+<h2 id="toc_0.41">20141006</h2>
+<h3 id="toc_0.41.1">modify modem size</h3>
 <p>
 <a href="http://bugzilla.spreadtrum.com/bugzilla/show_bug.cgi?id=354198">modify modem size sample</a>
 </p>
 
 <hr />
-<h2 id="toc_0.43">20141015</h2>
-<h3 id="toc_0.43.1">芯片失效分析手段</h3>
+<h2 id="toc_0.42">20141015</h2>
+<h3 id="toc_0.42.1">芯片失效分析手段</h3>
 <pre>
 降频：
 ddr频率降为200m
@@ -691,8 +668,8 @@ vddcore：1.2v
 </pre>
 
 <hr />
-<h2 id="toc_0.44">20141111</h2>
-<h3 id="toc_0.44.1">各sdhci涵义</h3>
+<h2 id="toc_0.43">20141111</h2>
+<h3 id="toc_0.43.1">各sdhci涵义</h3>
 <pre>
 sdhci0: t卡
 sdhci1: wifi
@@ -701,8 +678,8 @@ sdhci3: emmc
 </pre>
 
 <hr />
-<h2 id="toc_0.45">20141117</h2>
-<h3 id="toc_0.45.1">模样模式mount sdcard，打开adb，抓slog</h3>
+<h2 id="toc_0.44">20141117</h2>
+<h3 id="toc_0.44.1">校准模式mount sdcard，打开adb，抓slog</h3>
 <pre>
 on cali
     mount_all /etc/recovery.fstab
@@ -717,14 +694,14 @@ service slog /system/bin/slog -t
 由于校准模式时，engpc会占用diag口，slog工具无法使用，所以cp的log会不抓取
 </pre>
 
-<h3 id="toc_0.45.2">sdb安装及使用</h3>
+<h3 id="toc_0.44.2">sdb安装及使用</h3>
 <pre>
 http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/sdb%E5%AE%89%E8%A3%85%E4%B8%8E%E4%BD%BF%E7%94%A8
 </pre>
 
 <hr />
-<h2 id="toc_0.46">20141125</h2>
-<h3 id="toc_0.46.1">cp reset</h3>
+<h2 id="toc_0.45">20141125</h2>
+<h3 id="toc_0.45.1">cp reset</h3>
 <pre>
 1.ap patch：
 http://review.source.spreadtrum.com/gerrit/#/c/147209/
@@ -739,14 +716,14 @@ Comment 31 cmadmin 2014-11-19 11:11:16 CST
 </pre>
 
 <hr />
-<h2 id="toc_0.47">20141207</h2>
-<h3 id="toc_0.47.1">关闭kernel console</h3>
+<h2 id="toc_0.46">20141207</h2>
+<h3 id="toc_0.46.1">关闭kernel console</h3>
 <pre>
 一般，u-boot传给kernel的cmd是console=ttyS1,115200n8 no_console_suspend
 可以配成console=null，将console关闭
 </pre>
 
-<h3 id="toc_0.47.2">配置bus monitor</h3>
+<h3 id="toc_0.46.2">配置bus monitor</h3>
 <pre>
 以下是AHB的bus monitor的配置
 +       {
@@ -782,7 +759,7 @@ Comment 31 cmadmin 2014-11-19 11:11:16 CST
 将REG32(addr[i])配成0x20000000，将bus monitor状态清除
 </pre>
 
-<h3 id="toc_0.47.3">reserve memory调试</h3>
+<h3 id="toc_0.46.3">reserve memory调试</h3>
 <pre>
 代码：kernel/mm/memblock.c
 打开配置形状：CONFIG_MEMBLOCK_RESERVE_DEBUG
@@ -817,41 +794,41 @@ index e178a33..7a762d7 100644
  #else
 </pre>
 
-<h3 id="toc_0.47.4">u-boot printf</h3>
+<h3 id="toc_0.46.4">u-boot printf</h3>
 <pre>
 u-boot/common/console.c
 </pre>
 
 <hr />
-<h2 id="toc_0.48">20141208</h2>
-<h3 id="toc_0.48.1">DDR频点</h3>
+<h2 id="toc_0.47">20141208</h2>
+<h3 id="toc_0.47.1">DDR频点</h3>
 <pre>
 lpddr2支持：    200 384 400 466
 lpddr3支持：192 200 384 400 500 640
 </pre>
 
 <hr />
-<h2 id="toc_0.49">20141212</h2>
-<h3 id="toc_0.49.1">Power Management</h3>
+<h2 id="toc_0.48">20141212</h2>
+<h3 id="toc_0.48.1">Power Management</h3>
 <pre>
 http://10.0.64.31/AP-Android/wiki/Power%20Management
 </pre>
 
 <hr />
-<h2 id="toc_0.50">20141216</h2>
-<h3 id="toc_0.50.1">打印64位数</h3>
+<h2 id="toc_0.49">20141216</h2>
+<h3 id="toc_0.49.1">打印64位数</h3>
 <pre>
 printk("%llu", u64);
 printk("%lld", l64);
 </pre>
 
-<h3 id="toc_0.50.2">interactive调频过多</h3>
+<h3 id="toc_0.49.2">interactive调频过多</h3>
 <pre>
 换成interactive的governor，打开kernel log后，CPU调频速度过快，可以减少采样率来规避此问题
 echo 100000 &gt; /sys/devices/system/cpu/cpufreq/interactive/timer_rate
 </pre>
 
-<h3 id="toc_0.50.3">RTC/alarm</h3>
+<h3 id="toc_0.49.3">RTC/alarm</h3>
 <pre>
 硬件上只有一个RTC，最后一次的设置时间会最终生效（kernel/drivers/rtc/rtc-sprd.c）
 alarm驱动会调用RTC，该驱动有一个队列，可以保证存在多个alarm，将最快到达的时间设置给RTC（kernel/kernel/time/alarmtimer.c，在set_real_alarm里）
@@ -860,8 +837,8 @@ ktime_to_ms将ktime结构转换成ms
 </pre>
 
 <hr />
-<h2 id="toc_0.51">20141217</h2>
-<h3 id="toc_0.51.1">校准模式下保存armlog到t卡</h3>
+<h2 id="toc_0.50">20141217</h2>
+<h3 id="toc_0.50.1">校准模式下保存armlog到t卡</h3>
 <pre>
 device/sprd/scx35/recovery/init.rc
 
@@ -870,8 +847,8 @@ on property:ro.bootmode=cali
 </pre>
 
 <hr />
-<h2 id="toc_0.52">20150104</h2>
-<h3 id="toc_0.52.1">check current ddr freq</h3>
+<h2 id="toc_0.51">20150104</h2>
+<h3 id="toc_0.51.1">check current ddr freq</h3>
 <pre>
 adb shell cat /d/clk/clk_summary | grep clk_emc?
 
@@ -885,8 +862,8 @@ then the current ddr frequence is 384M
 </pre>
 
 <hr />
-<h2 id="toc_0.53">20150109</h2>
-<h3 id="toc_0.53.1">寄存器虚拟地址映射</h3>
+<h2 id="toc_0.52">20150109</h2>
+<h3 id="toc_0.52.1">寄存器虚拟地址映射</h3>
 <pre>
 调用地址映射的接口：
 290 MACHINE_START(SCPHONE, "sc8830")
@@ -916,8 +893,8 @@ kernel/arch/arm/mach-sc/io-sc8830.c
 </pre>
 
 <hr />
-<h2 id="toc_0.54">20150112</h2>
-<h3 id="toc_0.54.1">DCXO/TCXO/VC-TCXO</h3>
+<h2 id="toc_0.53">20150112</h2>
+<h3 id="toc_0.53.1">DCXO/TCXO/VC-TCXO</h3>
 <pre>
 精准度：DCXO &lt; TCXO &lt; VC-TCXO
 
@@ -930,8 +907,8 @@ VC-TCXO:
 </pre>
 
 <hr />
-<h2 id="toc_0.55">20150122</h2>
-<h3 id="toc_0.55.1">cpu升频升压</h3>
+<h2 id="toc_0.54">20150122</h2>
+<h3 id="toc_0.54.1">cpu升频升压</h3>
 <pre>
 cpu每档都有对应的vddarm电压值
 现在每次步进为250mv，每档所需的时间大概在10ms左右
@@ -946,8 +923,8 @@ cpu每档都有对应的vddarm电压值
 </pre>
 
 <hr />
-<h2 id="toc_0.56">20150123</h2>
-<h3 id="toc_0.56.1">截取文件内容命令/提取cp的内存</h3>
+<h2 id="toc_0.55">20150123</h2>
+<h3 id="toc_0.55.1">截取文件内容命令/提取cp的内存</h3>
 <pre>
 dd if=sysdump.core.01_0x80000000-0xafffffff_dump.lst of=temp.mem bs=1048576 skip=150 count=64
 - bs: 读写单位
@@ -963,23 +940,23 @@ dd if=sysdump.core.01_0x80000000-0xafffffff_dump.lst of=cp.mem bs=1048576 skip=1
 </pre>
 
 <hr />
-<h2 id="toc_0.57">20150127</h2>
-<h3 id="toc_0.57.1">getevent</h3>
+<h2 id="toc_0.56">20150127</h2>
+<h3 id="toc_0.56.1">getevent</h3>
 <pre>
 获取input event列表：getevent命令， getevent -lt /dev/input/event1可看到event1里的相关信息
 </pre>
 
 <hr />
-<h2 id="toc_0.58">20150129</h2>
-<h3 id="toc_0.58.1">模拟重启modem</h3>
+<h2 id="toc_0.57">20150129</h2>
+<h3 id="toc_0.57.1">模拟重启modem</h3>
 <pre>
 setprop persist.sys.sprd.modemreset 1
 echo "AT+SPATASSERT=1\r" &gt; /dev/stty_lte31
 </pre>
 
 <hr />
-<h2 id="toc_0.59">20150216</h2>
-<h3 id="toc_0.59.1">屏幕横竖屏设置</h3>
+<h2 id="toc_0.58">20150216</h2>
+<h3 id="toc_0.58.1">屏幕横竖屏设置</h3>
 <pre>
 device/sprd/scx35_tsharkgoyave/system.prop
 
@@ -988,8 +965,8 @@ device/sprd/scx35_tsharkgoyave/system.prop
 </pre>
 
 <hr />
-<h2 id="toc_0.60">20150227</h2>
-<h3 id="toc_0.60.1">校准模式下抓armlog</h3>
+<h2 id="toc_0.59">20150227</h2>
+<h3 id="toc_0.59.1">校准模式下抓armlog</h3>
 <pre>
 === device/sprd/scx35/recovery/init.rc ===
 on property:ro.bootmode=cali
@@ -1012,7 +989,7 @@ on cali
 #       trigger adb_enable
 </pre>
 
-<h3 id="toc_0.60.2">看adc通道的值</h3>
+<h3 id="toc_0.59.2">看adc通道的值</h3>
 <pre>
 lookat -s 0x1 0x40038304 &amp;&amp; lookat -s 0x17 0x40038300 &amp;&amp; lookat -l25 0x40038300
 
@@ -1026,22 +1003,22 @@ lookat -l25 0x40038300：
 看adc值，主要看0x4003834c的值
 </pre>
 
-<h3 id="toc_0.60.3">sharkl查看arm7的log</h3>
+<h3 id="toc_0.59.3">sharkl查看arm7的log</h3>
 <pre>
 将串口切给arm7
 lookat -s 0x285580 0x402a0008
 </pre>
 
 <hr />
-<h2 id="toc_0.61">20150302</h2>
-<h3 id="toc_0.61.1">看light sleep的log</h3>
+<h2 id="toc_0.60">20150302</h2>
+<h3 id="toc_0.60.1">看light sleep的log</h3>
 <pre>
 ./sys/module/cpuidle_scx35/parameters/cpuidle_debug
 </pre>
 
 <hr />
-<h2 id="toc_0.62">20150309</h2>
-<h3 id="toc_0.62.1">a-die chip id</h3>
+<h2 id="toc_0.61">20150309</h2>
+<h3 id="toc_0.61.1">a-die chip id</h3>
 <pre>
 chipid由两部分组成：ANA_REG_GLB_CHIP_ID_HIGH/ANA_REG_GLB_CHIP_ID_LOW
 ANA_REG_GLB_CHIP_ID_HIGH的16位再加上ANA_REG_GLB_CHIP_ID_LOW的高4位，组成chip id
@@ -1052,15 +1029,15 @@ sci_get_ana_chip_id/sci_get_ana_chip_ver
 </pre>
 
 <hr />
-<h2 id="toc_0.63">20150310</h2>
-<h3 id="toc_0.63.1">WPA</h3>
+<h2 id="toc_0.62">20150310</h2>
+<h3 id="toc_0.62.1">WPA</h3>
 <pre>
 WPA这路电由ps来控制，在ldo_sleep.c里，不能配置成sleep power down，否则dsp会有问题
 </pre>
 
 <hr />
-<h2 id="toc_0.64">20150325</h2>
-<h3 id="toc_0.64.1">vi显示^M</h3>
+<h2 id="toc_0.63">20150325</h2>
+<h3 id="toc_0.63.1">vi显示^M</h3>
 <pre>
 用命令打开文件
 :e ++ff=unix &lt;file_name&gt;
@@ -1069,8 +1046,8 @@ set fileformats=unix设置为unix格式
 </pre>
 
 <hr />
-<h2 id="toc_0.65">20150326</h2>
-<h3 id="toc_0.65.1">enable engpc</h3>
+<h2 id="toc_0.64">20150326</h2>
+<h3 id="toc_0.64.1">enable engpc</h3>
 <pre>
 persist.sys.engpc.disable : 控制engpc的开关
 
@@ -1078,8 +1055,8 @@ persist.sys.engpc.disable : 控制engpc的开关
 </pre>
 
 <hr />
-<h2 id="toc_0.66">20150401</h2>
-<h3 id="toc_0.66.1">开启/关闭服务</h3>
+<h2 id="toc_0.65">20150401</h2>
+<h3 id="toc_0.65.1">开启/关闭服务</h3>
 <pre>
 c代码：
 property_set("ctl.start", "engpc");
@@ -1090,7 +1067,7 @@ setprop ctl.start engpc
 setprop ctl.stop engpc
 </pre>
 
-<h3 id="toc_0.66.2">kernel error code</h3>
+<h3 id="toc_0.65.2">kernel error code</h3>
 <pre>
 kernel/include/uapi/asm-generic/errno-base.h
 
@@ -1131,14 +1108,14 @@ kernel/include/uapi/asm-generic/errno-base.h
 </pre>
 
 <hr />
-<h2 id="toc_0.67">20150408</h2>
-<h3 id="toc_0.67.1">工具前缀</h3>
+<h2 id="toc_0.66">20150408</h2>
+<h3 id="toc_0.66.1">工具前缀</h3>
 <pre>
 arm: arm-eabi-
 arm64: aarch64-linux-android-
 </pre>
 
-<h3 id="toc_0.67.2">selinux开关</h3>
+<h3 id="toc_0.66.2">selinux开关</h3>
 <pre>
 1、
 关闭：setenforce 0
@@ -1158,42 +1135,42 @@ device/sprd/scx35/sepolicy/engpc.te
 allow engpc sysfs:file write;
 </pre>
 
-<h3 id="toc_0.67.3">wifi document</h3>
+<h3 id="toc_0.66.3">wifi document</h3>
 <pre>
 \\10.0.0.166\Public_Folder\PLD\Samsung\SC7730S_Tshark\Pikea_marlin\files\wifi\wifi
 </pre>
 
 <hr />
-<h2 id="toc_0.68">20150413</h2>
-<h3 id="toc_0.68.1">ANA_REG_GLB_PWR_WR_PROT_VALUE</h3>
+<h2 id="toc_0.67">20150413</h2>
+<h3 id="toc_0.67.1">ANA_REG_GLB_PWR_WR_PROT_VALUE</h3>
 <pre>
 ANA_REG_GLB_PWR_WR_PROT_VALUE需要根据spec来设置相应的值，如果设置完正确的值后，就可以修改ANA_REG_GLB_LDO_DCDC_PD，否则无法修改
 改完后，再将ANA_REG_GLB_PWR_WR_PROT_VALUE设回0
 </pre>
 
 <hr />
-<h2 id="toc_0.69">20150418</h2>
-<h3 id="toc_0.69.1">打印函数名</h3>
+<h2 id="toc_0.68">20150418</h2>
+<h3 id="toc_0.68.1">打印函数名</h3>
 <pre>
 printk("%pF\n", printk);
 </pre>
 
 <hr />
-<h2 id="toc_0.70">20150420</h2>
-<h3 id="toc_0.70.1">生成manifest.xml</h3>
+<h2 id="toc_0.69">20150420</h2>
+<h3 id="toc_0.69.1">生成manifest.xml</h3>
 <pre>
 repo manifest -o ~/manifest.xml -r
 </pre>
 
-<h3 id="toc_0.70.2">linux driver加载顺序</h3>
+<h3 id="toc_0.69.2">linux driver加载顺序</h3>
 <pre>
 1、根据init的级别  －－  可以改注册init_func的级别
 2、根据编译顺序  －－  可以改makefile里的编译顺序
 </pre>
 
 <hr />
-<h2 id="toc_0.71">20150424</h2>
-<h3 id="toc_0.71.1">panic后不重启</h3>
+<h2 id="toc_0.70">20150424</h2>
+<h3 id="toc_0.70.1">panic后不重启</h3>
 <pre>
 kernel/drivers/platform/sprd/sys_reset.c
 
@@ -1211,7 +1188,7 @@ index 1f6bc43..f08594c 100755
         } else if (cmd &amp;&amp; !strncmp(cmd, "alarm", 5)) {
 </pre>
 
-<h3 id="toc_0.71.2">recovery用jigbox串口</h3>
+<h3 id="toc_0.70.2">recovery用jigbox串口</h3>
 <pre>
 cmdline里加上控制台的配置
 
@@ -1232,15 +1209,15 @@ index 7a3e34e..4cc86ce 100755
 </pre>
 
 <hr />
-<h2 id="toc_0.72">20150428</h2>
-<h3 id="toc_0.72.1">pr_debug</h3>
+<h2 id="toc_0.71">20150428</h2>
+<h3 id="toc_0.71.1">pr_debug</h3>
 <pre>
 echo 'file sprdfb_main.c +p' &gt; /sys/kernel/debug/dynamic_debug/control
 </pre>
 
 <hr />
-<h2 id="toc_0.73">20150501</h2>
-<h3 id="toc_0.73.1">printk文件节点实现</h3>
+<h2 id="toc_0.72">20150501</h2>
+<h3 id="toc_0.72.1">printk文件节点实现</h3>
 <pre>
 实现文件：kernel/kernel/sysctl.c
 
@@ -1285,16 +1262,16 @@ echo 'file sprdfb_main.c +p' &gt; /sys/kernel/debug/dynamic_debug/control
 </pre>
 
 <hr />
-<h2 id="toc_0.74">20150507</h2>
-<h3 id="toc_0.74.1">编译器</h3>
+<h2 id="toc_0.73">20150507</h2>
+<h3 id="toc_0.73.1">编译器</h3>
 <pre>
 arm32：arm-eabi-
 arm64：aarch64-linux-android-
 </pre>
 
 <hr />
-<h2 id="toc_0.75">20150522</h2>
-<h3 id="toc_0.75.1">EMMC和DDR性能测试</h3>
+<h2 id="toc_0.74">20150522</h2>
+<h3 id="toc_0.74.1">EMMC和DDR性能测试</h3>
 <pre>
 EMMC用bonnie
 命令：bonnie -d /data -s 2000
@@ -1315,8 +1292,8 @@ Machine    MB K/sec %CPU K/sec %CPU K/sec %CPU K/sec %CPU K/sec %CPU  /sec %CPU
 </pre>
 
 <hr />
-<h2 id="toc_0.76">20150527</h2>
-<h3 id="toc_0.76.1">查看dfs是否起作用</h3>
+<h2 id="toc_0.75">20150527</h2>
+<h3 id="toc_0.75.1">查看dfs是否起作用</h3>
 <pre>
 看0x30000108是否有变化
 
@@ -1327,8 +1304,8 @@ shell@scx35l_sharkl_j1poplte_old:/ # lookat 0x30000108
 </pre>
 
 <hr />
-<h2 id="toc_0.77">20150601</h2>
-<h3 id="toc_0.77.1">/proc/sysrq-trigger</h3>
+<h2 id="toc_0.76">20150601</h2>
+<h3 id="toc_0.76.1">/proc/sysrq-trigger</h3>
 <pre>
 
 /proc/sysrq-trigger该文件能做些什么事情呢？ 
@@ -1363,8 +1340,8 @@ i — Kills all processes except init using SIGKILL
 </pre>
 
 <hr />
-<h2 id="toc_0.78">20150603</h2>
-<h3 id="toc_0.78.1">module_param_named</h3>
+<h2 id="toc_0.77">20150603</h2>
+<h3 id="toc_0.77.1">module_param_named</h3>
 <pre>
 #define module_param(name, type,perm) \
 module_param_named(name, name, type, perm)
@@ -1375,8 +1352,8 @@ module_param_named(name, name, type, perm)
 </pre>
 
 <hr />
-<h2 id="toc_0.79">20150610</h2>
-<h3 id="toc_0.79.1">chip_sleep</h3>
+<h2 id="toc_0.78">20150610</h2>
+<h3 id="toc_0.78.1">chip_sleep</h3>
 <pre>
 chip_sleep信号是指ap是否已经进入睡眠
 xtl_buf_en0/1是可以配置的，选定的子系统是否已经进入睡眠
@@ -1387,8 +1364,8 @@ vdd18是否进lp，只受chip_sleep信号影响，不受xtl影响
 </pre>
 
 <hr />
-<h2 id="toc_0.80">20150619</h2>
-<h3 id="toc_0.80.1">spl加打印函数</h3>
+<h2 id="toc_0.79">20150619</h2>
+<h3 id="toc_0.79.1">spl加打印函数</h3>
 <pre>
 
 #define UART1_TX_BUF_ADDR 0X70100000
@@ -1412,8 +1389,8 @@ void spl_print(const unsigned char *string)
 </pre>
 
 <hr />
-<h2 id="toc_0.81">20150703</h2>
-<h3 id="toc_0.81.1">SharkLT8 FLATMEM</h3>
+<h2 id="toc_0.80">20150703</h2>
+<h3 id="toc_0.80.1">SharkLT8 FLATMEM</h3>
 <pre>
 默认是SPARSEMEM，需要加以下内容才能在menu config里看到FLATMEM的配置
 
@@ -1432,7 +1409,7 @@ index fc2af5d..7b5ac60 100755
         def_bool ARCH_SPARSEMEM_ENABLE
 </pre>
 
-<h3 id="toc_0.81.2">persist.radio.ssda.testmode含义</h3>
+<h3 id="toc_0.80.2">persist.radio.ssda.testmode含义</h3>
 <pre>
 packages/apps/EngineerMode/src/com/sprd/engineermode/telephony/TelephonyManagerSprd.java
 
@@ -1453,7 +1430,7 @@ packages/apps/EngineerMode/src/com/sprd/engineermode/telephony/TelephonyManagerS
 78    };
 </pre>
 
-<h3 id="toc_0.81.3">persist.radio.ssda.mode</h3>
+<h3 id="toc_0.80.3">persist.radio.ssda.mode</h3>
 <pre>
 packages/apps/EngineerMode/src/com/sprd/engineermode/telephony/TelephonyManagerSprd.java
 
@@ -1463,8 +1440,8 @@ packages/apps/EngineerMode/src/com/sprd/engineermode/telephony/TelephonyManagerS
 </pre>
 
 <hr />
-<h2 id="toc_0.82">20150708</h2>
-<h3 id="toc_0.82.1">boot core1 on SharkLT8</h3>
+<h2 id="toc_0.81">20150708</h2>
+<h3 id="toc_0.81.1">boot core1 on SharkLT8</h3>
 <pre>
 上电流程如下：
 1. 跑在64bit:
@@ -1511,7 +1488,7 @@ packages/apps/EngineerMode/src/com/sprd/engineermode/telephony/TelephonyManagerS
 SEV
 </pre>
 
-<h3 id="toc_0.82.2">kernel boot cp</h3>
+<h3 id="toc_0.81.2">kernel boot cp</h3>
 <pre>
 gerrit 提交如下：
 http://review.source.spreadtrum.com/gerrit/#/c/185283/
@@ -1521,26 +1498,26 @@ http://review.source.spreadtrum.com/gerrit/#/c/187967/
 </pre>
 
 <hr />
-<h2 id="toc_0.83">20150710</h2>
-<h3 id="toc_0.83.1">不输入密码执行sudo</h3>
+<h2 id="toc_0.82">20150710</h2>
+<h3 id="toc_0.82.1">不输入密码执行sudo</h3>
 <pre>
 echo &lt;password&gt; | sudo -S fastboot reboot
 </pre>
 
 <hr />
-<h2 id="toc_0.84">20150714</h2>
-<h3 id="toc_0.84.1">thread_info与sp关系</h3>
+<h2 id="toc_0.83">20150714</h2>
+<h3 id="toc_0.83.1">thread_info与sp关系</h3>
 <pre>
 sp = thread_info + 0x2000
 即栈底是thread_info之后的2个page大小
 </pre>
 
-<h3 id="toc_0.84.2">SharkLT8 edap</h3>
+<h3 id="toc_0.83.2">SharkLT8 edap</h3>
 <pre>
 edap:0x81410000
 </pre>
 
-<h3 id="toc_0.84.3">u-boot read/write EMMC</h3>
+<h3 id="toc_0.83.3">u-boot read/write EMMC</h3>
 <pre>
 u-boot里读写EMMC：
 int do_fs_file_read(char *mpart, char *filenm, void *buf, int len)
@@ -1554,7 +1531,7 @@ int do_raw_data_read(char *part, u32 size, u32 off, char *buf)
 // buf：write/read buffer
 </pre>
 
-<h3 id="toc_0.84.4">u-boot read/write usb</h3>
+<h3 id="toc_0.83.4">u-boot read/write usb</h3>
 <pre>
 u-boot里对usb的操作：
 gs_open();
@@ -1599,19 +1576,19 @@ usb_trans_status
 289 }
 </pre>
 
-<h3 id="toc_0.84.5">git commit comment检查</h3>
+<h3 id="toc_0.83.5">git commit comment检查</h3>
 <pre>
 git commit时会检查comment是否合法，这个是通过git的hook来实现的
 具体在仓库的.git/hooks目录下的commit-msg脚本，最终指向.repo/repo/hooks这个目录
 </pre>
 
-<h3 id="toc_0.84.6">sd card权限问题</h3>
+<h3 id="toc_0.83.6">sd card权限问题</h3>
 <pre>
 SS T8用主干后，发现t卡不能使用，需要修改权限ss_sharklt8_2731.mk:
 STORAGE_ORIGINAL := true =&gt; STORAGE_ORIGINAL := false
 </pre>
 
-<h3 id="toc_0.84.7">nvitem header</h3>
+<h3 id="toc_0.83.7">nvitem header</h3>
 <pre>
 手机里的nvitem有一个header，记录了当前nvitem的一些信息
 在原始的nvitem.bin里，是没有这个header的，它在下载阶段由fdl2添加的
@@ -1651,7 +1628,7 @@ nvitem服务在vendor/sprd/open-source/apps/nvitem/nvitem_fs.c这个文件里对
 373     header_ptr-&gt;checksum = (uint32)calc_checksum(buf,size);
 </pre>
 
-<h3 id="toc_0.84.8">屏幕分辨率</h3>
+<h3 id="toc_0.83.8">屏幕分辨率</h3>
 <pre>
 HD: 1280x720 (720p)
 QHD:2560x1440
@@ -1662,10 +1639,132 @@ qHD:960x540
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/resolution.png" />
 </p>
 
-<h3 id="toc_0.84.9">manifest提交</h3>
+<h3 id="toc_0.83.9">manifest提交</h3>
 <pre>
 pushfile.sh platform/manifest sprdroid5.1_prime_15a_GED
 </pre>
+
+<h3 id="toc_0.83.10">查看分区大小</h3>
+<pre>
+查看分区被划分的大小：
+cat /proc/partitions
+
+查看分区上文件系统的大小：
+df
+df的大小是根据BoardConfig.mk里配置的，是文件系统的大小，而不是真正分区大小，它可能比分区小
+</pre>
+
+<h3 id="toc_0.83.11">系统如何获得SN号</h3>
+<pre>
+这里的SN号，也就是adb devices显示的一串序列号
+
+u-boot通过从miscdata分区读取SN号，如果该分区里没有SN号，就用默认的"0123456789ABCDEF"；
+将SN号存入androidboot.serialno，以cmdline的形式传给kernel；
+kernel将其解析为ro.boot.serialno，最后解析成ro.serialno。
+所以，整个过程为：androidboot.XXX =&gt; ro.boot.XXX =&gt; ro.XXX
+
+1、从miscdata分区读取sn号
+324int fdt_fixup_serialno(void *fdt)
+325{
+326	char buf[64];
+327	int str_len;
+328	int ret;
+329	memset(buf, 0, 64);
+330
+331	sprintf(buf, " androidboot.serialno=%s", get_product_sn());
+332	str_len = strlen(buf);
+333	buf[str_len] = '\0';
+334	ret = fdt_chosen_bootargs_append(fdt, buf, 1);
+335	return ret;
+336}
+
+51char *get_product_sn(void)
+52{
+53	SP09_PHASE_CHECK_T phase_check;
+54
+55	memset(serial_number_to_transfer, 0x0, SP09_MAX_SN_LEN);
+56
+57	strcpy(serial_number_to_transfer, "0123456789ABCDEF");
+58	if (do_raw_data_read(PRODUCTINFO_FILE_PATITION, sizeof(phase_check), 0, (char *)&amp;phase_check)) {
+59		debugf("read miscdata error.\n");
+60		return serial_number_to_transfer;
+61	}
+62
+63	if ((phase_check.Magic == SP09_SPPH_MAGIC_NUMBER) &amp;&amp; strlen(phase_check.SN1)) {
+64		memcpy(serial_number_to_transfer, phase_check.SN1, SP09_MAX_SN_LEN);
+65	}
+66	return serial_number_to_transfer;
+67}
+
+2、kernel转换过程（system/core/init/init.c）
+716static void import_kernel_nv(char *name, int for_emulator)
+717{
+736    if (!strcmp(name,"qemu")) {
+737        strlcpy(qemu, value, sizeof(qemu));
+738    } else if (!strncmp(name, "androidboot.", 12) &amp;&amp; name_len &gt; 12) {
+739        const char *boot_prop_name = name + 12;
+740        char prop[PROP_NAME_MAX];
+741        int cnt;
+742
+743        cnt = snprintf(prop, sizeof(prop), "ro.boot.%s", boot_prop_name);
+744        if (cnt &lt; PROP_NAME_MAX)
+745            property_set(prop, value);
+746    }
+747}
+
+749static void export_kernel_boot_props(void)
+750{
+754    struct {
+755        const char *src_prop;
+756        const char *dest_prop;
+757        const char *def_val;
+758    } prop_map[] = {
+759        { "ro.boot.serialno", "ro.serialno", "", },
+760        { "ro.boot.mode", "ro.bootmode", "unknown", },
+761        { "ro.boot.baseband", "ro.baseband", "unknown", },
+762        { "ro.boot.bootloader", "ro.bootloader", "unknown", },
+763    };
+764
+765    for (i = 0; i &lt; ARRAY_SIZE(prop_map); i++) {
+766        ret = property_get(prop_map[i].src_prop, tmp);
+767        if (ret &gt; 0)
+768            property_set(prop_map[i].dest_prop, tmp);
+769        else
+770            property_set(prop_map[i].dest_prop, prop_map[i].def_val);
+771    }
+798}
+
+3、把sn号写到usb的节点中
+ on boot
+     write /sys/class/android_usb/android0/iSerial $ro.serialno
+</pre>
+
+<h3 id="toc_0.83.12">miscdata分区</h3>
+<pre>
+该分区放的是裸数据，没有文件系统
+主要产线用的信息，和SN号
+
+其格式为：
+55typedef struct _tagSP09_PHASE_CHECK {
+56	uint32_t Magic;	// "SP09"
+57	char SN1[SP09_MAX_SN_LEN];	// SN , SN_LEN=24
+58	char SN2[SP09_MAX_SN_LEN];	// add for Mobile
+59	int StationNum;		// the test station number of the testing
+60	char StationName[SP09_MAX_STATION_NUM][SP09_MAX_STATION_NAME_LEN];
+61	unsigned char Reserved[13];	//
+62	unsigned char SignFlag;
+63	char szLastFailDescription[SP09_MAX_LAST_DESCRIPTION_LEN];
+64	unsigned short iTestSign;	// Bit0~Bit14 ---&gt; station0~station 14
+65	//if tested. 0: tested, 1: not tested
+66	unsigned short iItem;	// part1: Bit0~ Bit_14 indicate test Station,1 : Pass,
+67
+68} SP09_PHASE_CHECK_T, *LPSP09_PHASE_CHECK_T;
+</pre>
+
+<h3 id="toc_0.83.13">各分区描述</h3>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/分区描述.xlsx">分区描述.xlsx</a></BR>
+</p>
 
 </body>
 </html>

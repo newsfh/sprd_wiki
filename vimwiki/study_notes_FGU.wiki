@@ -355,3 +355,10 @@ battery,polling_time = <10 30 30 30 3600>;
 [   17.425689] c2 sec-battery sec-battery.6: sec_bat_battery_cable_check: Battery Connected
 [   17.425689] c2 sec-battery sec-battery.6: sec_bat_monitor_work: Status(Discharging), mode(None), Health(Good), Cable(1), siop_level(100)
 }}}
+
+----
+=== 资料 ===
+[[http://wenku.baidu.com/view/f45e557c67ec102de2bd894e.html|电池电量检测基础知识]]<BR>
+[[http://wenku.baidu.com/link?url=_N8Lz2frR580jaIDyxczz9ONAduyCavqup8FZ-cKcLUPzs0F3UbhSS4_J9yxUz9-2TvXq1OZgDxxviGOhl5DEWZDVqofoP_TS3G44IzxI_y|基于M6575平台电池系统分析]]<BR>
+[[http://blog.csdn.net/fdaopeng/article/details/8803996|采用Fuel Gauge可能出现的几种电量现象及解释]]<BR>
+

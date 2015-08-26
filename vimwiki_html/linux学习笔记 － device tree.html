@@ -13,11 +13,12 @@
 <li><a href="#toc_0.0.1">打印dt解析过程</a>
 <li><a href="#toc_0.0.2">相关目录文件、数据结构、全局变量</a>
 <ul>
-<li><a href="#toc_0.0.2.1">相关文件</a>
-<li><a href="#toc_0.0.2.2">数据结构</a>
+<li><a href="#toc_0.0.2.1">相关配置</a>
+<li><a href="#toc_0.0.2.2">相关文件</a>
+<li><a href="#toc_0.0.2.3">数据结构</a>
 <ul>
-<li><a href="#toc_0.0.2.2.1">device_node</a>
-<li><a href="#toc_0.0.2.2.2">property</a>
+<li><a href="#toc_0.0.2.3.1">device_node</a>
+<li><a href="#toc_0.0.2.3.2">property</a>
 </ul>
 </ul>
 <li><a href="#toc_0.0.3">附件</a>
@@ -42,7 +43,13 @@
 
 <hr />
 <h3 id="toc_0.0.2">相关目录文件、数据结构、全局变量</h3>
-<h4 id="toc_0.0.2.1">相关文件</h4>
+<h4 id="toc_0.0.2.1">相关配置</h4>
+<pre>
+kernel里打开CONFIG_PROC_DEVICETREE开关
+ls -al /proc/device-tree
+</pre>
+
+<h4 id="toc_0.0.2.2">相关文件</h4>
 <table>
 <tr>
 <td>
@@ -70,8 +77,8 @@ struct device_node *of_allnodes;
 </tr>
 </table>
 
-<h4 id="toc_0.0.2.2">数据结构</h4>
-<h5 id="toc_0.0.2.2.1">device_node</h5>
+<h4 id="toc_0.0.2.3">数据结构</h4>
+<h5 id="toc_0.0.2.3.1">device_node</h5>
 <pre>
 46struct device_node {
 47	const char *name;
@@ -98,7 +105,7 @@ struct device_node *of_allnodes;
 68};
 </pre>
 
-<h5 id="toc_0.0.2.2.2">property</h5>
+<h5 id="toc_0.0.2.3.2">property</h5>
 <pre>
 33struct property {
 34	char	*name;

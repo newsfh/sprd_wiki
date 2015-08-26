@@ -61,11 +61,6 @@ eng_modem2server  从phonserver读取内容
 http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/cai_20130807_logan_tw_make_boot
 }}}
 
-=== MHC版本地址 ===
-{{{
-smb://yongjungepc/samsung/6820i/Kernel/0823_MHC%20SDK
-}}}
-
 ----
 == 20130906 ==
 === LCD分频计算方式 ===
@@ -284,12 +279,6 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/samsung%20kernel%2
 
 ----
 == 20131115 ==
-=== 三星分支 ===
-{{{
-分支: sprdroid4.1_3.4_ss_dev
-工程：sp8830ssdbase-userdebug
-}}}
-
 === 列出指定后缀的文件列表 ===
 {{{
 在源代码的根目录下执行以下命令
@@ -351,18 +340,6 @@ http://10.0.64.31/AP-Android/wiki/MocorSmartReleaseNotes
 BeyondCompare对比两个目录，列出所有不一样的文件
 选择所要做差分包的文件，右击鼠标，选择"Copy to Folder"
 分别对old和new目录做一次，就可以生成差分包
-}}}
-
-----
-== 20140110 ==
-=== android服务器 ===
-{{{
-服务器名：
-android10
-...
-android19
-密码：
-PSD#sciuser
 }}}
 
 ----
@@ -630,7 +607,7 @@ CPD3   (针对公开市场3mode)
 ----
 == 20140906 ==
 === parse log ===
-[[http://10.0.64.31/AP-Android/wiki/parse_log|parse log]</BR>
+[[http://10.0.64.31/AP-Android/wiki/parse_log|parse log]]</BR>
 [[http://10.0.64.31/AP-Android/wiki/DebugTools|debug tools]]
 
 ----
@@ -683,7 +660,7 @@ sdhci3: emmc
 
 ----
 == 20141117 ==
-=== 模样模式mount sdcard，打开adb，抓slog ===
+=== 校准模式mount sdcard，打开adb，抓slog ===
 {{{
 on cali
     mount_all /etc/recovery.fstab
@@ -1646,3 +1623,122 @@ qHD:960x540
 pushfile.sh platform/manifest sprdroid5.1_prime_15a_GED
 }}}
 
+=== 查看分区大小 ===
+{{{
+查看分区被划分的大小：
+cat /proc/partitions
+
+查看分区上文件系统的大小：
+df
+df的大小是根据BoardConfig.mk里配置的，是文件系统的大小，而不是真正分区大小，它可能比分区小
+}}}
+
+=== 系统如何获得SN号 ===
+{{{
+这里的SN号，也就是adb devices显示的一串序列号
+
+u-boot通过从miscdata分区读取SN号，如果该分区里没有SN号，就用默认的"0123456789ABCDEF"；
+将SN号存入androidboot.serialno，以cmdline的形式传给kernel；
+kernel将其解析为ro.boot.serialno，最后解析成ro.serialno。
+所以，整个过程为：androidboot.XXX => ro.boot.XXX => ro.XXX
+
+1、从miscdata分区读取sn号
+324int fdt_fixup_serialno(void *fdt)
+325{
+326	char buf[64];
+327	int str_len;
+328	int ret;
+329	memset(buf, 0, 64);
+330
+331	sprintf(buf, " androidboot.serialno=%s", get_product_sn());
+332	str_len = strlen(buf);
+333	buf[str_len] = '\0';
+334	ret = fdt_chosen_bootargs_append(fdt, buf, 1);
+335	return ret;
+336}
+
+51char *get_product_sn(void)
+52{
+53	SP09_PHASE_CHECK_T phase_check;
+54
+55	memset(serial_number_to_transfer, 0x0, SP09_MAX_SN_LEN);
+56
+57	strcpy(serial_number_to_transfer, "0123456789ABCDEF");
+58	if (do_raw_data_read(PRODUCTINFO_FILE_PATITION, sizeof(phase_check), 0, (char *)&phase_check)) {
+59		debugf("read miscdata error.\n");
+60		return serial_number_to_transfer;
+61	}
+62
+63	if ((phase_check.Magic == SP09_SPPH_MAGIC_NUMBER) && strlen(phase_check.SN1)) {
+64		memcpy(serial_number_to_transfer, phase_check.SN1, SP09_MAX_SN_LEN);
+65	}
+66	return serial_number_to_transfer;
+67}
+
+2、kernel转换过程（system/core/init/init.c）
+716static void import_kernel_nv(char *name, int for_emulator)
+717{
+736    if (!strcmp(name,"qemu")) {
+737        strlcpy(qemu, value, sizeof(qemu));
+738    } else if (!strncmp(name, "androidboot.", 12) && name_len > 12) {
+739        const char *boot_prop_name = name + 12;
+740        char prop[PROP_NAME_MAX];
+741        int cnt;
+742
+743        cnt = snprintf(prop, sizeof(prop), "ro.boot.%s", boot_prop_name);
+744        if (cnt < PROP_NAME_MAX)
+745            property_set(prop, value);
+746    }
+747}
+
+749static void export_kernel_boot_props(void)
+750{
+754    struct {
+755        const char *src_prop;
+756        const char *dest_prop;
+757        const char *def_val;
+758    } prop_map[] = {
+759        { "ro.boot.serialno", "ro.serialno", "", },
+760        { "ro.boot.mode", "ro.bootmode", "unknown", },
+761        { "ro.boot.baseband", "ro.baseband", "unknown", },
+762        { "ro.boot.bootloader", "ro.bootloader", "unknown", },
+763    };
+764
+765    for (i = 0; i < ARRAY_SIZE(prop_map); i++) {
+766        ret = property_get(prop_map[i].src_prop, tmp);
+767        if (ret > 0)
+768            property_set(prop_map[i].dest_prop, tmp);
+769        else
+770            property_set(prop_map[i].dest_prop, prop_map[i].def_val);
+771    }
+798}
+
+3、把sn号写到usb的节点中
+ on boot
+     write /sys/class/android_usb/android0/iSerial $ro.serialno
+}}}
+
+=== miscdata分区 ===
+{{{
+该分区放的是裸数据，没有文件系统
+主要产线用的信息，和SN号
+
+其格式为：
+55typedef struct _tagSP09_PHASE_CHECK {
+56	uint32_t Magic;	// "SP09"
+57	char SN1[SP09_MAX_SN_LEN];	// SN , SN_LEN=24
+58	char SN2[SP09_MAX_SN_LEN];	// add for Mobile
+59	int StationNum;		// the test station number of the testing
+60	char StationName[SP09_MAX_STATION_NUM][SP09_MAX_STATION_NAME_LEN];
+61	unsigned char Reserved[13];	//
+62	unsigned char SignFlag;
+63	char szLastFailDescription[SP09_MAX_LAST_DESCRIPTION_LEN];
+64	unsigned short iTestSign;	// Bit0~Bit14 ---> station0~station 14
+65	//if tested. 0: tested, 1: not tested
+66	unsigned short iItem;	// part1: Bit0~ Bit_14 indicate test Station,1 : Pass,
+67
+68} SP09_PHASE_CHECK_T, *LPSP09_PHASE_CHECK_T;
+}}}
+
+=== 各分区描述 ===
+[[local:files/分区描述.xlsx|分区描述.xlsx]]</BR>
