@@ -132,6 +132,16 @@ repo forall -c 'a=`git log --pretty=%H --until="2014-10-21 14:17:29" -1`;git che
 repo manifest -o ~/manifest.xml -r
 }}}
 
+* 中文显示
+{{{
+git config --global core.quotepath false
+}}}
+
+* 回退某个提交
+{{{
+git revert c011eb3c20ba6fb38cc94fe5a8dda366a3990c61
+}}}
+
 ----
 == 遇到的问题 ==
 * repo sync
