@@ -159,4 +159,6 @@ pub port4 addr remap register的详细设置方法:
 ----
 === 附件 ===
 [[local:files/ddr_debug.patch|ddr_debug.patch]]</BR>
+[[local:files/dReview of AC timing for DDR.pdf|Review of AC timing for DDR.pdf]]</BR>
+
 
