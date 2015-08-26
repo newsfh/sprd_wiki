@@ -1,0 +1,106 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>linux_note_interrupt</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.1">中断向量表</a>
+<li><a href="#toc_0.2">参考资料</a>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h2 id="toc_0.1">中断向量表</h2>
+<table>
+<tr>
+<td>
+<strong>地址</strong>
+</td>
+<td>
+<strong>异常种类</strong>
+</td>
+</tr>
+<tr>
+<td>
+FFFF0000
+</td>
+<td>
+复位
+</td>
+</tr>
+<tr>
+<td>
+FFFF0004
+</td>
+<td>
+未定义指令
+</td>
+</tr>
+<tr>
+<td>
+FFFF0008
+</td>
+<td>
+软中断（swi）
+</td>
+</tr>
+<tr>
+<td>
+FFFF000C
+</td>
+<td>
+Prefetch abort
+</td>
+</tr>
+<tr>
+<td>
+FFFF0010
+</td>
+<td>
+Data abort
+</td>
+</tr>
+<tr>
+<td>
+FFFF0014
+</td>
+<td>
+保留
+</td>
+</tr>
+<tr>
+<td>
+FFFF0018
+</td>
+<td>
+IRQ
+</td>
+</tr>
+<tr>
+<td>
+FFFF001C
+</td>
+<td>
+FIQ
+</td>
+</tr>
+</table>
+<p>
+该向量表定义在kernel/arch/arm/kernel/entry-armv.S
+</p>
+
+<hr />
+<h2 id="toc_0.2">参考资料</h2>
+<p>
+<a href="http://blog.csdn.net/DroidPhone/article/category/1118447">Linux中断子系统</a>
+</p>
+
+</body>
+</html>

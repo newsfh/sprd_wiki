@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>study_notes_device_driver</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">创建属性文件节点</a>
+<li><a href="#toc_0.0.2">kernel传递参数</a>
+<li><a href="#toc_0.0.3">网络资料</a>
+</ul>
+</ul>
+</ul>
+</div>
+<hr />
+
+<h3 id="toc_0.0.1">创建属性文件节点</h3>
+<ul>
+<li>
+方式一
+<pre>
+static ssize_t regulator_uV_show(struct device *dev,
+                struct device_attribute *attr, char *buf)
+{
+    struct regulator_dev *rdev = dev_get_drvdata(dev);
+    ssize_t ret; 
+
+    mutex_lock(&amp;rdev-&gt;mutex);
+    ret = sprintf(buf, "%d\n", _regulator_get_voltage(rdev));
+    mutex_unlock(&amp;rdev-&gt;mutex);
+
+    return ret; 
+}
+static DEVICE_ATTR(microvolts, 0444, regulator_uV_show, NULL);
+
+static int add_regulator_attributes(struct regulator_dev *rdev)
+{
+    device_create_file(dev, &amp;dev_attr_microvolts);
+}
+</pre>
+
+</ul>
+
+<ul>
+<li>
+方式二
+<pre>
+
+static ssize_t reg_show_state(struct device *dev,
+              struct device_attribute *attr, char *buf)
+{            
+    struct userspace_consumer_data *data = dev_get_drvdata(dev);
+
+    if (data-&gt;enabled)
+        return sprintf(buf, "enabled\n");
+             
+    return sprintf(buf, "disabled\n");
+}   
+    
+static ssize_t reg_set_state(struct device *dev, struct device_attribute *attr,
+             const char *buf, size_t count)
+{   
+    ....
+    return count;
+}           
+
+static DEVICE_ATTR(state, 0644, reg_show_state, reg_set_state);
+
+static struct attribute *attributes[] = {
+    &amp;dev_attr_state.attr,
+    NULL,
+};  
+
+static const struct attribute_group attr_group = {
+    .attrs  = attributes,
+};  
+
+static int regulator_userspace_consumer_probe(struct platform_device *pdev)
+{
+    ret = sysfs_create_group(&amp;pdev-&gt;dev.kobj, &amp;attr_group);
+    if (ret != 0)
+        return ret;
+        
+    return ret;
+}           
+</pre>
+
+</ul>
+
+<hr />
+<h3 id="toc_0.0.2">kernel传递参数</h3>
+<pre>
+bool should_reset_fgu = 0;
+
+static int __init need_reset_fgu(char *str)
+{
+	printk("~~~~~  %s %d\n", __FUNCTION__, __LINE__);
+	should_reset_fgu = 1;
+	return 1;
+}
+
+__setup("reset_fgu", need_reset_fgu);
+</pre>
+
+<hr />
+<h3 id="toc_0.0.3">网络资料</h3>
+<p>
+<a href="http://bbs.chinaunix.net/tree/index_402_1/ ChinaUnix驱动程序资料">http://bbs.chinaunix.net/tree/index_402_1/ ChinaUnix驱动程序资料</a></BR>
+<a href="http://www.cnblogs.com/andtt/articles/2178905.html Linux设备驱动程序学习">http://www.cnblogs.com/andtt/articles/2178905.html Linux设备驱动程序学习</a></BR>
+</p>
+
+</body>
+</html>

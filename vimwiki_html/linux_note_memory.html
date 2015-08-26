@@ -1,0 +1,989 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>linux_note_memory</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.1">kernel内存映射</a>
+<ul>
+<li><a href="#toc_0.1.1">Kernel Virtual Address Mapping</a>
+<li><a href="#toc_0.1.2">Decompressor Symbols</a>
+<li><a href="#toc_0.1.3">Kernel Symbols</a>
+</ul>
+<li><a href="#toc_0.2">SLUB分配器</a>
+<ul>
+<li><a href="#toc_0.2.1">模型</a>
+<li><a href="#toc_0.2.2">核心数据结构关系</a>
+</ul>
+<li><a href="#toc_0.3">页表机制</a>
+<ul>
+<li><a href="#toc_0.3.1">页表通用框架</a>
+<li><a href="#toc_0.3.2">single-step page table walk</a>
+<li><a href="#toc_0.3.3">two-step page table walk</a>
+<li><a href="#toc_0.3.4">内核页表布局全图</a>
+</ul>
+<li><a href="#toc_0.4">代码阅读</a>
+<ul>
+<li><a href="#toc_0.4.1">kmalloc/kfree</a>
+<ul>
+<li><a href="#toc_0.4.1.1">kmalloc</a>
+<li><a href="#toc_0.4.1.2">kfree</a>
+</ul>
+<li><a href="#toc_0.4.2">kmem_cache_create</a>
+<li><a href="#toc_0.4.3">数据结构</a>
+<ul>
+<li><a href="#toc_0.4.3.1">page</a>
+<li><a href="#toc_0.4.3.2">pageflags</a>
+<li><a href="#toc_0.4.3.3">kmem_cache</a>
+<li><a href="#toc_0.4.3.4">kmem_cache_cpu</a>
+<li><a href="#toc_0.4.3.5">kmem_cache_node</a>
+<li><a href="#toc_0.4.3.6">vmap_area/vmap_area_list</a>
+<li><a href="#toc_0.4.3.7">vm_struct</a>
+</ul>
+</ul>
+<li><a href="#toc_0.5">调试经验</a>
+<ul>
+<li><a href="#toc_0.5.1">全局变量</a>
+<li><a href="#toc_0.5.2">文件节点</a>
+<li><a href="#toc_0.5.3">根据已分配内存地址找到slab</a>
+<li><a href="#toc_0.5.4">找到所有partial的页</a>
+<li><a href="#toc_0.5.5">查找kmem里的freelist</a>
+<li><a href="#toc_0.5.6">虚拟地址转物理地址</a>
+</ul>
+<li><a href="#toc_0.6">参考资料</a>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h2 id="toc_0.1">kernel内存映射</h2>
+<h3 id="toc_0.1.1">Kernel Virtual Address Mapping</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/kernel_virtual_address_mapping_overview.gif" />
+</p>
+
+<table>
+<tr>
+<td>
+粉色部分0xbf80 0000 ~ 0xc000 0000
+</td>
+<td>
+modules及kpmap
+</td>
+<td>
+从下面的板级宏定义我们可以看到，modules放在这段位置是因为它需要和kernel code段在32MB寻址空间内。</BR>kpmap为什么放这段空间我还不清楚，这个是在map highmem时用到的。
+</td>
+</tr>
+<tr>
+<td>
+橙色部分0xc000 0000 ~ 0xe000 0000
+</td>
+<td>
+lowmem(低端内存，即zone[Normal])
+</td>
+<td>
+这段映射是一对一的平坦映射，也就是说kernel初始化这段映射后，页表将不会改变。</BR>这样即可以省去不断的修改页表，刷新TLB（TLB可以认为是页表的硬件cache，如果访问的虚拟地址的页表在这个cache中，则CPU无需访问DDR寻址页表了，这样可以提高IO效率）了。</BR>显然这段地址空间非常珍贵，因为这段映射的效率高。</BR>从图中我们可以看到，在512MB映射空间中，有128MB预留给PMEM（android特有的连续物理内存管理机制），16MB预留CP（modem运行空间）。</BR>实际可用lowmem大致只有360MB。
+</td>
+</tr>
+<tr>
+<td>
+蓝色部分0xe000 0000 ~ 0xf000 0000
+</td>
+<td>
+highmem（高端内存，即zone[!HighMem]）
+</td>
+<td>
+因为示例为1GB DDR，因此需要高端内存映射部分物理地址空间。
+</td>
+</tr>
+<tr>
+<td>
+绿色部分0xf000 0000 ~ 0xffc0 0000
+</td>
+<td>
+IO映射区域
+</td>
+<td>
+我们知道在内核空间，比如写驱动的时候，需要访问芯片的寄存器（IO空间），部分IO空间映射是通过ioremap在VMALLOC区域动态申请映射，还有部分是系统初始化时通过iotable_init静态映射的。</BR>图中我们可以看到在IO静态映射区域有大约200MB的空间没有使用。这个是不是太浪费了呢？
+</td>
+</tr>
+<tr>
+<td>
+紫色部分
+</td>
+<td>
+没什么花头，ARM default定义就是这样的。
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+</table>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/memory_mapping_overview.gif" />
+</p>
+
+<h3 id="toc_0.1.2">Decompressor Symbols</h3>
+<table>
+<tr>
+<td>
+<strong>Macro name</strong>
+</td>
+<td>
+<strong>description</strong>
+</td>
+<td>
+<strong>example</strong>
+</td>
+</tr>
+<tr>
+<td>
+ZTEXTADDR</BR>[arch/arm/boot/compressed/Makefile]
+</td>
+<td>
+Start address of decompressor.</BR>There's no point in talking about virtual or physical addresses here, since the MMU will be off at the time when you call the decompressor code.</BR>You normally call the kernel at this address to start it booting.</BR>This doesn't have to be located in RAM, it can be in flash or other read-only or read-write addressable medium.
+</td>
+<td>
+0x0</BR>ZTEXTADDR        := $(CONFIG_ZBOOT_ROM_TEXT)</BR>ONFIG_ZBOOT_ROM_TEXT=0x0
+</td>
+</tr>
+<tr>
+<td>
+ZBSSADDR</BR>[arch/arm/boot/compressed/Makefile]
+</td>
+<td>
+Start address of zero-initialised work area for the decompressor.</BR>This must be pointing at RAM.</BR>The decompressor will zero initialize this for you.</BR>Again, the MMU will be off.
+</td>
+<td>
+0x0</BR>ZBSSADDR   := $(CONFIG_ZBOOT_ROM_BSS)</BR>CONFIG_ZBOOT_ROM_BSS=0x0
+</td>
+</tr>
+<tr>
+<td>
+ZRELADDR</BR>[arch/arm/boot/Makefile]
+</td>
+<td>
+This is the address where the decompressed kernel will be written, and eventually executed.</BR>The following constraint must be valid:</BR>!__virt_to_phys(TEXTADDR) == ZRELADDR</BR>The initial part of the kernel is carefully coded to be position independent.</BR>Note: the following conditions must always be true:</BR>ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
+</td>
+<td>
+0x81088000</BR>ZRELADDR    := \((zreladdr-y)</BR>zreladdr-y       := \)(!_<em>ZRELADDR)</BR>!</em>_ZRELADDR = TEXT_OFFSET + 0x80000000</BR>[arch/arm/mach-pxa/Makefile.boot]
+</td>
+</tr>
+<tr>
+<td>
+INITRD_PHYS
+</td>
+<td>
+Physical address to place the initial RAM disk.</BR>Only relevant if you are using the bootpImage stuff (which only works on the old struct param_struct).</BR>INITRD_PHYS must be in RAM
+</td>
+<td>
+Not defined
+</td>
+</tr>
+<tr>
+<td>
+INITRD_VIRT
+</td>
+<td>
+Virtual address of the initial RAM disk.</BR>The following constraint must be valid:</BR>!__virt_to_phys(INITRD_VIRT) == INITRD_PHYS
+</td>
+<td>
+Not defined
+</td>
+</tr>
+<tr>
+<td>
+PARAMS_PHYS
+</td>
+<td>
+Physical address of the struct param_struct or tag list, giving the kernel various parameters about its execution environment.</BR>PARAMS_PHYS must be within 4MB of ZRELADDR
+</td>
+<td>
+Not defined
+</td>
+</tr>
+</table>
+
+<h3 id="toc_0.1.3">Kernel Symbols</h3>
+<table>
+<tr>
+<td>
+<strong>Macro name</strong>
+</td>
+<td>
+<strong>description</strong>
+</td>
+<td>
+<strong>example</strong>
+</td>
+</tr>
+<tr>
+<td>
+PHYS_OFFSET</BR>[arch/arm/include/asm/memory.h]
+</td>
+<td>
+Physical start address of the first bank of RAM.
+</td>
+<td>
+#define PHYS_OFFSET      PLAT_PHYS_OFFSET</BR>#define PLAT_PHYS_OFFSET    UL(0x80000000)</BR>[arch/arm/mach-pxa/include/mach/memory.h]
+</td>
+</tr>
+<tr>
+<td>
+PAGE_OFFSET</BR>[arch/arm/include/asm/memory.h]
+</td>
+<td>
+Virtual start address of the first bank of RAM.</BR>During the kernel boot phase, virtual address PAGE_OFFSET will be mapped to physical address PHYS_OFFSET, along with any other mappings you supply.</BR>This should be the same value as TASK_SIZE.
+</td>
+<td>
+CONFIG_PAGE_OFFSET</BR>=0xC0000000
+</td>
+</tr>
+<tr>
+<td>
+TASK_SIZE</BR>[arch/arm/include/asm/memory.h]
+</td>
+<td>
+The maximum size of a user process in bytes.</BR>Since user space always starts at zero, this is the maximum address that a user process can access+1.</BR>The user space stack grows down from this address.</BR>Any virtual address below TASK_SIZE is deemed to be user process area, and therefore managed dynamically on a process by process basis by the kernel.</BR>I'll call this the user segment.</BR>Anything above TASK_SIZE is common to all processes.</BR>I'll call this the kernel segment.</BR> (In other words, you can't put IO mappings below TASK_SIZE, and hence PAGE_OFFSET).
+</td>
+<td>
+CONFIG_PAGE_OFFSET</BR>-0x01000000</BR>=0xBF000000
+</td>
+</tr>
+<tr>
+<td>
+TASK_UNMAPPED_BASE</BR>[arch/arm/include/asm/memory.h]
+</td>
+<td>
+the lower boundary of the mmap VM area
+</td>
+<td>
+CONFIG_PAGE_OFFSET/3</BR>=0x40000000
+</td>
+</tr>
+<tr>
+<td>
+MODULES_VADDR</BR>[arch/arm/include/asm/memory.h]
+</td>
+<td>
+The module space lives between the addresses given by TASK_SIZE and PAGE_OFFSET - it must be within 32MB of the kernel text.</BR>TEXT_OFFSET does not allow to use 16MB modules area as ARM32 branches to kernel may go out of range taking into account the kernel .text size
+</td>
+<td>
+PAGE_OFFSET</BR>- 8*1024*1024</BR>=0x0XBF800000
+</td>
+</tr>
+<tr>
+<td>
+MODULES_END</BR>[arch/arm/include/asm/memory.h]
+</td>
+<td>
+The highmem pkmap virtual space shares the end of the module area.
+</td>
+<td>
+0XBFE00000</BR>#ifdef CONFIG_HIGHMEM</BR>#define MODULES_END           (PAGE_OFFSET - PMD_SIZE)</BR>#else</BR>#define MODULES_END           (PAGE_OFFSET)</BR>#endif
+</td>
+</tr>
+<tr>
+<td>
+TEXTADDR
+</td>
+<td>
+Virtual start address of kernel, normally PAGE_OFFSET + 0x8000.</BR>This is where the kernel image ends up.</BR>With the latest kernels, it must be located at 32768 bytes into a 128MB region.</BR>Previous kernels placed a restriction of 256MB here.
+</td>
+<td>
+&nbsp;
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+DATAADDR
+</td>
+<td>
+Virtual address for the kernel data segment.</BR>Must not be defined when using the decompressor.
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+VMALLOC_START</BR>VMALLOC_END</BR>[arch/arm/mach-pxa/include/mach/vmalloc.h]
+</td>
+<td>
+Virtual addresses bounding the vmalloc() area.</BR>There must not be any static mappings in this area; vmalloc will overwrite them.</BR>The addresses must also be in the kernel segment (see above). </BR>Normally, the vmalloc() area starts VMALLOC_OFFSET bytes above the last virtual RAM address (found using variable high_memory).
+</td>
+<td>
+#define VMALLOC_END       (0xf0000000UL)</BR>The default vmalloc size is 128MB.</BR>vmalloc_min = (VMALLOC_END - SZ_128M);</BR>[defined in arch/arm/mm/mmu.c]</BR>If vmalloc is configured passed by OSL, then it’s redefined.</BR>early_param("vmalloc", early_vmalloc);</BR>[defined in arch/arm/mm/mmu.c]
+</td>
+</tr>
+<tr>
+<td>
+VMALLOC_OFFSET</BR>[arch/arm/include/asm/pgtable.h]
+</td>
+<td>
+Offset normally incorporated into VMALLOC_START to provide a hole between virtual RAM and the vmalloc area.</BR>We do this to allow out of bounds memory accesses (eg, something writing off the end of the mapped memory map) to be caught.</BR>Normally set to 8MB.
+</td>
+<td>
+#define VMALLOC_OFFSET               (8*1024*1024)
+</td>
+</tr>
+<tr>
+<td>
+CONSISTENT_DMA_SIZE</BR>CONSISTENT_BASE</BR>CONSISTENT_END</BR>[arch/arm/include/asm/memory.h]
+</td>
+<td>
+Size of DMA-consistent memory region.</BR>Must be multiple of 2M, between 2MB and 14MB inclusive.
+</td>
+<td>
+CONSISTENT_DMA_SIZE = 2MB</BR>CONSISTENT_BASE = 0XFFC00000</BR>CONSISTENT_END = 0XFFE00000
+</td>
+</tr>
+<tr>
+<td>
+FIXADDR_START</BR>FIXADDR_TOP</BR>FIXADDR_SIZE</BR>[arch/arm/include/asm/fixmap.h]
+</td>
+<td>
+fixed virtual addresses
+</td>
+<td>
+#define FIXADDR_START          0xfff00000UL</BR>#define FIXADDR_TOP            0xfffe0000UL</BR>#define FIXADDR_SIZE           (FIXADDR_TOP - FIXADDR_START)
+</td>
+</tr>
+<tr>
+<td>
+PKMAP_BASE</BR>[arch/arm/include/asm/highmen.h]
+</td>
+<td>
+&nbsp;
+</td>
+<td>
+0XBFE00000</BR>#define PKMAP_BASE               (PAGE_OFFSET - PMD_SIZE)
+</td>
+</tr>
+</table>
+
+<h2 id="toc_0.2">SLUB分配器</h2>
+<h3 id="toc_0.2.1">模型</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/slub_1.jpg" />
+</p>
+
+<h3 id="toc_0.2.2">核心数据结构关系</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/slub_struct.png" />
+</p>
+
+<h2 id="toc_0.3">页表机制</h2>
+<h3 id="toc_0.3.1">页表通用框架</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mmu_page_table.jpg" />
+</p>
+
+<ul>
+<li>
+page dir entry
+
+</ul>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mmu_page_table_l1.png" />
+</p>
+
+<h3 id="toc_0.3.2">single-step page table walk</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/single-tep_page_table_walk.png" />
+</p>
+
+<h3 id="toc_0.3.3">two-step page table walk</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/two_step_page_table_walk.png" />
+</p>
+
+<h3 id="toc_0.3.4">内核页表布局全图</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/pg_map.gif" />
+</p>
+
+
+<h2 id="toc_0.4">代码阅读</h2>
+<h3 id="toc_0.4.1">kmalloc/kfree</h3>
+<h4 id="toc_0.4.1.1">kmalloc</h4>
+<h4 id="toc_0.4.1.2">kfree</h4>
+
+<h3 id="toc_0.4.2">kmem_cache_create</h3>
+
+<h3 id="toc_0.4.3">数据结构</h3>
+<h4 id="toc_0.4.3.1">page</h4>
+<pre>
+kernel/include/linux/mm_types.h
+
+/*
+ * Each physical page in the system has a struct page associated with
+ * it to keep track of whatever it is we are using the page for at the
+ * moment. Note that we have no way to track which tasks are using
+ * a page, though if it is a pagecache page, rmap structures can tell us
+ * who is mapping it.
+ *
+ * The objects in struct page are organized in double word blocks in
+ * order to allows us to use atomic double word operations on portions
+ * of struct page. That is currently only used by slub but the arrangement
+ * allows the use of atomic double word operations on the flags/mapping
+ * and lru list pointers also.
+ */
+struct page {
+	/* First double word block */
+	unsigned long flags;		/* Atomic flags, some possibly
+					 * updated asynchronously */
+											 // 定义在：kernel/include/linux/page-flags.h
+											 // 可以通过PageXxx来判断是否置该标志
+											 // 见下面的pageflags
+	struct address_space *mapping;	/* If low bit clear, points to
+					 * inode address_space, or NULL.
+					 * If page mapped as anonymous
+					 * memory, low bit is set, and
+					 * it points to anon_vma object:
+					 * see PAGE_MAPPING_ANON below.
+					 */
+	/* Second double word */
+	struct {
+		union {
+			pgoff_t index;		/* Our offset within mapping. */
+			void *freelist;		/* slub/slob first free object */
+			bool pfmemalloc;	/* If set by the page allocator,
+						 * ALLOC_NO_WATERMARKS was set
+						 * and the low watermark was not
+						 * met implying that the system
+						 * is under some pressure. The
+						 * caller should try ensure
+						 * this page is only used to
+						 * free other pages.
+						 */
+		};
+
+		union {
+#if defined(CONFIG_HAVE_CMPXCHG_DOUBLE) &amp;&amp; \
+	defined(CONFIG_HAVE_ALIGNED_STRUCT_PAGE)
+			/* Used for cmpxchg_double in slub */
+			unsigned long counters;
+#else
+			/*
+			 * Keep _count separate from slub cmpxchg_double data.
+			 * As the rest of the double word is protected by
+			 * slab_lock but _count is not.
+			 */
+			unsigned counters;
+#endif
+
+			struct {
+
+				union {
+					/*
+					 * Count of ptes mapped in
+					 * mms, to show when page is
+					 * mapped &amp; limit reverse map
+					 * searches.
+					 *
+					 * Used also for tail pages
+					 * refcounting instead of
+					 * _count. Tail pages cannot
+					 * be mapped and keeping the
+					 * tail page _count zero at
+					 * all times guarantees
+					 * get_page_unless_zero() will
+					 * never succeed on tail
+					 * pages.
+					 */
+					atomic_t _mapcount;
+
+					struct { /* SLUB */
+						unsigned inuse:16;
+						unsigned objects:15;
+						unsigned frozen:1;
+					};
+					int units;	/* SLOB */
+				};
+				atomic_t _count;		/* Usage count, see below. */
+			};
+		};
+	};
+
+	/* Third double word block */
+	union {
+		struct list_head lru;	/* Pageout list, eg. active_list
+					 * protected by zone-&gt;lru_lock !
+					 */
+		struct {		/* slub per cpu partial pages */
+			struct page *next;	/* Next partial slab */
+#ifdef CONFIG_64BIT
+			int pages;	/* Nr of partial slabs left */
+			int pobjects;	/* Approximate # of objects */
+#else
+			short int pages;
+			short int pobjects;
+#endif
+		};
+
+		struct list_head list;	/* slobs list of pages */
+		struct slab *slab_page; /* slab fields */
+	};
+
+	/* Remainder is not double word aligned */
+	union {
+		unsigned long private;		/* Mapping-private opaque data:
+					 	 * usually used for buffer_heads
+						 * if PagePrivate set; used for
+						 * swp_entry_t if PageSwapCache;
+						 * indicates order in the buddy
+						 * system if PG_buddy is set.
+						 */
+#if USE_SPLIT_PTLOCKS
+		spinlock_t ptl;
+#endif
+		struct kmem_cache *slab_cache;	/* SL[AU]B: Pointer to slab */
+		struct page *first_page;	/* Compound tail pages */
+	};
+
+	/*
+	 * On machines where all RAM is mapped into kernel address space,
+	 * we can simply calculate the virtual address. On machines with
+	 * highmem some memory is mapped into kernel virtual memory
+	 * dynamically, so we need a place to store that address.
+	 * Note that this field could be 16 bits on x86 ... ;)
+	 *
+	 * Architectures with slow multiplication can define
+	 * WANT_PAGE_VIRTUAL in asm/page.h
+	 */
+#if defined(WANT_PAGE_VIRTUAL)
+	void *virtual;			/* Kernel virtual address (NULL if
+					   not kmapped, ie. highmem) */
+#endif /* WANT_PAGE_VIRTUAL */
+#ifdef CONFIG_WANT_PAGE_DEBUG_FLAGS
+	unsigned long debug_flags;	/* Use atomic bitops on this */
+#endif
+
+#ifdef CONFIG_KMEMCHECK
+	/*
+	 * kmemcheck wants to track the status of each byte in a page; this
+	 * is a pointer to such a status block. NULL if not tracked.
+	 */
+	void *shadow;
+#endif
+
+#ifdef LAST_NID_NOT_IN_PAGE_FLAGS
+	int _last_nid;
+#endif
+}
+</pre>
+
+<h4 id="toc_0.4.3.2">pageflags</h4>
+<pre>
+16/*
+17 * Various page-&gt;flags bits:
+18 *
+19 * PG_reserved is set for special pages, which can never be swapped out. Some
+20 * of them might not even exist (eg empty_bad_page)...
+21 *
+22 * The PG_private bitflag is set on pagecache pages if they contain filesystem
+23 * specific data (which is normally at page-&gt;private). It can be used by
+24 * private allocations for its own usage.
+25 *
+26 * During initiation of disk I/O, PG_locked is set. This bit is set before I/O
+27 * and cleared when writeback _starts_ or when read _completes_. PG_writeback
+28 * is set before writeback starts and cleared when it finishes.
+29 *
+30 * PG_locked also pins a page in pagecache, and blocks truncation of the file
+31 * while it is held.
+32 *
+33 * page_waitqueue(page) is a wait queue of all tasks waiting for the page
+34 * to become unlocked.
+35 *
+36 * PG_uptodate tells whether the page's contents is valid.  When a read
+37 * completes, the page becomes uptodate, unless a disk I/O error happened.
+38 *
+39 * PG_referenced, PG_reclaim are used for page reclaim for anonymous and
+40 * file-backed pagecache (see mm/vmscan.c).
+41 *
+42 * PG_error is set to indicate that an I/O error occurred on this page.
+43 *
+44 * PG_arch_1 is an architecture specific page state bit.  The generic code
+45 * guarantees that this bit is cleared for a page when it first is entered into
+46 * the page cache.
+47 *
+48 * PG_highmem pages are not permanently mapped into the kernel virtual address
+49 * space, they need to be kmapped separately for doing IO on the pages.  The
+50 * struct page (these bits with information) are always mapped into kernel
+51 * address space...
+52 *
+53 * PG_hwpoison indicates that a page got corrupted in hardware and contains
+54 * data with incorrect ECC bits that triggered a machine check. Accessing is
+55 * not safe since it may cause another machine check. Don't touch!
+56 */
+57
+58/*
+59 * Don't use the *_dontuse flags.  Use the macros.  Otherwise you'll break
+60 * locked- and dirty-page accounting.
+61 *
+62 * The page flags field is split into two parts, the main flags area
+63 * which extends from the low bits upwards, and the fields area which
+64 * extends from the high bits downwards.
+65 *
+66 *  | FIELD | ... | FLAGS |
+67 *  N-1           ^       0
+68 *               (NR_PAGEFLAGS)
+69 *
+70 * The fields area is reserved for fields mapping zone, node (for NUMA) and
+71 * SPARSEMEM section (for variants of SPARSEMEM that require section ids like
+72 * SPARSEMEM_EXTREME with !SPARSEMEM_VMEMMAP).
+73 */
+74enum pageflags {
+75	PG_locked,		/* Page is locked. Don't touch. */
+76	PG_error,
+77	PG_referenced,
+78	PG_uptodate,
+79	PG_dirty,
+80	PG_lru,
+81	PG_active,
+82	PG_slab,
+83	PG_owner_priv_1,	/* Owner use. If pagecache, fs may use*/
+84	PG_arch_1,
+85	PG_reserved,
+86	PG_private,		/* If pagecache, has fs-private data */
+87	PG_private_2,		/* If pagecache, has fs aux data */
+88	PG_writeback,		/* Page is under writeback */
+89#ifdef CONFIG_PAGEFLAGS_EXTENDED
+90	PG_head,		/* A head page */
+91	PG_tail,		/* A tail page */
+92#else
+93	PG_compound,		/* A compound page */
+94#endif
+95	PG_swapcache,		/* Swap page: swp_entry_t in private */
+96	PG_mappedtodisk,	/* Has blocks allocated on-disk */
+97	PG_reclaim,		/* To be reclaimed asap */
+98	PG_swapbacked,		/* Page is backed by RAM/swap */
+99	PG_unevictable,		/* Page is "unevictable"  */
+100#ifdef CONFIG_MMU
+101	PG_mlocked,		/* Page is vma mlocked */
+102#endif
+103#ifdef CONFIG_ARCH_USES_PG_UNCACHED
+104	PG_uncached,		/* Page has been mapped as uncached */
+105#endif
+106#ifdef CONFIG_MEMORY_FAILURE
+107	PG_hwpoison,		/* hardware poisoned page. Don't touch */
+108#endif
+109#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+110	PG_compound_lock,
+111#endif
+112	__NR_PAGEFLAGS,
+113
+114	/* Filesystems */
+115	PG_checked = PG_owner_priv_1,
+116
+117	/* Two page bits are conscripted by FS-Cache to maintain local caching
+118	 * state.  These bits are set on pages belonging to the netfs's inodes
+119	 * when those inodes are being locally cached.
+120	 */
+121	PG_fscache = PG_private_2,	/* page backed by cache */
+122
+123	/* XEN */
+124	PG_pinned = PG_owner_priv_1,
+125	PG_savepinned = PG_dirty,
+126
+127	/* SLOB */
+128	PG_slob_free = PG_private,
+129};
+</pre>
+
+<h4 id="toc_0.4.3.3">kmem_cache</h4>
+<pre>
+kernel/include/linux/slub_def.h
+
+/*
+ * Slab cache management.
+ */
+struct kmem_cache {
+    struct kmem_cache_cpu __percpu *cpu_slab;
+    /* Used for retriving partial slabs etc */
+    unsigned long flags;                                                               // cache属性的描述标识
+    unsigned long min_partial;
+    int size;       /* The size of an object including meta data */                    // 分配给对象的内存大小，可能大于实际对象的大小
+    int object_size;    /* The size of an object without meta data */                  // 对象的实际大小
+    int offset;     /* Free pointer offset. */
+    int cpu_partial;    /* Number of per cpu partial objects to keep around */
+    struct kmem_cache_order_objects oo;                                                // 存放分配给slab的页框的阶数(高16位)和slab中的对象数量(低16位)
+
+    /* Allocation and freeing of slabs */
+    struct kmem_cache_order_objects max;
+    struct kmem_cache_order_objects min;
+    gfp_t allocflags;   /* gfp flags to use on each alloc */
+    int refcount;       /* Refcount for slab cache destroy */
+    void (*ctor)(void *);
+    int inuse;      /* Offset to metadata */
+    int align;      /* Alignment */
+    int reserved;       /* Reserved bytes at the end of slabs */
+    const char *name;   /* Name (only for display!) */                                  // slab cache名称
+    struct list_head list;  /* List of slab caches */                                   // kmem_cache链表
+#ifdef CONFIG_SYSFS
+    struct kobject kobj;    /* For sysfs */
+#endif
+#ifdef CONFIG_MEMCG_KMEM
+    struct memcg_cache_params *memcg_params;
+    int max_attr_size; /* for propagation, maximum size of a stored attr */
+#endif
+
+#ifdef CONFIG_NUMA
+    /*
+     * Defragmentation by allocating from a remote node.
+     */
+    int remote_node_defrag_ratio;
+#endif
+    struct kmem_cache_node *node[MAX_NUMNODES];
+};
+</pre>
+
+<h4 id="toc_0.4.3.4">kmem_cache_cpu</h4>
+<pre>
+kernel/include/linux/slub_def.h
+
+struct kmem_cache_cpu {
+    void **freelist;    /* Pointer to next available object */
+    unsigned long tid;  /* Globally unique transaction id */
+    struct page *page;  /* The slab from which we are allocating */
+    struct page *partial;   /* Partially allocated frozen slabs */
+#ifdef CONFIG_SLUB_STATS
+    unsigned stat[NR_SLUB_STAT_ITEMS];
+#endif
+};
+</pre>
+
+<h4 id="toc_0.4.3.5">kmem_cache_node</h4>
+<pre>
+kernel/mm/slab.h
+
+/*
+ * The slab lists for all objects.
+ */
+struct kmem_cache_node {
+    spinlock_t list_lock;
+
+#ifdef CONFIG_SLAB
+    struct list_head slabs_partial; /* partial list first, better asm code */
+    struct list_head slabs_full;
+    struct list_head slabs_free;
+    unsigned long free_objects;
+    unsigned int free_limit;
+    unsigned int colour_next;   /* Per-node cache coloring */
+    struct array_cache *shared; /* shared per node */
+    struct array_cache **alien; /* on other nodes */
+    unsigned long next_reap;    /* updated without locking */
+    int free_touched;       /* updated without locking */
+#endif
+
+#ifdef CONFIG_SLUB
+    unsigned long nr_partial;                                                           // partial个数
+    struct list_head partial;                                                           // partial链表头，它通过page-&gt;lru组成一个链表。可以通过v.v &amp;((struct page*)0)-&gt;lru看lru相对于page的偏移
+#ifdef CONFIG_SLUB_DEBUG
+    atomic_long_t nr_slabs;
+    atomic_long_t total_objects;
+    struct list_head full;
+#endif
+#endif
+};
+</pre>
+
+<h4 id="toc_0.4.3.6">vmap_area/vmap_area_list</h4>
+<pre>
+kernel/mm/vmalloc.c
+
+LIST_HEAD(vmap_area_list);
+它是vmap_area.list的链表
+40struct vmap_area {
+41	unsigned long va_start;
+42	unsigned long va_end;
+43	unsigned long flags;
+44	struct rb_node rb_node;         /* address sorted rbtree */
+45	struct list_head list;          /* address sorted list */
+46	struct list_head purge_list;    /* "lazy purge" list */
+47	struct vm_struct *vm;
+48	struct rcu_head rcu_head;
+49};
+</pre>
+
+<h4 id="toc_0.4.3.7">vm_struct</h4>
+<pre>
+29struct vm_struct {
+30	struct vm_struct	*next;
+31	void			*addr;
+32	unsigned long		size;
+33	unsigned long		flags;
+34	struct page		**pages;
+35	unsigned int		nr_pages;
+36	phys_addr_t		phys_addr;
+37	const void		*caller;
+38};
+</pre>
+
+<h2 id="toc_0.5">调试经验</h2>
+<h3 id="toc_0.5.1">全局变量</h3>
+<table>
+<tr>
+<td>
+<strong>变量名</strong>
+</td>
+<td>
+<strong>作用</strong>
+</td>
+</tr>
+<tr>
+<td>
+high_memory
+</td>
+<td>
+直接映射的物理地址末尾对应的线性地址保存在high_memory变量中
+</td>
+</tr>
+<tr>
+<td>
+mem_map
+</td>
+<td>
+struct page，所有物理内存页，可以通过((vir_add-vir_offset)&gt;&gt;12)来定位kernel线性地址所在页</BR>数组中每个元素和物理内存页面一一对应,整个数组就代表着系统中的全部物理页面。</BR>如系统中有76G物理内存,则物理内存页面数为76*1024*1024k/4K= 19922944个页面,mem_map[ ]数组大小19922944
+</td>
+</tr>
+<tr>
+<td>
+slab_caches
+</td>
+<td>
+kmem_cache链表头
+</td>
+</tr>
+<tr>
+<td>
+kmem_cache
+</td>
+<td>
+存kmem_cache对象
+</td>
+</tr>
+<tr>
+<td>
+kmalloc_caches
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+swapper_pg_dir
+</td>
+<td>
+内核全局页目录，地址为0xc0004000~0xc0008000
+</td>
+</tr>
+</table>
+
+<h3 id="toc_0.5.2">文件节点</h3>
+<ul>
+<li>
+/d/memblock/reserve
+
+<li>
+/proc/meminfo
+
+<li>
+/proc/slabinfo
+
+</ul>
+
+<h3 id="toc_0.5.3">根据已分配内存地址找到slab</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mem_find_page.PNG" />
+</p>
+
+<h3 id="toc_0.5.4">找到所有partial的页</h3>
+<pre>
+从slab_caches中得到kmem_cache
+kmem_cache-&gt;list是串起kmem_cache的链表，所以从slab_caches中得到链表值，就可以通过偏移得到kmem_cache
+v.v &amp;((struct kmem_cache*)0)-&gt;list得到list相对于kmem_cache的偏移
+v.v (struct kmem_cache*)(0xABCDEFGH - 0xXY)
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mem_partital_list.PNG" />
+</p>
+
+<h3 id="toc_0.5.5">查找kmem里的freelist</h3>
+<pre>
+kmem_cacheslab有两种管理方式：
+1、cpu_slab
+  cpu级别，这类slab一般是刚申请和释放的slab，系统认为有可能还在cache里
+  它是per cpu的，通过数据结构kmem_cache_cpu来管理
+    成员变量freelist管理free的内存
+    成员partial管理下一个slab，它是page数据结构，pages表示这是第几个page，而next则指向下一个page
+2、node
+  普通的slab
+  它指向了page数据结构，里面的freelist构建出free的内存，而list.prev则构建出partial的列表
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/slab_freelist.PNG" />
+</p>
+
+<h3 id="toc_0.5.6">虚拟地址转物理地址</h3>
+<pre>
+每个进程都有自己的页目录，放在task_struct-&gt;mm.pgd
+高1G的地址空间给内核用，各进程间是共享的，用全局变量swapper_pg_dir(0xc0004000~0xc0008000)来保存信息，进程在fork时，会把这部分内容copy过去
+
+通过页目录项的低2位，可以看用的是哪种映射方式：
+00：无效
+10：Section Base，页目录项的高12位，加上虚拟地址的低20位，就得到物理地址，内核的低地址区就是这们映射的
+01：Coarse page table Base，页目录项保存着页表的基址，然后通过页表偏移，得到页表值。根据页表项的最后2位，又分为大页（16K）和小页（4K）。我们使用的是小页管理
+11：Fine page table，每个页大小为1K
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/vaddr_to_paddr.PNG" />
+</p>
+
+<hr />
+<h2 id="toc_0.6">参考资料</h2>
+<p>
+<a href="http://www.cnblogs.com/wang_yb/archive/2013/05/23/3095907.html">《Linux内核设计与实现》读书笔记（十二）- 内存管理</a></BR>
+<a href="http://blog.csdn.net/crazyjiang/article/details/7903772">linux kernel内存映射实例分析</a></BR>
+<a href="http://ilinuxkernel.com/?p=1013">Linux内核高端内存</a></BR>
+<a href="http://ilinuxkernel.com/?cat=4">内存管理</a></BR>
+<a href="http://tomhibolu.iteye.com/blog/1214892">浅析linux内核内存管理之kmalloc</a></BR>
+<a href="http://blog.csdn.net/hanchaoman/article/details/6942138">kernel hacker修炼之道之内存管理-高端内存(上)</a></BR>
+<a href="http://blog.csdn.net/hanchaoman/article/details/6942140">kernel hacker修炼之道之内存管理-高端内存(下)</a></BR>
+</p>
+
+<p>
+--
+</p>
+
+<p>
+<a href="http://blog.csdn.net/vanbreaker/article/details/7694648">Linux Slub分配器</a></BR>
+<a href="http://blog.chinaunix.net/uid-7588746-id-259800.html">Linux内存 之 Slub分配器</a></BR>
+<a href="http://www.ibm.com/developerworks/cn/linux/l-cn-slub/">Linux SLUB 分配器详解</a></BR>
+</p>
+
+<p>
+--
+</p>
+
+<p>
+<a href="http://lli_njupt.0fees.net/ar01s12.html">页表机制</a></BR>
+<a href="http://blog.csdn.net/xiaojsj111/article/details/11065717">ARM MMU框架</a></BR>
+<a href="http://blog.csdn.net/cosmoslhf/article/details/42742975">arm的2级页表在Linux内核创建过程解析</a></BR>
+<a href="http://blog.csdn.net/hsly_support/article/details/7463609">浅析linux内核内存管理之分页</a></BR>
+<a href="http://www.360doc.com/content/13/1225/14/10366845_339992189.shtml">Android/Linux Kernel 記憶體管理-入門筆記</a><BR>
+</p>
+
+</body>
+</html>

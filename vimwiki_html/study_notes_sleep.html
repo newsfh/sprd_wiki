@@ -1,0 +1,521 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>study_notes_sleep</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.1">sleep</a>
+<ul>
+<li><a href="#toc_0.1.1">light sleep</a>
+<li><a href="#toc_0.1.2">deep sleep</a>
+</ul>
+<li><a href="#toc_0.2">代码解析</a>
+<ul>
+<li><a href="#toc_0.2.1">main_wake_lock</a>
+<li><a href="#toc_0.2.2">pm_message_wakelock</a>
+<li><a href="#toc_0.2.3">wake_unlock</a>
+</ul>
+<li><a href="#toc_0.3">调试相关</a>
+<ul>
+<li><a href="#toc_0.3.1">deepsleep调试技巧</a>
+<li><a href="#toc_0.3.2">deep sleep相关log</a>
+<li><a href="#toc_0.3.3">light sleep相关log</a>
+<li><a href="#toc_0.3.4">文件节点</a>
+</ul>
+<li><a href="#toc_0.4">相关文件</a>
+<li><a href="#toc_0.5">参考材料</a>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h2 id="toc_0.1">sleep</h2>
+<h3 id="toc_0.1.1">light sleep</h3>
+<pre>
+可认为高速总线AHB没人使用时，就可以进light sleep
+进light后，会关DDR phy
+</pre>
+
+<h3 id="toc_0.1.2">deep sleep</h3>
+<pre>
+可认为低速总线APB没人使用时，就可以进deep sleep
+</pre>
+
+<hr />
+<h2 id="toc_0.2">代码解析</h2>
+<h3 id="toc_0.2.1">main_wake_lock</h3>
+<pre>
+在wake_lock里，经常会看到"main"这个wake lock，这是内核的一个锁，给用户态用来请求进入suspend流程
+
+1、创建
+它在wakelock机制初始化时就被创建，并且就握有该锁，所以在开机时不会进入suspend，直到用户态请求说可以睡眠了
+kernel/kernel/power/wakelock.c
+625static int __init wakelocks_init(void)
+626{
+...
+637	wake_lock_init(&amp;main_wake_lock, WAKE_LOCK_SUSPEND, "main");
+638	wake_lock(&amp;main_wake_lock);
+...
+686	return ret;
+687}
+
+2、释放锁
+系统在early_suspend时，会判断当前的状态(state)，如果用户已经请求可以睡眠，那么就可以去释放该锁
+74static void early_suspend(struct work_struct *work)
+75{
+...
+82	if (state == SUSPEND_REQUESTED)
+83		state |= SUSPENDED;
+84	else
+85		abort = 1;
+...
+114	if (state == SUSPEND_REQUESTED_AND_SUSPENDED)
+115		wake_unlock(&amp;main_wake_lock);
+117}
+
+3、持有锁
+该wake_lock通过request_suspend_state来加锁
+kernel/kernel/power/earlysuspend.c
+155void request_suspend_state(suspend_state_t new_state)
+156{
+...
+175	if (!old_sleep &amp;&amp; new_state != PM_SUSPEND_ON) {
+176		state |= SUSPEND_REQUESTED;
+177		queue_work(suspend_work_queue, &amp;early_suspend_work);		// 置SUSPEND_REQUESTED状态位，并调用early_suspend_work来释放锁，并尝试进入suspend流程
+178	} else if (old_sleep &amp;&amp; new_state == PM_SUSPEND_ON) {
+179		state &amp;= ~SUSPEND_REQUESTED;
+180		wake_lock(&amp;main_wake_lock);					// 取消SUSPEND_REQUESTED状态位，并尝试去resume
+181		queue_work(suspend_work_queue, &amp;late_resume_work);
+182	}
+...
+185}
+
+4、用户态的睡眠请求
+用户可以通过/sys/power/state这个节点来做睡眠请求，并且调用request_suspend_state来进入睡眠流程
+kernel/kernel/power/main.c
+340static ssize_t state_store(struct kobject *kobj, struct kobj_attribute *attr,
+341			   const char *buf, size_t n)
+342{
+...
+369			if (state == PM_SUSPEND_ON || valid_state(state)) {
+370				error = 0;
+371				request_suspend_state(state);
+372				break;
+373			}
+...
+383}
+
+如果有
+[   50.424060] c6 request_suspend_state: sleep (0-&gt;3) at 45367117084 (2012-01-01 00:00:39.805621627 UTC)
+这种打印，就代码上层有睡眠请求
+sleep (0-&gt;3)代表从唤醒状态到请求睡眠状态
+41enum {
+42	SUSPEND_REQUESTED = 0x1,
+43	SUSPENDED = 0x2,
+44	SUSPEND_REQUESTED_AND_SUSPENDED = SUSPEND_REQUESTED | SUSPENDED,
+45};
+
+</pre>
+
+<h3 id="toc_0.2.2">pm_message_wakelock</h3>
+<pre>
+这个wake lock是power manager在打印所有wake lock时用的锁，在打印前持有，打印完释放
+
+kernel/drivers/platform/sprd/pm_debug_scx35.c
+820static int print_thread(void * data)
+821{
+822	while(1){
+823		wake_lock(&amp;messages_wakelock);
+824		if (print_thread_enable)
+825			print_debug_info();
+826		has_wake_lock(WAKE_LOCK_SUSPEND);
+827		msleep(100);
+828		wake_unlock(&amp;messages_wakelock);
+829		set_current_state(TASK_INTERRUPTIBLE);
+830		schedule_timeout(print_thread_interval * HZ);			// print_thread_interval为30，所以会30s起来打印一次
+831	}
+832	return 0;
+833}
+</pre>
+
+<h3 id="toc_0.2.3">wake_unlock</h3>
+<pre>
+565void wake_unlock(struct wake_lock *lock)
+566{
+567	int type;
+568	unsigned long irqflags;
+569	spin_lock_irqsave(&amp;list_lock, irqflags);
+570	type = lock-&gt;flags &amp; WAKE_LOCK_TYPE_MASK;
+571#ifdef CONFIG_WAKELOCK_STAT
+572	wake_unlock_stat_locked(lock, 0);
+573#endif
+574	if (debug_mask &amp; DEBUG_WAKE_LOCK)
+575		pr_info("wake_unlock: %s\n", lock-&gt;name);
+576	lock-&gt;flags &amp;= ~(WAKE_LOCK_ACTIVE | WAKE_LOCK_AUTO_EXPIRE);
+577	list_del(&amp;lock-&gt;link);
+578	list_add(&amp;lock-&gt;link, &amp;inactive_locks);
+579	if (type == WAKE_LOCK_SUSPEND) {
+580		long has_lock = has_wake_lock_locked(type);
+581		if (has_lock &gt; 0) {
+582			if (debug_mask &amp; DEBUG_EXPIRE)
+583				pr_info("wake_unlock: %s, start expire timer, "
+584					"%ld\n", lock-&gt;name, has_lock);
+585			mod_timer(&amp;expire_timer, jiffies + has_lock);
+586		} else {
+587			if (del_timer(&amp;expire_timer))
+588				if (debug_mask &amp; DEBUG_EXPIRE)
+589					pr_info("wake_unlock: %s, stop expire "
+590						"timer\n", lock-&gt;name);
+591			if (has_lock == 0)
+592				queue_work(suspend_work_queue, &amp;suspend_work);			// 当没有wake lock时，就会调用suspend_work，走suspend流程
+593		}
+594		if (lock == &amp;main_wake_lock) {
+595			if (debug_mask &amp; DEBUG_SUSPEND)
+596				print_active_locks(WAKE_LOCK_SUSPEND);
+597#ifdef CONFIG_WAKELOCK_STAT
+598			update_sleep_wait_stats_locked(0);
+599#endif
+600		}
+601	}
+602	spin_unlock_irqrestore(&amp;list_lock, irqflags);
+603}
+</pre>
+
+<hr />
+<h2 id="toc_0.3">调试相关</h2>
+<h3 id="toc_0.3.1">deepsleep调试技巧</h3>
+<pre>
+如果不能睡眠，可以通过echo 31 &gt; /sys/module/wakelock/parameters/debug_mask，并抓取log，搜索wake_lock|wake_unlock，看下lock是否配对
+或者kernel/kernel/power/wakelock.c的debug_mask改成31，编版本
+</pre>
+<pre>
+wake_lock: pm_message_wakelock, type 0的打印之后，会有芯片寄存器和当前wake lock的打印，如
+&lt;6&gt;[  542.591430] c0 wake_lock: pm_message_wakelock, type 0
+&lt;4&gt;[  542.591461] c0 ###---- REG_PMU_APB_SLEEP_CTRL : 0x0000100e
+&lt;4&gt;[  542.591491] c0 ###---- REG_AP_AHB_AHB_EB : 0x00002010
+&lt;4&gt;[  542.591491] c0 ###---- REG_AP_AHB_AP_SYS_AUTO_SLEEP_CFG : 0x0000013b
+&lt;4&gt;[  542.591491] c0 ###---- REG_AP_APB_APB_EB : 0x007de000
+&lt;4&gt;[  542.591522] c0 ###---- REG_AON_APB_APB_EB0 : 0x7471df08
+&lt;4&gt;[  542.591522] c0 ###---- REG_AON_APB_APB_EB1 : 0x00004637
+&lt;4&gt;[  542.591522] c0 ###---- REG_PMU_APB_CP_SLP_STATUS_DBG0 : 0x00009230
+&lt;4&gt;[  542.591552] c0 ###---- REG_PMU_APB_CP_SLP_STATUS_DBG1 : 0x00000000
+&lt;4&gt;[  542.591552] c0 ###---- REG_PMU_APB_PWR_STATUS0_DBG : 0x77777700
+&lt;4&gt;[  542.591552] c0 ###---- REG_PMU_APB_PWR_STATUS1_DBG : 0x70777770
+&lt;4&gt;[  542.591583] c0 ###---- REG_PMU_APB_PWR_STATUS2_DBG : 0x07777777
+&lt;4&gt;[  542.591583] c0 ###---- REG_PMU_APB_PWR_STATUS3_DBG : 0x00770007
+&lt;4&gt;[  542.591583] c0 ###---- REG_PMU_APB_SLEEP_STATUS : 0x00000005
+&lt;4&gt;[  542.591583] c0 ###---- REG_PUB_APB_DDR_ID2QOS_RCFG9 : 0x00000000
+&lt;4&gt;[  542.591613] c0 ###---- REG_AON_APB_MPLL_CFG : 0x00000000
+&lt;4&gt;[  542.591613] c0 ###---- REG_AON_APB_DPLL_CFG : 0x00000000
+&lt;4&gt;[  542.591613] c0 ###---- REG_AON_CLK_EMC_CFG : 0x00000003
+&lt;4&gt;[  542.591644] c0 ###---- ANA_REG_GLB_LDO_PD_CTRL : 0x0000ecff
+&lt;4&gt;[  542.591644] c0 ###---- REG_AON_APB_MPLL_CFG1 : 0x76276466
+&lt;4&gt;[  542.591644] c0 ###---- REG_AON_APB_DPLL_CFG1 : 0x76276466
+&lt;4&gt;[  542.591674] c0 ###---- REG_PMU_APB_DDR_SLEEP_CTRL : 0x00000070
+&lt;4&gt;[  542.591674] c0 ###---- BIT_CA7_DAP_EB still set ----###
+&lt;4&gt;[  542.591674] c0 ###---- BIT_USB_EB still set ----###
+&lt;4&gt;[  542.591705] c0 ---------- A-die power status -----------
+&lt;4&gt;[  542.591705] c0 ###---- BIT_LDO_USB_PD power on! ----###
+&lt;6&gt;[  542.591735] c0 active wake lock pm_message_wakelock
+&lt;6&gt;[  542.591735] c0 active wake lock usb_work
+&lt;6&gt;[  542.591735] c0 wake lock sm5504_wakelock, expired
+&lt;6&gt;[  542.591766] c0 wake lock sec-battery-vbus, expired
+&lt;6&gt;[  542.591766] c0 wake lock rtc_interrupt, expired
+</pre>
+
+<h3 id="toc_0.3.2">deep sleep相关log</h3>
+<ol>
+<li>
+deepsleep suspend log
+<pre>
+request_suspend_state: sleep (0-&gt;3) at 49334489540 (2012-01-01 00:01:20.908825271 UTC)
+
+early_suspend: call handlers
+
+early_suspend: calling &lt;early_suspend_handler&gt;						;; early suspend devices
+&lt;early suspend log&gt;
+-------- suspend &lt;early_suspend_handler&gt;
+
+early_suspend: sync
+PM: Syncing filesystems...
+PM: sync done.
+PM: suspend entry 2012-01-01 00:01:22.094551002 UTC
+PM: Syncing filesystems...
+PM:  before pm_prepare_consol ... 
+PM: sync done.
+PM:  before pm_notifier_call_chain  ... 
+PM: Syncing filesystems...
+*** cpu_hotplug_pm_callback, action:0x3 ***
+PM: sync done.
+
+Freezing user space processes ... 
+(elapsed 0.043 seconds) done.
+Freezing remaining freezable tasks ... 
+(elapsed 0.001 seconds) done.
+Suspending console(s) (use no_console_suspend to debug)
+
+-------- suspend &lt;dev name&gt; &lt;suspend handler&gt; with 0					;; suspend all devices
+
+PM: suspend of devices complete after 824.156 msecs
+PM: late suspend of devices complete after 0.388 msecs
+
+-------- suspend &lt;dev name&gt; &lt;late suspend handler&gt; with 0				;; late suspend devices
+
+PM: noirq suspend of devices complete after 4.981 msecs
+Disabling non-boot CPUs ...
+CPU1: shutdown
+!! 3  platform_cpu_kill 1 !!
+powerdown_cpus i=6 !!
+platform_cpu_kill finished i=0 !!
+CPU2: shutdown
+!! 3  platform_cpu_kill 2 !!
+powerdown_cpus i=6 !!
+platform_cpu_kill finished i=0 !!
+CPU3: shutdown
+!! 0  platform_cpu_kill 3 !!
+powerdown_cpus i=6 !!
+platform_cpu_kill finished i=0 !!
+cpu0, enter sprd_pm_deepsleep
+
+REG_PIN_XTLEN   0x00044001								;; register status
+REG_PIN_XTL_BUF_EN0   0x00042074
+REG_PIN_XTL_BUF_EN1   0x00042074
+REG_PIN_XTL_BUF_EN2   0x00042074
+REG_PIN_CHIP_SLEEP    0x00042074
+### uart1 ckd 0x000000e2
+### uart1 ctl 0x0000001c
+REG_PMU_APB_XTL0_REL_CFG 0x0000000f
+REG_PMU_APB_XTL1_REL_CFG 0x0000000d
+REG_PMU_APB_XTL2_REL_CFG 0x00000008
+REG_PMU_APB_XTLBUF0_REL_CFG 0x0000000f
+REG_PMU_APB_XTLBUF1_REL_CFG 0x0000000f
+REG_PMU_APB_PD_CP1_TD_CFG 0x01209004							;; show_pin_reg (kernel/arch/arm/mach-sc/pm-scx35.c)
+ca7_dap_eb not 0
+REG_PMU_APB_SLEEP_STATUSvalue 0x5                                                       ;; show_reg_status (kernel/arch/arm/mach-sc/pm-scx35.c)
+aon pmu status reg
+REG_PMU_APB_PD_PUB_SYS_CFG ------ 0x00080006
+REG_PMU_APB_PD_MM_TOP_CFG ------ 0x02080004
+REG_PMU_APB_PD_AP_SYS_CFG ------ 0x01080006
+REG_PMU_APB_PD_AP_DISP_CFG ------ 0x00000000
+REG_PMU_APB_PD_DDR_PUBL_CFG ------ 0x00080006
+REG_PMU_APB_PD_DDR_PHY_CFG ------ 0x00080006
+REG_PMU_APB_CP_SLP_STATUS_DBG0 ----- 0x0000cfef
+REG_PMU_APB_CP_SLP_STATUS_DBG1 ----- 0x0000000f
+REG_PMU_APB_PWR_STATUS0_DBG ----- 0x77077700
+REG_PMU_APB_PWR_STATUS1_DBG ----- 0x00777770
+REG_PMU_APB_PWR_STATUS2_DBG ----- 0x07777777
+REG_PMU_APB_PWR_STATUS3_DBG ----- 0x00070000
+REG_PMU_APB_SLEEP_CTRL ----- 0x0000000e
+REG_PMU_APB_DDR_SLEEP_CTRL ----- 0x00000070
+REG_PMU_APB_SLEEP_STATUS ----- 0x00000005
+aon apb reg
+REG_AON_APB_APB_EB0  ----- 0x74f1c708
+REG_AON_APB_APB_EB1  ----- 0x00000031
+REG_AON_APB_PWR_CTRL ----- 0x00001c07
+REG_AON_APB_BB_BG_CTRL ------ 0x00001c0c
+ap ahb reg 
+REG_AP_AHB_AHB_EB ----- 0x00002000
+ap apb reg
+REG_AP_APB_APB_EB ---- 0x007de000
+REG_AP_AHB_MCU_PAUSE ---   0x0000001c
+REG_AP_AHB_AP_SYS_FORCE_SLEEP_CFG --- 0x00000002
+REG_AP_AHB_AP_SYS_AUTO_SLEEP_CFG ---- 0x0000013b
+REG_AP_AHB_CA7_STANDBY_STATUS ---- 0x00000fee
+ana reg 
+ANA_REG_GLB_LDO_SLP_CTRL0 --- 0x0000aa2c
+ANA_REG_GLB_LDO_SLP_CTRL1 --- 0x00001be1
+ANA_REG_GLB_LDO_SLP_CTRL2 --- 0x00000000
+ANA_REG_GLB_LDO_SLP_CTRL3 --- 0x00000000
+ANA_REG_GLB_AUD_SLP_CTRL4 --- 0x00000000
+ANA_REG_GLB_XTL_WAIT_CTRL --- 0x00000132
+ANA_REG_GLB_PWR_XTL_EN0 -- 0x00008007
+ANA_REG_GLB_PWR_XTL_EN1 -- 0x000001c6
+ANA_REG_GLB_PWR_XTL_EN2 -- 0x00000000
+ANA_REG_GLB_PWR_XTL_EN3 -- 0x000001c0
+ANA_REG_GLB_PWR_XTL_EN4 -- 0x000009ff
+ANA_REG_GLB_PWR_XTL_EN5 -- 0x00000000
+mm reg
+REG_MM_AHB_AHB_EB ---- 0x00000000
+ana reg
+ANA_REG_GLB_LDO_PD_CTRL --- 0x00000bec
+ANA_REG_GLB_ARM_MODULE_EN --- 0x000003fe                                                ;; print_last_reg (kernel/arch/arm/mach-sc/pm-scx35.c)
+APB_EB 0x007de000
+INTC0 mask:0x00000000 raw:0x00000000 en:0x00100008					;; INT status
+INTC1 mask:0x00000000 raw:0x00000000 en:0x009f4c80
+INTC2 mask:0x00000000 raw:0xe0000000 en:0x00300120
+INTC3 mask:0x00000000 raw:0x0000003c en:0x00000000
+INT mask:0x00000000 raw:0x00000000 en:0x000047f4
+ANA INT mask:0x00000000 raw:0x00000000 en:0x000003ff
+ANA EIC MODULE_EN 0x000003fe eic bit(3)
+ANA EIC int en 0x00000025
+ANA EIC int status 0x00000000, 0x000000df                                               ;; print_int_status (kernel/arch/arm/mach-sc/pm_debug_scx35.c)
+PWR_STATUS0_DBG	0x77077700								;; power domain status
+PWR_STATUS1_DBG	0x00777770
+PWR_STATUS2_DBG	0x07777777
+PWR_STATUS3_DBG	0x00070000                                                              ;; show_deep_reg_status (kernel/arch/arm/mach-sc/pm-scx35.c)
+</pre>
+
+<li>
+deepsleep wakeup log
+<pre>
+from deep!Zret 1 not from idle
+DDR test: read times: 0
+deep sleep 3 times											;; deep sleep times
+S#:INTC0: 00000010
+wake up by ana eic											;; wake up reason
+ana eic 0x0000000c
+ANA INT 0x00000020
+Suspended for 57.805 seconds										;; deep sleep suspend time
+wakeup wake lock: event0-594
+Powerkey:116D
+Enabling non-boot CPUs ...
+CPU1: Booted secondary processor
+CPU1 is up
+CPU2: Booted secondary processor
+CPU2 is up
+CPU3: Booted secondary processor
+CPU3 is up
+PM: noirq resume of devices complete after 0.387 msecs
+PM: early resume of devices complete after 0.307 msecs
+time statisics : sleep_time=57805, core_time=0, mcu_time=0, lit_time=0, deep_sus=57795, dep_fail=0
+##: sprd_hard_irq[101] = 1.
+##: sprd_hard_irq[100] = 1.
+##: sprd_hard_irq[99] = 1.
+##: sprd_hard_irq[98] = 1.
+##: sprd_hard_irq[95] = 1.
+##: sprd_hard_irq[94] = 1.
+##: sprd_hard_irq[93] = 1.
+##: sprd_hard_irq[38] = 1.
+###wake up form [DEP] : 00000010
+###wake up form [DEP] : 00000000
+
+-------- resume &lt;dev name&gt; &lt;suspend handler&gt; with 0							;; resume devices
+
+PM: resume of devices complete after 795.981 msecs
+Restarting tasks ... done.
+request_suspend_state: wakeup (3-&gt;0) at 52450844848 (2012-01-01 00:02:21.833160809 UTC)
+PM: suspend exit 2012-01-01 00:02:21.859448309 UTC
+suspend: exit suspend, ret = 0 (2012-01-01 00:02:21.870457040 UTC)
+active wake lock main
+active wake lock PowerManagerService.Display
+active wake lock PowerManagerService.Broadcasts
+active wake lock PowerManagerService.WakeLocks
+active wake lock sipc-smsg, time left 22
+
+late_resume: call handlers										;; late resume devices
+late_resume: calling &lt;late resume handler&gt;
+-------- resume  &lt;late resume handler&gt; 
+late_resume: done
+</pre>
+
+<li>
+pm print log
+<pre>
+###---- REG_AP_AHB_AP_SYS_AUTO_SLEEP_CFG : 0x0000013b
+###---- REG_AP_APB_APB_EB : 0x007de000
+###---- REG_AON_APB_APB_EB0 : 0x7cf1df88
+###---- REG_PMU_APB_CP_SLP_STATUS_DBG0 : 0x0000cfef
+###---- REG_PMU_APB_CP_SLP_STATUS_DBG1 : 0x0000000f
+###---- REG_PMU_APB_PWR_STATUS0_DBG : 0x70000000
+###---- REG_PMU_APB_PWR_STATUS1_DBG : 0x00777770
+###---- REG_PMU_APB_PWR_STATUS2_DBG : 0x00777777
+###---- REG_PMU_APB_PWR_STATUS3_DBG : 0x00070000
+###---- REG_PMU_APB_SLEEP_STATUS : 0x00000005
+###---- REG_AON_APB_MPLL_CFG : 0x031000fa
+###---- REG_AON_APB_DPLL_CFG : 0x03100029
+###---- REG_AON_CLK_EMC_CFG : 0x00000003
+###---- ANA_REG_GLB_LDO_PD_CTRL : 0x00000bfc
+###---- REG_AON_APB_MPLL_CFG1 : 0x2762746e
+###---- REG_AON_APB_DPLL_CFG1 : 0xd89d8463
+###---- REG_PMU_APB_DDR_SLEEP_CTRL : 0x00000070
+###---- BIT_GPU_EB still set ----###
+###---- BIT_CA7_DAP_EB still set ----###
+###---- BIT_GSP_EB still set ----###
+###---- BIT_DISPC0_EB still set ----###
+###---- BIT_DISP_EMC_EB set ----###
+###---- BIT_LDO_CLSG_PD power on! ----###
+###---- BIT_LDO_SD_PD power on! ----###
+active wake lock pm_message_wakelock
+active wake lock PowerManagerService.Display
+active wake lock main
+</pre>
+
+</ol>
+
+<h3 id="toc_0.3.3">light sleep相关log</h3>
+<pre>
+打开/sys/module/cpuidle_scx35/parameters/cpuidle_debug后，会有相关寄存器的打印：
+&lt;4&gt;[  201.031463] c0 *** sc_cpuidle_debug, REG_AP_AHB_MCU_PAUSE:0xa ***
+&lt;4&gt;[  201.031494] c0 *** sc_cpuidle_debug, REG_AP_AHB_AHB_EB:0x81e000 ***
+&lt;4&gt;[  201.031494] c0 *** sc_cpuidle_debug, REG_AON_APB_APB_EB0:0x3471df09 ***
+&lt;4&gt;[  201.031524] c0 *** sc_cpuidle_debug, REG_AP_AHB_CA7_STANDBY_STATUS:0xfee ***
+&lt;4&gt;[  201.031524] c0 *** sc_cpuidle_debug, REG_PMU_APB_CP_SLP_STATUS_DBG0:0xcf27 ***
+&lt;4&gt;[  201.031524] c0 *** sc_cpuidle_debug, DDR_OP_MODE:0x0 ***
+</pre>
+
+<h3 id="toc_0.3.4">文件节点</h3>
+<pre>
+/sys/module/wakelock/parameters/debug_mask：
+对应文件kernel/kernel/power/wakelock.c里的debug_mask，echo 31 &gt; debug_mask后，可以打印更多的log
+</pre>
+<pre>
+查看light sleep的状态
+130|shell@scx35l_sharkl_j1poplte:/sys/module/cpuidle_scx35/parameters # ll     
+-rw-r--r-- root     root         4096 2012-01-01 16:27 cpuidle_debug
+-rw-r--r-- root     root         4096 2012-01-01 16:24 idle_deep_en
+-rw-r--r-- system   system       4096 2012-01-01 16:24 light_sleep_en
+</pre>
+
+<hr />
+<h2 id="toc_0.4">相关文件</h2>
+<table>
+<tr>
+<td>
+<strong>文件</strong>
+</td>
+<td>
+<strong>功能</strong>
+</td>
+</tr>
+<tr>
+<td>
+/kernel/kernel/power
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+/kernel/arch/arm/mach-sc/pm_debug_scx35.c
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+/kernel/arch/arm/mach-sc/pm-scx35.c
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+</table>
+
+<hr />
+<h2 id="toc_0.5">参考材料</h2>
+<p>
+<a href="http://blog.csdn.net/g_salamander/article/details/7978772">android 休眠唤醒机制分析(一) — wake_lock</a></BR>
+<a href="http://blog.csdn.net/g_salamander/article/details/7982170">android 休眠唤醒机制分析(二) — early_suspend</a></BR>
+<a href="http://blog.csdn.net/g_salamander/article/details/7988340">android 休眠唤醒机制分析(三) — suspend</a></BR>
+</p>
+
+</body>
+</html>

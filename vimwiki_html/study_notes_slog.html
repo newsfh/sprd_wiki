@@ -1,0 +1,90 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>study_notes_slog</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">使用方法</a>
+<ul>
+<li><a href="#toc_0.0.1.1">TW使用</a>
+<li><a href="#toc_0.0.1.2">GED使用</a>
+</ul>
+<li><a href="#toc_0.0.2">configuration</a>
+<ul>
+<li><a href="#toc_0.0.2.1">property</a>
+<li><a href="#toc_0.0.2.2">configuration file</a>
+<li><a href="#toc_0.0.2.3">存储路径</a>
+</ul>
+<li><a href="#toc_0.0.3">command</a>
+<li><a href="#toc_0.0.4">附件</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">使用方法</h3>
+<h4 id="toc_0.0.1.1">TW使用</h4>
+<pre>
+见附件
+</pre>
+
+<h4 id="toc_0.0.1.2">GED使用</h4>
+<pre>
+engpc与slog是互斥的，使用slog前关闭engpc
+
+*#*#83781#*#*  =&gt;  DEBUG&amp;LOG  =&gt;  Log Settings   =&gt;  PC Log，将armlog关闭  =&gt; Slog UI，选择要抓的log
+</pre>
+
+<hr />
+<h3 id="toc_0.0.2">configuration</h3>
+<h4 id="toc_0.0.2.1">property</h4>
+<pre>
+persist.sys.slog.enabled：用来决定是否启动slog
+debug.slog.enabled：由应用程序设置，决定是否启动slog
+</pre>
+
+<h4 id="toc_0.0.2.2">configuration file</h4>
+<pre>
+slog启动时，会找/data/local/tmp/slog/slog.conf这个配置文件，如果没有，它会到/system/etc/目录下拷贝slog配置文件
+
+/system/etc/目录下有两个文件：
+slog.conf：debug版本下的配置，它配置成enable slog
+slog.conf.user：其余情况下的配置
+</pre>
+
+<h4 id="toc_0.0.2.3">存储路径</h4>
+<pre>
+如果有t卡，会存到t卡里，否则会存到内部存储空间中
+
+外部存储空间通过环境变量EXTERNAL_STORAGE来判定，如果该值能访问，那就存到该盘
+内部存储空间定义在vendor/sprd/open-source/tools/slog/slog.h中，用宏INTERNAL_LOG_PATH定义
+</pre>
+
+<hr />
+<h3 id="toc_0.0.3">command</h3>
+<ul>
+<li>
+slogctl
+<pre>
+slogctl query: query slog state
+slogctl enable: enable slog
+slogctl disable: disable slog
+</pre>
+
+</ul>
+
+<hr />
+<h3 id="toc_0.0.4">附件</h3>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/How to capture and replay slog on SharkL TW version.docx">How to capture and replay slog on SharkL TW version.docx</a>
+</p>
+
+</body>
+</html>

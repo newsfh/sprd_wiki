@@ -1,67 +1,67 @@
 === 学习笔记 ===
-[[设备驱动]]</BR>
-[[常见模块的供电电压]]</BR>
-[[常用调试节点]]</BR>
-[[常用配置选项]]</BR>
-[[学习笔记 － ARM]]</BR>
+[[study_notes_device_driver|设备驱动]]</BR>
+[[study_notes_module_power_supply|常见模块的供电电压]]</BR>
+[[study_notes_debug_sysfs|常用调试节点]]</BR>
+[[study_notes_regular_config|常用配置选项]]</BR>
+[[study_notes_ARM|学习笔记 － ARM]]</BR>
 [[study_notes_script|学习笔记 － 脚本]]<BR>
-[[学习笔记 － linux kernel]]</BR>
-[[学习笔记 － linux kernel常用信息]]</BR>
-[[学习笔记 － Android]]</BR>
-[[学习笔记 － u-boot]]</BR>
-[[学习笔记 － 中断]]</BR>
-[[学习笔记 － sleep]]</BR>
-[[学习笔记 － SIPC]]</BR>
-[[学习笔记 － calibration]]</BR>
-[[学习笔记 － engmode]]</BR>
-[[学习笔记 － slog]]</BR>
-[[学习笔记 － CP reset]]</BR>
-[[学习笔记 － CPU hotplug & governor]]</BR>
-[[学习笔记 － power_on & power_off]]</BR>
-[[学习笔记 － ldo]]</BR>
-[[学习笔记 － pin & gpio]]</BR>
-[[学习笔记 － I2C]]</BR>
-[[学习笔记 － keypad]]</BR>
-[[学习笔记 － clock]]</BR>
-[[学习笔记 － timer]]</BR>
-[[学习笔记 － bus monitor]]</BR>
-[[学习笔记 － 7s reset]]</BR>
-[[学习笔记 － DDR]]</BR>
-[[学习笔记 － thermal]]</BR>
-[[学习笔记 － MUIC & SUB PMIC]]</BR>
+[[study_notes_linux kernel|学习笔记 － linux kernel]]</BR>
+[[study_notes_linux kernel info|学习笔记 － linux kernel常用信息]]</BR>
+[[study_notes_Android|学习笔记 － Android]]</BR>
+[[study_notes_u-boot|学习笔记 － u-boot]]</BR>
+[[study_notes_interrupt|学习笔记 － 中断]]</BR>
+[[study_notes_sleep|学习笔记 － sleep]]</BR>
+[[study_notes_SIPC|学习笔记 － SIPC]]</BR>
+[[study_notes_calibration|学习笔记 － calibration]]</BR>
+[[study_notes_engmode|学习笔记 － engmode]]</BR>
+[[study_notes_slog|学习笔记 － slog]]</BR>
+[[study_notes_CP reset|学习笔记 － CP reset]]</BR>
+[[study_notes_CPU hotplug & governor|学习笔记 － CPU hotplug & governor]]</BR>
+[[study_notes_power_on & power_off|学习笔记 － power_on & power_off]]</BR>
+[[study_notes_ldo|学习笔记 － ldo]]</BR>
+[[study_notes_pin & gpio|学习笔记 － pin & gpio]]</BR>
+[[study_notes_I2C|学习笔记 － I2C]]</BR>
+[[study_notes_keypad|学习笔记 － keypad]]</BR>
+[[study_notes_clock|学习笔记 － clock]]</BR>
+[[study_notes_timer|学习笔记 － timer]]</BR>
+[[study_notes_bus monitor|学习笔记 － bus monitor]]</BR>
+[[study_notes_7s reset|学习笔记 － 7s reset]]</BR>
+[[study_notes_DDR|学习笔记 － DDR]]</BR>
+[[study_notes_thermal|学习笔记 － thermal]]</BR>
+[[study_notes_MUIC & SUB PMIC|学习笔记 － MUIC & SUB PMIC]]</BR>
 [[study_notes_FGU|学习笔记 － FGU]]<BR>
-[[学习笔记 － IRAM]]</BR>
-[[学习笔记 － Marlin]]</BR>
-[[学习点滴]]</BR>
+[[study_notes_IRAM|学习笔记 － IRAM]]</BR>
+[[study_notes_Marlin|学习笔记 － Marlin]]</BR>
+[[study_notes_fund|学习点滴]]</BR>
 
 ----
 === 调试技巧 ===
-[[sysdump调试步骤]]</BR>
-[[lockup调试步骤]]</BR>
-[[调试技巧]]</BR>
-[[经典调试案例]]</BR>
-[[问题及解决]]</BR>
-[[keyword_in_log|log里的关键字]]<BR>
+[[debug_sydump_debug_step|sysdump调试步骤]]</BR>
+[[debug_lockup_debug_step|lockup调试步骤]]</BR>
+[[debug_debug_skill|调试技巧]]</BR>
+[[debug_debug_case|经典调试案例]]</BR>
+[[debug_Q&A|问题及解决]]</BR>
+[[debug_keyword_in_log|log里的关键字]]<BR>
 
 ----
 === 工具使用 ===
 [[tool_ubuntu|ubuntu使用]]<BR>
-[[git学习]]</BR>
-[[adb使用]]</BR>
-[[MobileTester]]</BR>
-[[ubuntu串口工具]]</BR>
-[[vmware]]</BR>
-[[Trace32使用]]</BR>
-[[crash tool]]</BR>
-[[crash command]]</BR>
-[[ramdisk的打包和解压]]</BR>
-[[SS Tool]]</BR>
-[[DS-5]]</BR>
-[[FPGA开发板的使用]]</BR>
-[[PADS工具使用]]</BR>
+[[tool_git|git学习]]</BR>
+[[tool_adb|adb使用]]</BR>
+[[tool_MobileTester|MobileTester]]</BR>
+[[tool_uart_tool|ubuntu串口工具]]</BR>
+[[tool_vmware|vmware]]</BR>
+[[tool_trace32|Trace32使用]]</BR>
+[[tool_crash|crash tool]]</BR>
+[[tool_crash_cmd|crash command]]</BR>
+[[tool_ramdisk|ramdisk的打包和解压]]</BR>
+[[tool_ss_tool|SS Tool]]</BR>
+[[tool_ds5|DS-5]]</BR>
+[[tool_fpga|FPGA开发板的使用]]</BR>
+[[tool_pads|PADS工具使用]]</BR>
 [[tool_vi|vi使用]]<BR>
-[[vimwiki使用]]</BR>
-[[建git服务器]]</BR>
+[[tool_vimwiki|vimwiki使用]]</BR>
+[[tool_gitserver|建git服务器]]</BR>
 
 ----
 === 网络资料 ===

@@ -1,0 +1,177 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>study_notes_bus monitor</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">寄存器</a>
+<li><a href="#toc_0.0.2">通过文件节点控制busmon</a>
+<li><a href="#toc_0.0.3">附件</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">寄存器</h3>
+<pre>
+触发条件：
+DATA_MIN ≤ data &amp; (~DATA_MASK) ≤ DATA_MAX 
+ADDR_MIN ≤ address &amp; (~ADDR_MASK) ≤ ADDR_MAX
+axi只要满足一条就触发
+ahb必要同时满足才触发
+
+
+从CA7发出的读写寄存器指令，并不是所有寄存器都可以被监测到，只有经过main matrix的才可以
+这个配置就不可以
+root@scx35l_coreprimelite:/sys/devices/sprd_bm.29 # lookat -l24 0x20f00000     
+  ADDRESS  |   VALUE
+-----------+-----------
+0x20f00000 | 0x10000001
+0x20f00004 | 0x00000003
+0x20f00008 | 0x40000000
+0x20f0000c | 0x4fffffff
+0x20f00010 | 0x00000000
+0x20f00014 | 0x00000000
+0x20f00018 | 0x00000000
+0x20f0001c | 0xffffffff
+0x20f00020 | 0x00000000
+0x20f00024 | 0x00000000
+0x20f00028 | 0x00000000
+0x20f0002c | 0x00000000
+0x20f00030 | 0x00000000
+0x20f00034 | 0x00000000
+0x20f00038 | 0x00000000
+0x20f0003c | 0x00000000
+0x20f00040 | 0x00000000
+0x20f00044 | 0x00000000
+0x20f00048 | 0x00000000
+0x20f0004c | 0x00000000
+0x20f00050 | 0x00000000
+0x20f00054 | 0x00000000
+0x20f00058 | 0x00000000
+0x20f0005c | 0x00000000
+
+这个可以
+root@scx35l_coreprimelite:/sys/devices/sprd_bm.29 # lookat -l24 0x20f00000     
+  ADDRESS  |   VALUE
+-----------+-----------
+0x20f00000 | 0x40000001
+0x20f00004 | 0x00000003
+0x20f00008 | 0x70000000
+0x20f0000c | 0x7fffffff
+0x20f00010 | 0x00000000
+0x20f00014 | 0x00000000
+0x20f00018 | 0x00000000
+0x20f0001c | 0xffffffff
+0x20f00020 | 0x00000000
+0x20f00024 | 0x00000000
+0x20f00028 | 0x00000000
+0x20f0002c | 0x00000000
+0x20f00030 | 0x00000000
+0x20f00034 | 0x71301000
+0x20f00038 | 0x01800000
+0x20f0003c | 0x00000400
+0x20f00040 | 0x00000000
+0x20f00044 | 0x00000000
+0x20f00048 | 0x00000000
+0x20f0004c | 0x00000000
+0x20f00050 | 0x00000000
+0x20f00054 | 0x00000000
+0x20f00058 | 0x00000000
+0x20f0005c | 0x00000000
+</pre>
+
+<h3 id="toc_0.0.2">通过文件节点控制busmon</h3>
+<pre>
+shell@scx35l64_ss_sharklt8:/sys/devices/30040000.sprd_bm # ll
+-rw-r--r-- root     root         4096 2012-01-01 08:02 ahb_dbg
+-rw-r--r-- root     root         4096 2012-01-01 08:02 axi_dbg
+-rw-r--r-- root     root         4096 2012-01-01 08:02 bandwidth
+-rw-r--r-- root     root         4096 2012-01-01 08:02 bus_status
+-rw-r--r-- root     root         4096 2012-01-01 08:02 chn
+-rw-r--r-- root     root         4096 2012-01-01 08:02 continue
+-rw-r--r-- root     root         4096 2012-01-01 08:02 dfs_off
+-rw-r--r-- root     root         4096 2012-01-01 08:02 disable
+lrwxrwxrwx root     root              2012-01-01 08:02 driver -&gt; ../../bus/platform/drivers/sprd_bm
+-r--r--r-- root     root         4096 2012-01-01 08:02 modalias
+-rw-r--r-- root     root         4096 2012-01-01 08:02 occur
+-rw-r--r-- root     root         4096 2012-01-01 08:02 panic
+drwxr-xr-x root     root              2012-01-01 08:02 power
+-rw-r--r-- root     root         4096 2012-01-01 08:02 stack
+-rw-r--r-- root     root         4096 2012-01-01 08:02 state
+lrwxrwxrwx root     root              2012-01-01 08:02 subsystem -&gt; ../../bus/platform
+-rw-r--r-- root     root         4096 2012-01-01 08:02 uevent
+
+
+对于ahb_dbg和axi_dbg的格式
+axi:
+sscanf(buf, "%s %s %s %s",chn, start, end, mod);
+echo 0 0x89600000 0x90000000 rw &gt; axi_dbg
+
+ahb:
+sscanf(buf, "%ld %ld %s %s %s %s", &amp;channel, &amp;chn_sel, addr_start, addr_end, data_min, data_max);
+echo 0 0 0x30040000 0x3004005c 0x0 0xffffffff &gt; ahb_dbg
+
+
+如果不需要panic
+echo 0 &gt; /sys/devices/sprd_bm.29/panic
+
+
+踩地址后的调用栈：
+&lt;3&gt;[ 1456.606323] c0 BM_INFO bm int info:
+&lt;3&gt;[ 1456.606323] c0 BM CHN:	0
+&lt;3&gt;[ 1456.606323] c0 Overlap ADDR:	0x81196D80
+&lt;3&gt;[ 1456.606323] c0 Overlap CMD:	0x1D70000
+&lt;3&gt;[ 1456.606323] c0 Overlap DATA:	0xDC3C1EC8	0xDC3C1EC8
+&lt;3&gt;[ 1456.606323] c0 Overlap ID:	CA7--16
+&lt;3&gt;[ 1456.606384] c0 BM_INFO Bus Monitor output stack!
+&lt;4&gt;[ 1456.606414] c0 CPU: 0 PID: 1667 Comm: lookat Tainted: G        W  O 3.10.17-00012-g31daea9-dirty #51
+&lt;4&gt;[ 1456.606445] c0 [&lt;c001661c&gt;] (unwind_backtrace+0x0/0x128) from [&lt;c0013e14&gt;] (show_stack+0x20/0x24)
+&lt;4&gt;[ 1456.606475] c0 [&lt;c0013e14&gt;] (show_stack+0x20/0x24) from [&lt;c06411e4&gt;] (dump_stack+0x20/0x28)
+&lt;4&gt;[ 1456.606506] c0 [&lt;c06411e4&gt;] (dump_stack+0x20/0x28) from [&lt;c002e194&gt;] (__sci_bm_isr+0x1258/0x12b0)
+&lt;4&gt;[ 1456.606536] c0 [&lt;c002e194&gt;] (__sci_bm_isr+0x1258/0x12b0) from [&lt;c009e49c&gt;] (handle_irq_event_percpu+0xb8/0x2d0)
+&lt;4&gt;[ 1456.606567] c0 [&lt;c009e49c&gt;] (handle_irq_event_percpu+0xb8/0x2d0) from [&lt;c009e700&gt;] (handle_irq_event+0x4c/0x6c)
+&lt;4&gt;[ 1456.606597] c0 [&lt;c009e700&gt;] (handle_irq_event+0x4c/0x6c) from [&lt;c00a1840&gt;] (handle_fasteoi_irq+0xc8/0x110)
+&lt;4&gt;[ 1456.606628] c0 [&lt;c00a1840&gt;] (handle_fasteoi_irq+0xc8/0x110) from [&lt;c009ddb8&gt;] (generic_handle_irq+0x30/0x40)
+&lt;4&gt;[ 1456.606658] c0 [&lt;c009ddb8&gt;] (generic_handle_irq+0x30/0x40) from [&lt;c00105a0&gt;] (handle_IRQ+0x74/0x9c)
+&lt;4&gt;[ 1456.606658] c0 [&lt;c00105a0&gt;] (handle_IRQ+0x74/0x9c) from [&lt;c00093b8&gt;] (gic_handle_irq+0xd0/0x178)
+&lt;4&gt;[ 1456.606689] c0 [&lt;c00093b8&gt;] (gic_handle_irq+0xd0/0x178) from [&lt;c000f744&gt;] (__irq_svc+0x44/0x78)
+&lt;4&gt;[ 1456.606719] c0 Exception stack(0xdc3c1e28 to 0xdc3c1e70)
+&lt;4&gt;[ 1456.606750] c0 1e20:                   f4434000 00000000 f4434000 dc3c0000 f4434000 f004c000
+&lt;4&gt;[ 1456.606750] c0 1e40: dc3c1ec8 f004c000 edda4820 dc3c0000 bee40710 dc3c1e9c dc3c1e90 dc3c1e70
+&lt;4&gt;[ 1456.606781] c0 1e60: c0106ec0 c0106dc0 a00f0013 ffffffff
+&lt;4&gt;[ 1456.606811] c0 [&lt;c000f744&gt;] (__irq_svc+0x44/0x78) from [&lt;c0106dc0&gt;] (__vunmap+0x8/0xc8)
+&lt;4&gt;[ 1456.606842] c0 [&lt;c0106dc0&gt;] (__vunmap+0x8/0xc8) from [&lt;c001c448&gt;] (__iounmap+0x34/0x38)
+&lt;4&gt;[ 1456.606872] c0 [&lt;c001c448&gt;] (__iounmap+0x34/0x38) from [&lt;c001c350&gt;] (__arm_iounmap+0x20/0x28)
+&lt;4&gt;[ 1456.606903] c0 [&lt;c001c350&gt;] (__arm_iounmap+0x20/0x28) from [&lt;c0025d14&gt;] (sci_write_pa+0x1bc/0x2f8)
+&lt;4&gt;[ 1456.606903] c0 [&lt;c0025d14&gt;] (sci_write_pa+0x1bc/0x2f8) from [&lt;c0025e9c&gt;] (do_request+0x4c/0x6c)
+&lt;4&gt;[ 1456.606933] c0 [&lt;c0025e9c&gt;] (do_request+0x4c/0x6c) from [&lt;c0025efc&gt;] (__debug_set+0x40/0xc8)
+&lt;4&gt;[ 1456.606964] c0 [&lt;c0025efc&gt;] (__debug_set+0x40/0xc8) from [&lt;c01408b0&gt;] (simple_attr_write+0xd4/0x100)
+&lt;4&gt;[ 1456.606994] c0 [&lt;c01408b0&gt;] (simple_attr_write+0xd4/0x100) from [&lt;c011fa14&gt;] (vfs_write+0xe0/0x18c)
+&lt;4&gt;[ 1456.607025] c0 [&lt;c011fa14&gt;] (vfs_write+0xe0/0x18c) from [&lt;c011fdcc&gt;] (SyS_write+0x4c/0x7c)
+&lt;4&gt;[ 1456.607055] c0 [&lt;c011fdcc&gt;] (SyS_write+0x4c/0x7c) from [&lt;c000fb80&gt;] (ret_fast_syscall+0x0/0x48)
+
+
+缺陷：
+&gt;&gt;&gt;&gt;&gt;&gt;&gt;  缺少reset方法，一旦发生后，不能重新再抓
+&gt;&gt;&gt;&gt;&gt;&gt;&gt;  没有开关设置
+</pre>
+
+<hr />
+<h3 id="toc_0.0.3">附件</h3>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/AMBA&amp;BusMonitor.docx">AMBA&amp;BusMonitor.docx</a></BR>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/Spreadtrum Bus Monitor training.doc">Spreadtrum Bus Monitor training.doc</a></BR>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/Spreadtrum Bus Monitor Training.pptx">Spreadtrum Bus Monitor Training.pptx</a></BR>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/busmon.sh">busmon.sh</a></BR>
+</p>
+
+</body>
+</html>

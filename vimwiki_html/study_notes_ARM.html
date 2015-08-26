@@ -1,0 +1,480 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>study_notes_ARM</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">指令</a>
+<ul>
+<li><a href="#toc_0.0.1.1">MRS/MSR</a>
+<li><a href="#toc_0.0.1.2">stdmfd,ldmfd,ldmia,ldmib</a>
+<li><a href="#toc_0.0.1.3">^ !</a>
+</ul>
+<li><a href="#toc_0.0.2">寄存器</a>
+<ul>
+<li><a href="#toc_0.0.2.1">SPSR/CPSR</a>
+</ul>
+<li><a href="#toc_0.0.3">gcc内联汇编</a>
+<ul>
+<li><a href="#toc_0.0.3.1">语法</a>
+<li><a href="#toc_0.0.3.2">操作列表符</a>
+</ul>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">指令</h3>
+<h4 id="toc_0.0.1.1">MRS/MSR</h4>
+<pre>
+MRS
+将状态寄存器的内容传送至通用寄存器。
+MRS{&lt;cond&gt;}&lt;Rd&gt;, CPSR
+MRS{&lt;cond&gt;}&lt;Rd&gt;, SPSR
+
+MSR
+将通用寄存器的内容传送至状态寄存器。
+MSR{&lt;cond&gt;} CPSR_&lt;fields&gt;, #&lt;immediate&gt;
+MSR{&lt;cond&gt;} CPSR_&lt;fields&gt;, &lt;Rm&gt; 
+MSR{&lt;cond&gt;} SPSR_&lt;fields&gt;, #&lt;immediate&gt;
+MSR{&lt;cond&gt;} SPSR_&lt;fields&gt;, &lt;Rm&gt; 
+&lt;fields&gt;设置状态寄存器中需要操作的位。状态寄存器的32位可以分为4个8位的域：
+ f: 指示bits[31 : 24]，又名条件标志位域
+ s: 指示bits[23 : 16]，又名状态标志位域
+ x: 指示bits[15 : 8]， 又名扩展位域
+ c: 指示bits[7 : 0]，又名控制位
+</pre>
+<p>
+<a href="http://freesoftman.iteye.com/blog/1827249">汇编指令状态寄存器访问指令（MRS,MSR）</a><BR>
+</p>
+
+<h4 id="toc_0.0.1.2">stdmfd,ldmfd,ldmia,ldmib</h4>
+<pre>
+多寄存器寻址：LDMIA，LDMIB，STMIA，STMIB，LDMDA，LDMDB，STMDA，STMDB
+堆栈寻址：LDMFA，LDMFD，STMFA，STMFD，LDMEA，LDMED，STMEA，STMED
+IA： 每次传送后地址加4；
+IB： 每次传送前地址加4；
+DA： 每次传送后地址减4；
+DB： 每次传送前地址减4；
+FD： 满递减堆栈；
+ED： 空递减堆栈；
+FA： 满递增堆栈；
+EA： 空递增堆栈。
+
+格式：STMFD  Rn{!},{reglist}{^}
+
+I开头的，寄存器列表的顺序是从左到右；
+D开头的，寄存器列表的顺序是从右到左。
+</pre>
+<p>
+<a href="http://www.bubuko.com/infodetail-729580.html">LDMIA、LDMIB、LDMDB、LDMDA、STMIA、LDMFD、LDMFA、LDMED、LDMEA等指令详解</a><BR>
+</p>
+
+<h4 id="toc_0.0.1.3">^ !</h4>
+<pre>
+'^'是一个后缀标志,不能在User模式和Sys系统模式下使用该标志.该标志有两个存在目的:
+1.对于LDM操作,同时恢复的寄存器中含有pc(r15)寄存器,那么指令执行的同时cpu自动将spsr拷贝到cpsr中
+  如:在IRQ中断返回代码中
+  ldmfd {r4}           //读取sp中保存的的spsr值到r4中
+  msr spsr_cxsf,r4     //对spsr的所有控制为进行写操作,将r4的值全部注入spsr
+  ldmfd {r0-r12,lr,pc}^//当指令执行完毕,pc跳转之前,将spsr的值自动拷贝到cpsr中
+2.数据的送入、送出发生在User用户模式下的寄存器,而非当前模式寄存器
+  如:ldmdb sp,{r0 - lr}^;表示sp栈中的数据回复到User分组寄存器r0-lr中,而不是恢复到当前模式寄存器r0-lr
+  当然对于User,System,IRQ,SVC,Abort,Undefined这6种模式来说[gliethttp]r0-r12是共用的,只是r13和r14为分别独有,对于FIQ模式,仅仅r0-r7是和前6中模式的r0-r7共用,r8-r14都是FIQ模式下专有.
+</pre>
+
+<hr />
+<h3 id="toc_0.0.2">寄存器</h3>
+<h4 id="toc_0.0.2.1">SPSR/CPSR</h4>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/arm_cpsr_reg.png" /><BR>
+<strong>条件码标志</strong>
+<table>
+<tr>
+<td>
+标志位
+</td>
+<td>
+含义
+</td>
+</tr>
+<tr>
+<td>
+N
+</td>
+<td>
+当两个有符号整数运算时：<BR>N=1：表示运算的结果为负数；<BR>N=0：表示运算的结果为正数或零。
+</td>
+</tr>
+<tr>
+<td>
+Z
+</td>
+<td>
+Z=1表示运算的结果为零，Z=0表示运算的结果非零。<BR>对于CMP指令，Z=1表进行比较的两个数相等
+</td>
+</tr>
+<tr>
+<td>
+C
+</td>
+<td>
+可以有4种方法设置C的值：<BR>在加法指令中(包括比较指令CMP)，当结果产生了进位,则C=1,表示无符号运算发生上溢出；其他情况C=0.<BR>在减法指令中(包括减法指令CMP)，当运算中发生借位，则C=0，表示无符号运算数发生下溢出；其他情况下C=1。<BR>对于包含移位操作的非加碱运算指令，C中包含最后一次溢出的的位的数值<BR>对于其他非加减运算指令，C位的值通常不受影响
+</td>
+</tr>
+<tr>
+<td>
+V
+</td>
+<td>
+对于加减运算指令，当操作数和运算结果为二进制的补码表示的带符号数时，V=1表示符号为溢出；通常其他指令不影响V位。
+</td>
+</tr>
+</table>
+<strong>控制位</strong>
+</p>
+<pre>
+CPSR的低八位I、F、T、M[4:0]统称为控制位。当异常中断发生时这些位发生变化。在特权级的处理器模式下，软件可以修改这些控制位。 
+1) I: IRQ中断禁止位：当I=1时禁止IRQ中断，
+2) F: FIQ中断禁止位：当F=1时禁止FIQ中断 
+3) T: T控制位该位反映处理器的运行状态。当该位为1时，程序运行于THUMB状态，否则运行于ARM状态。该信号反映在外部引脚TBIT上。在程序中不得修改CPSR中的TBIT位，否则处理器工作状态不能确定。
+4) 保留位：CPSR中的其余位为保留位，当改变CPSR中的条件码标志位或者控制位时，保留位不要改变，在程序中也不要用保留位存储数据。保留位将用于ARM版本的扩展。
+5) 运行模式位M[4：0]：这几位是模式位，这些位决定了处理器的运行模式。
+具体含义如下表所示：
+</pre>
+<table>
+<tr>
+<td>
+M[4:0]
+</td>
+<td>
+处理器模式
+</td>
+<td>
+ARM模式可访问的寄存器
+</td>
+<td>
+THUMB模式可访问的寄存器
+</td>
+</tr>
+<tr>
+<td>
+0b10000
+</td>
+<td>
+用户模式
+</td>
+<td>
+PC,CPSR,R0~R14
+</td>
+<td>
+PC,CPSR,R0~R7,LR,SP
+</td>
+</tr>
+<tr>
+<td>
+0b10001
+</td>
+<td>
+FIQ模式
+</td>
+<td>
+PC,CPSR,SPSR_fiq,R14_fiq~R8_fiq,R0~R7
+</td>
+<td>
+PC,CPSR,SPSR_fiq,LR_fiq,SP_fiq,R0~R7
+</td>
+</tr>
+<tr>
+<td>
+0b10010
+</td>
+<td>
+IRQ模式
+</td>
+<td>
+PC,CPSR,SPSR_irq,R14_irq~R13_irq,R0~R12
+</td>
+<td>
+PC,CPSR,SPSR_irq,LR_irq,SP_irq,R0~R7
+</td>
+</tr>
+<tr>
+<td>
+0b10011
+</td>
+<td>
+管理模式
+</td>
+<td>
+PC,CPSR,SPSR_svc,R14_svc~R13_svc,R0~R12
+</td>
+<td>
+PC,CPSR,SPSR_svc,LR_svc,SP_svc,R0~R7
+</td>
+</tr>
+<tr>
+<td>
+0b10111
+</td>
+<td>
+中止模式
+</td>
+<td>
+PC,CPSR,SPSR_abt,R14_abt~R13_abt,R0~R12
+</td>
+<td>
+PC,CPSR,SPSR_abt,LR_abt,SP_abt,R0~R7
+</td>
+</tr>
+<tr>
+<td>
+0b11011
+</td>
+<td>
+未定义模式
+</td>
+<td>
+PC,CPSR,SPSR_und,R14_und~R13_und,R0~R12
+</td>
+<td>
+PC,CPSR,SPSR_und,LR_und,SP_und,R0~R
+</td>
+</tr>
+<tr>
+<td>
+0b11111
+</td>
+<td>
+系统模式
+</td>
+<td>
+PC,CPSR,R0~R14
+</td>
+<td>
+PC,CPSR,LR,SP,R0~R74
+</td>
+</tr>
+</table>
+
+<hr />
+<h3 id="toc_0.0.3">gcc内联汇编</h3>
+<h4 id="toc_0.0.3.1">语法</h4>
+<pre>
+格式：
+  asm(汇编语句模板: 输出操作列表: 输入操作列表: 破坏描述部分);
+
+示例：
+  asm("mov %[result], %[value], ror #1"
+             : [result]"=r" (y) /* Rotation result. */
+             : [value]"r" (x) /* Rotated value. */
+             : /* No clobbers */
+  );
+
+汇编语句模板：由汇编语句序列组成，语句之间使用“;”、“\n”或“\n\t”分开。
+输出操作列表：每一个条目是由一对[]（方括号）和被他包括的符号名组成，它后面跟着限制性字符串，再后面是圆括号和它括着的C变量。
+输入操作列表：语法和输入操作列表一样
+破坏描述符：用于通知编译器我们使用了哪些寄存器或内存，由逗号格开的字符串组成，每个字符串描述一种情况，一般是寄存器名；除寄存器外还有“memory”。
+
+上面的4个部分中只要后面的还要使用，前面的部分没有使用也不能省略，必须空但是保留冒号。
+</pre>
+<h4 id="toc_0.0.3.2">操作列表符</h4>
+<table>
+<tr>
+<td>
+Constraint
+</td>
+<td>
+Usage in ARM state
+</td>
+<td>
+Usage in Thumb state
+</td>
+</tr>
+<tr>
+<td>
+f
+</td>
+<td>
+Floating point registers f0 .. f7
+</td>
+<td>
+Not available
+</td>
+</tr>
+<tr>
+<td>
+h
+</td>
+<td>
+Not available
+</td>
+<td>
+Registers r8..r15
+</td>
+</tr>
+<tr>
+<td>
+G
+</td>
+<td>
+Immediate floating point constant
+</td>
+<td>
+Not available
+</td>
+</tr>
+<tr>
+<td>
+H
+</td>
+<td>
+Same a G, but negated
+</td>
+<td>
+Not available
+</td>
+</tr>
+<tr>
+<td>
+I
+</td>
+<td>
+Immediate value in data processing instructions<BR>e.g. ORR R0, R0, #operand
+</td>
+<td>
+Constant in the range 0 .. 255<BR>e.g. SWI operand
+</td>
+</tr>
+<tr>
+<td>
+J
+</td>
+<td>
+Indexing constants -4095 .. 4095<BR>e.g. LDR R1, [PC, #operand]
+</td>
+<td>
+Constant in the range -255 .. -1<BR>e.g. SUB R0, R0, #operand
+</td>
+</tr>
+<tr>
+<td>
+K
+</td>
+<td>
+Same as I, but inverted
+</td>
+<td>
+Same as I, but shifted
+</td>
+</tr>
+<tr>
+<td>
+L
+</td>
+<td>
+Same as I, but negated
+</td>
+<td>
+Constant in the range -7 .. 7<BR>e.g. SUB R0, R1, #operand
+</td>
+</tr>
+<tr>
+<td>
+l
+</td>
+<td>
+Same as r
+</td>
+<td>
+Registers r0..r7<BR>e.g. PUSH operand
+</td>
+</tr>
+<tr>
+<td>
+M
+</td>
+<td>
+Constant in the range of 0 .. 32 or a power of 2<BR>e.g. MOV R2, R1, ROR #operand
+</td>
+<td>
+Constant that is a multiple of 4 in the range of 0 .. 1020<BR>e.g. ADD R0, SP, #operand
+</td>
+</tr>
+<tr>
+<td>
+m
+</td>
+<td>
+Any valid memory address
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+N
+</td>
+<td>
+Not available
+</td>
+<td>
+Constant in the range of 0 .. 31<BR>e.g. LSL R0, R1, #operand
+</td>
+</tr>
+<tr>
+<td>
+O
+</td>
+<td>
+Not available
+</td>
+<td>
+Constant that is a multiple of 4 in the range of -508 .. 508<BR>e.g. ADD SP, #operand
+</td>
+</tr>
+<tr>
+<td>
+r
+</td>
+<td>
+General register r0 .. r15<BR>e.g. SUB operand1, operand2, operand3
+</td>
+<td>
+Not available
+</td>
+</tr>
+<tr>
+<td>
+w
+</td>
+<td>
+Vector floating point registers s0 .. s31
+</td>
+<td>
+Not available
+</td>
+</tr>
+<tr>
+<td>
+X
+</td>
+<td>
+Any operand
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+</table>
+
+</body>
+</html>

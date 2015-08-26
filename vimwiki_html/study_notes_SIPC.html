@@ -1,0 +1,557 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>study_notes_SIPC</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.1">architecture</a>
+<li><a href="#toc_0.2">Interconnection between AP and CPs</a>
+<li><a href="#toc_0.3">SMEM</a>
+<li><a href="#toc_0.4">SMSG</a>
+<ul>
+<li><a href="#toc_0.4.1">SIPC ID</a>
+<li><a href="#toc_0.4.2">SIPC channel</a>
+<li><a href="#toc_0.4.3">msg 类型</a>
+</ul>
+<li><a href="#toc_0.5">SBUF</a>
+<li><a href="#toc_0.6">SBLOCK</a>
+<ul>
+<li><a href="#toc_0.6.1">sample code</a>
+<ul>
+<li><a href="#toc_0.6.1.1">write data</a>
+<li><a href="#toc_0.6.1.2">read data</a>
+</ul>
+</ul>
+<li><a href="#toc_0.7">上层应用</a>
+<ul>
+<li><a href="#toc_0.7.1">SIPC创建</a>
+<li><a href="#toc_0.7.2">轮询5次CP无响应，发生Modem Blocked</a>
+</ul>
+<li><a href="#toc_0.8">调试节点</a>
+<li><a href="#toc_0.9">附件</a>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h2 id="toc_0.1">architecture</h2>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/sipc_architecture.png" />
+</p>
+
+<hr />
+<h2 id="toc_0.2">Interconnection between AP and CPs</h2>
+<pre>
+1)      TD/LTE CSFB+GGE DSDS/DSDA
+one instance of SIPC between AP and CA5;
+one instance of SIPC between AP and ARM9_0;
+ 
+2)      W/LTE CSFB+GGE DSDA
+one instance of SIPC between AP and CA5;
+one instance of SIPC between AP and ARM9_0;
+one instance of SIPC between CA5 and ARM9_1;
+ 
+To support DSDA, both of LTE and GGE modems keep active at the same time. Two modems have individual SIPC interfaces in AP , which makes it possible to create individual services for modem communications. 
+ 
+The SIPC interfaces in user-land are,
+</pre>
+<table>
+<tr>
+<td>
+<strong>MODULE</strong>
+</td>
+<td>
+<strong>LTE</strong>
+</td>
+<td>
+<strong>GGE</strong>
+</td>
+<td>
+<strong>Comments</strong>
+</td>
+</tr>
+<tr>
+<td>
+RIL
+</td>
+<td>
+/dev/stty_lte[0~31]
+</td>
+<td>
+/dev/stty_gge[0~31]
+</td>
+<td>
+RIL communication fifo
+</td>
+</tr>
+<tr>
+<td>
+DATA
+</td>
+<td>
+seth_lte[0~2]
+</td>
+<td>
+seth_gge[0~2]
+</td>
+<td>
+2G/3G data Ethernet
+</td>
+</tr>
+<tr>
+<td>
+SOUND
+</td>
+<td>
+/dev/snd/..[Cx]
+</td>
+<td>
+/dev/snd/..[Cx]
+</td>
+<td>
+Sound card of play/record in call mode
+</td>
+</tr>
+<tr>
+<td>
+DIAG
+</td>
+<td>
+/dev/slog_lte
+</td>
+<td>
+/dev/slog_gge
+</td>
+<td>
+Diag and Log communication
+</td>
+</tr>
+<tr>
+<td>
+LOOP
+</td>
+<td>
+/dev/spipe_lte0
+</td>
+<td>
+/dev/spipe_gge0
+</td>
+<td>
+Loopback pipe
+</td>
+</tr>
+<tr>
+<td>
+NV
+</td>
+<td>
+/dev/spipe_lte1
+</td>
+<td>
+/dev/spipe_gge1
+</td>
+<td>
+NV item data communications
+</td>
+</tr>
+<tr>
+<td>
+ASSERT
+</td>
+<td>
+/dev/spipe_lte2
+</td>
+<td>
+/dev/spipe_gge2
+</td>
+<td>
+Modem assert notification and feedback
+</td>
+</tr>
+<tr>
+<td>
+CHARGE
+</td>
+<td>
+/dev/spipe_lte3
+</td>
+<td>
+/dev/spipe_gge3
+</td>
+<td>
+Charge data communication
+</td>
+</tr>
+<tr>
+<td>
+AUDIO
+</td>
+<td>
+/dev/spipe_lte4
+</td>
+<td>
+/dev/spipe_gge4
+</td>
+<td>
+VOIP
+</td>
+</tr>
+<tr>
+<td>
+N/A
+</td>
+<td>
+/dev/spipe_lte5
+</td>
+<td>
+/dev/spipe_gge5
+</td>
+<td>
+Not used
+</td>
+</tr>
+<tr>
+<td>
+AUDIO
+</td>
+<td>
+/dev/spipe_lte6
+</td>
+<td>
+/dev/spipe_gge6
+</td>
+<td>
+Audio VBC switch notification
+</td>
+</tr>
+<tr>
+<td>
+N/A
+</td>
+<td>
+/dev/spipe_lte7
+</td>
+<td>
+/dev/spipe_gge7
+</td>
+<td>
+Not used
+</td>
+</tr>
+<tr>
+<td>
+REF
+</td>
+<td>
+/dev/spipe_lte8
+</td>
+<td>
+/dev/spipe_gge8
+</td>
+<td>
+Refnotify
+</td>
+</tr>
+</table>
+
+<hr />
+<h2 id="toc_0.3">SMEM</h2>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/smem.bmp" />
+</p>
+
+<h2 id="toc_0.4">SMSG</h2>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/smsg.png" />
+</p>
+
+<h3 id="toc_0.4.1">SIPC ID</h3>
+<pre>
+29/* sipc processor ID definition */
+30enum {
+31	SIPC_ID_AP = 0,		/* Application Processor */
+32	SIPC_ID_CPT,		/* TD processor */
+33	SIPC_ID_CPW,		/* WCDMA processor */
+34	SIPC_ID_WCN,		/* Wireless Connectivity */
+35	SIPC_ID_GGE, 		/* Gsm Gprs Edge processor */
+36	SIPC_ID_LTE, 		/* LTE processor */
+37	SIPC_ID_PMIC,
+38	SIPC_ID_NR,		/* total processor number */
+39};
+</pre>
+
+<h3 id="toc_0.4.2">SIPC channel</h3>
+<pre>
+49/* smsg channel definition */
+50enum {
+51	SMSG_CH_CTRL = 0,	/* some emergency control */
+52	SMSG_CH_COMM,		/* general communication channel */
+53	SMSG_CH_RPC_AP,		/* RPC server channel in AP side */
+54	SMSG_CH_RPC_CP,		/* RPC server channel in CP side */
+55	SMSG_CH_PIPE,		/* general pipe channel */                      // nv
+56	SMSG_CH_PLOG,		/* pipe for debug log/dump */                   // log
+57	SMSG_CH_TTY,		/* virtual serial for telephony */              // AT cmd
+58	SMSG_CH_DATA0,		/* 2G/3G wirleless data */
+59	SMSG_CH_DATA1,		/* 2G/3G wirleless data */
+60	SMSG_CH_DATA2,		/* 2G/3G wirleless data */
+61	SMSG_CH_VBC,		/* audio conrol channel */
+62	SMSG_CH_PLAYBACK, 	/* audio playback channel */
+63	SMSG_CH_CAPTURE,	/* audio capture channel */
+64	SMSG_CH_MONITOR_AUDIO,	/* audio monitor channel */
+65	SMSG_CH_CTRL_VOIP,	/* audio voip conrol channel */
+66	SMSG_CH_PLAYBACK_VOIP, 	/* audio voip playback channel */
+67	SMSG_CH_CAPTURE_VOIP,	/* audio voip capture channel */
+68	SMSG_CH_MONITOR_VOIP,	/* audio voip monitor channel */
+69	SMSG_CH_NR,		/* total channel number */
+70};
+</pre>
+
+<h3 id="toc_0.4.3">msg 类型</h3>
+<pre>
+72/* smsg type definition */
+73enum {
+74	SMSG_TYPE_NONE = 0,
+75	SMSG_TYPE_OPEN,		/* first msg to open a channel */
+76	SMSG_TYPE_CLOSE,	/* last msg to close a channel */
+77	SMSG_TYPE_DATA,		/* data, value=addr, no ack */
+78	SMSG_TYPE_EVENT,	/* event with value, no ack */
+79	SMSG_TYPE_CMD,		/* command, value=cmd */
+80	SMSG_TYPE_DONE,		/* return of command */
+81	SMSG_TYPE_SMEM_ALLOC,	/* allocate smem, flag=order */
+82	SMSG_TYPE_SMEM_FREE,	/* free smem, flag=order, value=addr */
+83	SMSG_TYPE_SMEM_DONE,	/* return of alloc/free smem */
+84	SMSG_TYPE_FUNC_CALL,	/* RPC func, value=addr */
+85	SMSG_TYPE_FUNC_RETURN,	/* return of RPC func */
+86	SMSG_TYPE_DIE,
+87	SMSG_TYPE_NR,		/* total type number */
+88};
+</pre>
+
+<h2 id="toc_0.5">SBUF</h2>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/sbuf.png" />
+</p>
+
+<h2 id="toc_0.6">SBLOCK</h2>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/sblock.PNG" />
+</p>
+
+<h3 id="toc_0.6.1">sample code</h3>
+<h4 id="toc_0.6.1.1">write data</h4>
+<pre>
+static ssize_t spool_write(struct file *filp,
+		const char __user *buf, size_t count, loff_t *ppos)
+{
+	struct spool_sblock *sblock = filp-&gt;private_data;
+	int timeout = -1;
+	int ret = 0;
+	int wrsize = 0;
+	int pos = 0;
+	struct sblock blk = {0};
+	size_t len = count;
+
+	if(filp-&gt;f_flags &amp; O_NONBLOCK){
+		timeout = 0;
+	}
+
+	do{
+		if((ret = sblock_get(sblock-&gt;dst, sblock-&gt;channel, &amp;blk, timeout)) &lt; 0){
+			printk(KERN_WARNING "spool_write: failed to get block!\n");
+			return ret;
+		}
+
+		wrsize = (blk.length &gt; len ? len : blk.length);
+		pr_debug("spool_write: blk_len %d, count %d, wsize %d\n", blk.length, len, wrsize);
+		if(copy_from_user(blk.addr, buf + pos, wrsize)){
+			printk(KERN_WARNING "spool_write: failed to copy from user!\n");
+			ret = -EFAULT;
+		}else{
+			blk.length = wrsize;
+			len -= wrsize;
+			pos += wrsize;
+		}
+
+		if(sblock_send(sblock-&gt;dst, sblock-&gt;channel, &amp;blk)){
+			pr_debug("spool_write: failed to send block!");
+		}
+
+		pr_debug("spool_write len= %u, ret= %d\n", len, ret);
+	}while(len &gt; 0 &amp;&amp; ret == 0);
+
+	return count - len;
+}
+</pre>
+
+<h4 id="toc_0.6.1.2">read data</h4>
+<pre>
+static ssize_t spool_read(struct file *filp,
+		char __user *buf, size_t count, loff_t *ppos)
+{
+	struct spool_sblock *sblock = filp-&gt;private_data;
+	int timeout = -1;
+	int ret = 0;
+	int rdsize = 0;
+	struct sblock blk = {0};
+
+	if (filp-&gt;f_flags &amp; O_NONBLOCK) {
+		timeout = 0;
+	}
+
+	if((ret = sblock_receive(sblock-&gt;dst, sblock-&gt;channel, &amp;blk, timeout)) &lt; 0){
+		pr_debug("spool_read: failed to receive block!\n");
+		return ret;
+	}
+
+	rdsize = blk.length &gt; count ? count : blk.length;
+
+	if(copy_to_user(buf, blk.addr, rdsize)){
+		pr_debug("spool_read: failed to copy to user!\n");
+		ret = -EFAULT;
+	}else{
+		ret = rdsize;
+	}
+
+	if(sblock_release(sblock-&gt;dst, sblock-&gt;channel, &amp;blk)){
+		pr_debug("failed to release block!\n");
+	}
+
+	return ret;
+}
+</pre>
+
+<hr />
+<h2 id="toc_0.7">上层应用</h2>
+<h3 id="toc_0.7.1">SIPC创建</h3>
+<p>
+vendor/sprd/proprietories-source/phoneserver/channel_manager.c
+</p>
+<pre>
+1003 /*## operation initialize all channel manager's objects  according to phone server configuration  file*/
+1004 static void channel_manager_init(void)
+1005 {
+1006     chnmng.me = &amp;chnmng;
+1007     chnmng.ops = &amp;chnmng_operaton;
+1008     sem_init(&amp;chnmng.get_mux_lock, 0, 1);
+1009 
+1010     sem_init(&amp;chnmng.array_lock, 0, 1);
+1011     chnmng.block_count = 0;
+1012 
+1013     get_partial_wakeLock();
+1014     chnmng_buffer_Init(chnmng.me);
+1015     chnmng_cmux_Init(chnmng.me);
+1016     chnmng_pty_Init(chnmng.me);
+1017 
+1018     setuid(AID_SYSTEM); /* switch user to system  */
+1019 
+1020     chnmng_start_thread(chnmng.me);
+1021     release_wakeLock();
+1022 }
+
+
+  43 #define MUX_TD_DEV  "ro.modem.t.tty"
+  44 #define MUX_W_DEV  "ro.modem.w.tty"
+  45 #define MUX_L_DEV  "ro.modem.l.tty"
+  46 #define MUX_TL_DEV  "ro.modem.tl.tty"
+  47 #define MUX_LF_DEV  "ro.modem.lf.tty"
+
+ 749 /*## operation initialize all cmux objects*/
+ 750 static void chnmng_cmux_Init(struct channel_manager_t *const me)
+ 751 {   
+ 766     if(!strcmp(modem, "t")) {
+ 767         property_get(MUX_TD_DEV, prop, "/dev/ts0710mux");
+ 768     } else if(!strcmp(modem, "w")) {
+ 769         property_get(MUX_W_DEV, prop, "/dev/ts0710mux");
+ 770     } else if(!strcmp(modem, "l") ) {
+ 771         property_get(MUX_L_DEV, prop, "/dev/sdiomux");
+ 772         if(multiSimMode == 0) {
+ 773             chn_num = LTE_MUX_CHN_NUM ;
+ 774         }
+ 775     } else if(!strcmp(modem, "tl")) { 
+ 776         property_get(MUX_TL_DEV, prop, "/dev/sdiomux");
+ 777         if(multiSimMode == 0) { 
+ 778             chn_num = LTE_MUX_CHN_NUM ;
+ 779         }   
+ 780     } else if(!strcmp(modem, "lf")) {
+ 781         property_get(MUX_LF_DEV, prop, "/dev/sdiomux");
+ 782         if(multiSimMode == 0) {
+ 783             chn_num = LTE_MUX_CHN_NUM ;
+ 784         }   
+ 785     } else {
+ 786         PHS_LOGE("Wrong modem parameter");
+ 787         exit(-1);
+ 788     }   
+ 858 }       
+
+</pre>
+
+<h3 id="toc_0.7.2">轮询5次CP无响应，发生Modem Blocked</h3>
+<p>
+vendor/sprd/proprietories-source/phoneserver/adapter.c
+</p>
+<pre>
+1719 int adapter_cmux_write(cmux_t * mux, char *buf, int len, int to)
+1720 {   
+1748     int err = thread_cond_timedwait(&amp;mux-&gt;cond_timeout, &amp;mux-&gt;mutex_timeout,
+1749             &amp;timeout); 
+1750     if (err == ETIMEDOUT) {
+1751         mux-&gt;cp_blked += 1;
+1752         if(mux-&gt;cp_blked &gt; BLOCKED_MAX_COUNT) {                                           // BLOCKED_MAX_COUNT = 5
+1753             mux-&gt;cp_blked = 0;
+1754             if(!strcmp(modem, "t")) {
+1755                 ALOGD("TD modem AT no response");
+1756                 strcpy(block_str, "TD Modem Blocked");
+1757             } else if(!strcmp(modem, "w")) {
+1758                 ALOGD("W modem AT no response");
+1759                 strcpy(block_str, "W Modem Blocked");
+1760             } else if(!strcmp(modem, "l")) {
+1761                 ALOGD("L modem AT no response");
+1762                 strcpy(block_str, "L Modem Blocked");
+1763             } else if(!strcmp(modem, "tl")) {
+1764                 ALOGD("TL modem AT no response");
+1765                 strcpy(block_str, "TL Modem Blocked");
+1766             } else if(!strcmp(modem, "lf")) {
+1767                 ALOGD("LF modem AT no response");
+1768                 strcpy(block_str, "LF Modem Blocked");
+1769             } else {
+1770                 PHS_LOGE("Wrong modem parameter2");
+1771             exit(-1);
+1772             } 
+1773             if(soc_client &gt; 0) {
+1774                 res = write(soc_client, block_str, strlen(block_str)+1);                   // 发Modem Blocked消息给AP
+1775                 ALOGD("write %d bytes to soc_client:%d to info modem is blocked",
+1776                                      res, soc_client);
+1777             }
+1778         }   
+1796     }       
+1800             
+1801     return ret;
+1802 }
+</pre>
+
+<hr />
+<h2 id="toc_0.8">调试节点</h2>
+<pre>
+shell@scx35l64_ss_sharklt8:/d/sipc # ll
+-r--r--r-- root     root            0 1970-01-01 08:00 sblock
+-r--r--r-- root     root            0 1970-01-01 08:00 sbuf
+-r--r--r-- root     root            0 1970-01-01 08:00 smem
+-r--r--r-- root     root            0 1970-01-01 08:00 smsg
+</pre>
+
+
+<hr />
+<h2 id="toc_0.9">附件</h2>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/multimedia_AudioHAL_ap_SIPC_introduction.ppt">multimedia_AudioHAL_ap_SIPC_introduction.ppt</a></BR>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/Spreadtrum_InterProcessor_Communication_Design.docx">Spreadtrum_InterProcessor_Communication_Design.docx</a></BR>
+</p>
+
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>study_notes_interrupt</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.1">使用方法</a>
+<ul>
+<li><a href="#toc_0.1.1">注册中断</a>
+<li><a href="#toc_0.1.2">中断使能</a>
+</ul>
+<li><a href="#toc_0.2">代码解析</a>
+<ul>
+<li><a href="#toc_0.2.1">初始化</a>
+<li><a href="#toc_0.2.2">中断处理调用栈</a>
+</ul>
+<li><a href="#toc_0.3">底层寄存器</a>
+<ul>
+<li><a href="#toc_0.3.1">中断号</a>
+<li><a href="#toc_0.3.2">中断控制寄存器</a>
+</ul>
+<li><a href="#toc_0.4">调试相关</a>
+<li><a href="#toc_0.5">相关文件</a>
+<ul>
+<li><a href="#toc_0.5.1">文件</a>
+</ul>
+<li><a href="#toc_0.6">参考材料</a>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h2 id="toc_0.1">使用方法</h2>
+<h3 id="toc_0.1.1">注册中断</h3>
+<pre>
+int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags, const char *name, void *dev);
+
+1935         ret = request_irq(ht-&gt;irq_button, headset_button_irq_handler, irqflags | IRQF_NO_SUSPEND, "headset_button", ht);
+1936         if (ret) {
+1937                 PRINT_ERR("failed to request IRQ_%d(GPIO_%d)\n", ht-&gt;irq_button, pdata-&gt;gpio_button);
+1938                 goto failed_to_request_irq_headset_button;
+1939         }
+
+1510 static irqreturn_t headset_button_irq_handler(int irq, void *dev)
+1511 {
+             ......
+1548         return IRQ_HANDLED;
+1549 }       
+</pre>
+
+<h3 id="toc_0.1.2">中断使能</h3>
+<pre>
+void enable_irq(unsigned int irq);
+void disable_irq(unsigned int irq);
+</pre>
+
+<hr />
+<h2 id="toc_0.2">代码解析</h2>
+<h3 id="toc_0.2.1">初始化</h3>
+<ol>
+<li>
+总irq初始化
+<pre>
+「/kernel/arch/arm/mach-sc/board-sp7731gea.c」
+866 MACHINE_START(SCPHONE, "sc8830")
+871     .init_irq   = sci_init_irq,
+882 MACHINE_END
+
+「/kernel/arch/arm/mach-sc/irq.c」
+242 void __init sci_init_irq(void)
+243 {   
+247         gic_init(0, 29, (void __iomem *)CORE_GIC_DIS_VA,
+248                 (void __iomem *)CORE_GIC_CPU_VA);
+249         ana_init_irq();
+267 }
+</pre>
+
+<li>
+a-die中断
+<pre>
+「/kernel/arch/arm/mach-sc/adie_irq.c」
+112 static struct irq_chip sprd_muxed_ana_chip = {
+113     .name = "irq-ANA",
+114     .irq_ack = sprd_ack_ana_irq,
+115     .irq_mask = sprd_mask_ana_irq,
+116     .irq_unmask = sprd_unmask_ana_irq,
+117 };
+
+140 static struct irqaction __adie_mux_irq = {
+141     .name       = "adie_mux",
+142     .flags      = IRQF_DISABLED | IRQF_NO_SUSPEND,
+143     .handler    = sprd_muxed_ana_handler,
+144 };
+
+146 void __init ana_init_irq(void)
+147 {                    
+148     int n;
+149     
+150     for (n = IRQ_ANA_INT_START; n &lt; IRQ_ANA_INT_START + NR_ANA_IRQS; n++) {	// #define IRQ_ANA_INT_START		IRQ_ANA_ADC_INT
+151         irq_set_chip_and_handler(n, &amp;sprd_muxed_ana_chip,
+152                      handle_level_irq);
+153         set_irq_flags(n, IRQF_VALID);
+154     }
+155     setup_irq(IRQ_ANA_INT, &amp;__adie_mux_irq);			// #define IRQ_ANA_INT			SCI_IRQ(38)
+156 
+157 }
+</pre>
+
+<li>
+d-die中断
+<pre>
+「/kernel/drivers/gpio/gpio-eic.c」
+450 static struct irq_chip d_gpio_irq_chip = {
+451     .name = "irq-d-gpio",
+452     .irq_disable = sci_gpio_irq_mask,
+453     .irq_ack = sci_gpio_irq_ack,
+454     .irq_mask = sci_gpio_irq_mask,
+455     .irq_unmask = sci_gpio_irq_unmask,
+456     .irq_set_type = sci_gpio_irq_set_type,
+457     .irq_set_wake = sci_gpio_irq_set_wake,
+458 };
+
+530 static struct irqaction __d_gpio_irq = {
+531     .name = "gpio",
+532     .flags = IRQF_DISABLED | IRQF_NO_SUSPEND,
+533     .handler = gpio_muxed_handler,
+534     .dev_id = &amp;d_sci_gpio.chip,
+535 };
+536 
+537 static struct irqaction __d_eic_irq = {
+538     .name = "eic",
+539     .flags = IRQF_DISABLED | IRQF_NO_SUSPEND,
+540     .handler = gpio_muxed_handler,
+541     .dev_id = &amp;d_sci_eic.chip,
+542 };
+
+744 static int eic_gpio_probe(struct platform_device *pdev)
+745 {
+	......
+799     if (-1 != r[ENUM_ID_D_GPIO].irq) {
+800         gpio_irq_init(r[ENUM_ID_D_GPIO].irq, &amp;d_sci_gpio.chip,
+801                   &amp;d_gpio_irq_chip);
+802         setup_irq(r[ENUM_ID_D_GPIO].irq, &amp;__d_gpio_irq);
+803     }
+804 
+805     if (-1 != r[ENUM_ID_D_EIC].irq) {
+806         gpio_irq_init(r[ENUM_ID_D_EIC].irq, &amp;d_sci_eic.chip,
+807                   &amp;d_eic_irq_chip);
+808         setup_irq(r[ENUM_ID_D_EIC].irq, &amp;__d_eic_irq);
+809     }
+810 
+811     if (-1 != r[ENUM_ID_A_GPIO].irq)
+812         gpio_irq_init(r[ENUM_ID_A_GPIO].irq, &amp;a_sci_gpio.chip,
+813                   &amp;a_gpio_irq_chip);
+814 
+815     if (-1 != r[ENUM_ID_A_EIC].irq)
+816         gpio_irq_init(r[ENUM_ID_A_EIC].irq, &amp;a_sci_eic.chip,
+817                   &amp;a_eic_irq_chip);
+	......
+819     return 0; 
+820 }   
+
+570 static void gpio_irq_init(int irq, struct gpio_chip *gpiochip,
+571               struct irq_chip *irqchip)
+572 {
+573     int n = gpiochip-&gt;to_irq(gpiochip, 0);
+574     int irqend = n + gpiochip-&gt;ngpio;
+575 
+576     /* setup the cascade irq handlers */
+577     if (irq &gt;= NR_SCI_PHY_IRQS) {
+578         irq_set_chained_handler(irq, gpio_muxed_flow_handler);
+579         irq_set_handler_data(irq, gpiochip);
+580     }
+581 
+582     for (; n &lt; irqend; n++) {
+583         irq_set_chip_and_handler(n, irqchip, handle_level_irq);
+584         irq_set_chip_data(n, gpiochip);
+585         set_irq_flags(n, IRQF_VALID);
+586     }
+587 }
+
+</pre>
+
+</ol>
+
+<h3 id="toc_0.2.2">中断处理调用栈</h3>
+<pre>
+[&lt;c02dc804&gt;] (sci_keypad_isr+0x15c/0x540) from [&lt;c008a03c&gt;] (handle_irq_event_percpu+0x4c/0x1b0)
+[&lt;c008a03c&gt;] (handle_irq_event_percpu+0x4c/0x1b0) from [&lt;c008a1dc&gt;] (handle_irq_event+0x3c/0x5c)
+[&lt;c008a1dc&gt;] (handle_irq_event+0x3c/0x5c) from [&lt;c008cd50&gt;] (handle_fasteoi_irq+0xb8/0x100)
+[&lt;c008cd50&gt;] (handle_fasteoi_irq+0xb8/0x100) from [&lt;c0089a94&gt;] (generic_handle_irq+0x20/0x30)
+[&lt;c0089a94&gt;] (generic_handle_irq+0x20/0x30) from [&lt;c000fd5c&gt;] (handle_IRQ+0x64/0x8c)
+[&lt;c000fd5c&gt;] (handle_IRQ+0x64/0x8c) from [&lt;c0009344&gt;] (gic_handle_irq+0xbc/0x164)
+[&lt;c0009344&gt;] (gic_handle_irq+0xbc/0x164) from [&lt;c000f040&gt;] (__irq_svc+0x40/0x70)
+</pre>
+
+<hr />
+<h2 id="toc_0.3">底层寄存器</h2>
+<p>
+见device spec的《MCU Interrupt Controller》这一章
+</p>
+
+<h3 id="toc_0.3.1">中断号</h3>
+<pre>
+1、一个中断号对应一个中断源，表格见《MCU Interrupt Controller》这一章
+2、上述表中的中断号，需加32才是cat /proc/interrupts打印出来的中断号。如3 int_req_uart1
+其实中断号为35
+ 35:          4       GIC  serial
+</pre>
+
+<h3 id="toc_0.3.2">中断控制寄存器</h3>
+<p>
+以下以TShark为例
+</p>
+<ul>
+<li>
+寄存器范围
+
+</ul>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/irq_range.png" />
+</p>
+
+<ul>
+<li>
+mem map
+
+</ul>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/irq_mem_map.png" />
+</p>
+
+<pre>
+mask:
+最终产生的中断位，是raw &amp; enable后的值
+
+raw:
+原始中断数据位，只要有中断，就会被设置，不管是否使能
+
+enable:
+中断使能位
+写操作：
+1：使能；0：保持原值。如果想要关闭某中断，需要设置disable寄存器
+读操作：
+1：开启；0：关闭
+
+disable:(WO)
+1：关闭某中断；0：保持原值
+
+soft:
+产生软件中断
+</pre>
+
+<hr />
+<h2 id="toc_0.4">调试相关</h2>
+<ul>
+<li>
+列举当前的irq
+<pre>
+shell@scx35_sp7731gea:/ # cat /proc/interrupts                                 
+           CPU0       
+ 35:          4       GIC  serial
+ 52:          0       GIC  sprd_codec_dp
+ 58:          0       GIC  sprd_thm_irq
+ 60:      10194       GIC  local_timer
+ 61:          0       GIC  local_timer
+ 63:          0       GIC  sys_cnt
+ 67:        171       GIC  gpio
+ 68:          2       GIC  sci-keypad
+ 69:          0       GIC  eic
+ 70:        270       GIC  adie_mux
+ 71:         23       GIC  mali_gp_mmu, mali_gp, mali_pp0_mmu, mali_pp0, mali_pp1_mmu, mali_pp1
+ 74:          0       GIC  JPG
+ 75:          0       GIC  VSP
+ 78:      10038       GIC  DISPC
+ 80:          0       GIC  DSI_INT0
+ 81:          0       GIC  DSI_INT1
+ 82:          0       GIC  sci-dma
+ 83:          0       GIC  GSP
+ 84:          0       GIC  girq-bh
+ 87:       1868       GIC  dwc_otg, dwc_otg
+ 89:         52       GIC  mmc1
+ 90:         58       GIC  mmc2
+ 92:      10937       GIC  mmc0
+100:         80       GIC  sipc-w
+101:          0       GIC  dfs_cp0_int1
+104:          0       GIC  dfs_cp1_int1
+105:         37       GIC  sipc-wcn
+116:          0       GIC  cpw
+117:          0       GIC  cpwcn
+150:         10       GIC  bctimer
+151:          0       GIC  local_timer
+152:          2       GIC  battery_timer
+153:          0       GIC  local_timer
+164:          0  irq-d-gpio  sprd_codec_ap
+243:        171  irq-d-gpio  focaltech_ts
+377:          0  irq-d-gpio  ltr_558als
+418:          0   irq-ANA  sprd_rtc
+420:          1  irq-a-eic  usb detect
+422:          0  irq-a-eic  powerkey
+423:          0  irq-a-eic  headset_button
+424:          0  irq-a-eic  sprdbat_chg_cv_state
+425:        269  irq-a-eic  headset_detect
+426:          0  irq-a-eic  sprdbat_vchg_ovi
+IPI0:          0  CPU wakeup interrupts
+IPI1:          0  Timer broadcast interrupts
+IPI2:       3483  Rescheduling interrupts
+IPI3:          7  Function call interrupts
+IPI4:          2  Single function call interrupts
+IPI5:          0  CPU stop interrupts
+IPI6:          0  CPU backtrace
+Err:          0
+
+其中
+ 67:        171       GIC  gpio
+分解为
+164:          0  irq-d-gpio  sprd_codec_ap
+243:        171  irq-d-gpio  focaltech_ts
+377:          0  irq-d-gpio  ltr_558als
+
+ 70:        270       GIC  adie_mux
+分解为：
+420:          1  irq-a-eic  usb detect
+422:          0  irq-a-eic  powerkey
+423:          0  irq-a-eic  headset_button
+424:          0  irq-a-eic  sprdbat_chg_cv_state
+425:        269  irq-a-eic  headset_detect
+426:          0  irq-a-eic  sprdbat_vchg_ovi
+</pre>
+
+</ul>
+
+<ul>
+<li>
+睡眠唤醒
+<pre>
+如果想让深睡时能通过中断唤醒，需要加IRQF_NO_SUSPEND
+</pre>
+
+<li>
+中断处理函数
+
+</ul>
+<table>
+<tr>
+<td>
+<strong>文件</strong>
+</td>
+<td>
+<strong>处理函数</strong>
+</td>
+<td>
+<strong>描述</strong>
+</td>
+</tr>
+<tr>
+<td>
+/kernel/drivers/irqchip/irq-gic.c
+</td>
+<td>
+gic_handle_irq
+</td>
+<td>
+irq中断处理函数
+</td>
+</tr>
+<tr>
+<td>
+/kernel/arch/arm/mach-sc/adie_irq.c
+</td>
+<td>
+sprd_muxed_ana_handler
+</td>
+<td>
+a-die
+</td>
+</tr>
+<tr>
+<td>
+/kernel/drivers/gpio/gpio-eic.c
+</td>
+<td>
+gpio_eic_handler
+</td>
+<td>
+gpio-eic
+</td>
+</tr>
+</table>
+
+<hr />
+<h2 id="toc_0.5">相关文件</h2>
+<h3 id="toc_0.5.1">文件</h3>
+<table>
+<tr>
+<td>
+<strong>文件</strong>
+</td>
+<td>
+<strong>功能</strong>
+</td>
+</tr>
+<tr>
+<td>
+/kernel/drivers/irqchip/irq-gic.c
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+/kernel/include/linux/irqchip/arm-gic.h
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+/kernel/kernel/irq/manage.c
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+/kernel/arch/arm/mach-sc/irq.c
+</td>
+<td>
+寄存器设置
+</td>
+</tr>
+<tr>
+<td>
+/kernel/arch/arm/mach-sc/adie_irq.c
+</td>
+<td>
+a-die的中断
+</td>
+</tr>
+<tr>
+<td>
+/kernel/drivers/gpio/gpio-eic.c
+</td>
+<td>
+d-die的gpio中断
+</td>
+</tr>
+<tr>
+<td>
+kernel/arch/arm/mach-sc/include/mach/!__irqs-sc8830.h
+</td>
+<td>
+定义中断irq号
+</td>
+</tr>
+</table>
+
+<hr />
+<h2 id="toc_0.6">参考材料</h2>
+
+</body>
+</html>
