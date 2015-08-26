@@ -5,10 +5,10 @@
 [[linux学习笔记 － 中断系统]]</BR>
 [[linux学习笔记 － 同步机制]]</BR>
 [[linux学习笔记 － governor]]</BR>
-[[linux_note_system_call|linux学习笔记 － 系统调用]]<BR>
+[[linux学习笔记 － 系统调用]]<BR>
 [[linux学习笔记 － device tree]]</BR>
 [[linux学习笔记 － boot.img布局]]</BR>
-[[linux_note_common_API|linux学习笔记 － 常用API]]<BR>
+[[linux学习笔记 － 常用API]]<BR>
 
 ----
 === 参考资料 ===

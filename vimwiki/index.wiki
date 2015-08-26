@@ -4,7 +4,7 @@
 [[常用调试节点]]</BR>
 [[常用配置选项]]</BR>
 [[学习笔记 － ARM]]</BR>
-[[study_notes_script|学习笔记 － 脚本]]<BR>
+[[学习笔记 － 脚本]]<BR>
 [[学习笔记 － linux kernel]]</BR>
 [[学习笔记 － linux kernel常用信息]]</BR>
 [[学习笔记 － Android]]</BR>
@@ -29,7 +29,7 @@
 [[学习笔记 － DDR]]</BR>
 [[学习笔记 － thermal]]</BR>
 [[学习笔记 － MUIC & SUB PMIC]]</BR>
-[[study_notes_FGU|学习笔记 － FGU]]<BR>
+[[学习笔记 － FGU]]<BR>
 [[学习笔记 － IRAM]]</BR>
 [[学习笔记 － Marlin]]</BR>
 [[学习点滴]]</BR>
@@ -41,11 +41,11 @@
 [[调试技巧]]</BR>
 [[经典调试案例]]</BR>
 [[问题及解决]]</BR>
-[[keyword_in_log|log里的关键字]]<BR>
+[[log里的关键字]]<BR>
 
 ----
 === 工具使用 ===
-[[tool_ubuntu|ubuntu使用]]<BR>
+[[ubuntu使用]]<BR>
 [[git学习]]</BR>
 [[adb使用]]</BR>
 [[MobileTester]]</BR>
@@ -59,7 +59,7 @@
 [[DS-5]]</BR>
 [[FPGA开发板的使用]]</BR>
 [[PADS工具使用]]</BR>
-[[tool_vi|vi使用]]<BR>
+[[vi使用]]<BR>
 [[vimwiki使用]]</BR>
 [[建git服务器]]</BR>
 
