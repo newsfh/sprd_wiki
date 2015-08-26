@@ -1,0 +1,84 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>linux学习笔记 － boot.img布局</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">boot.img头信息</a>
+<li><a href="#toc_0.0.2">附件</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">boot.img头信息</h3>
+<pre>
+30struct boot_img_hdr
+31{
+32    unsigned char magic[BOOT_MAGIC_SIZE];							// BOOT_MAGIC_SIZE = 8
+33
+34    unsigned kernel_size;  /* size in bytes */
+35    unsigned kernel_addr;  /* physical load addr */
+36
+37    unsigned ramdisk_size; /* size in bytes */
+38    unsigned ramdisk_addr; /* physical load addr */
+39
+40    unsigned second_size;  /* size in bytes */
+41    unsigned second_addr;  /* physical load addr */
+42
+43    unsigned tags_addr;    /* physical addr for kernel tags */
+44    unsigned page_size;    /* flash page size we assume */
+45    unsigned dt_size;      /* device tree in bytes */
+46    unsigned unused;       /* future expansion: should be 0 */
+47    unsigned char name[BOOT_NAME_SIZE]; /* asciiz product name */				// BOOT_NAME_SIZE = 16
+48
+49    unsigned char cmdline[BOOT_ARGS_SIZE];							// BOOT_ARGS_SIZE = 512
+50
+51    unsigned id[8]; /* timestamp / checksum / sha1 / etc */
+52};
+53
+54/*
+55** +-----------------+
+56** | boot header     | 1 page
+57** +-----------------+
+58** | kernel          | n pages
+59** +-----------------+
+60** | ramdisk         | m pages
+61** +-----------------+
+62** | second stage    | o pages
+63** +-----------------+
+64** | device tree     | p pages
+65** +-----------------+
+66**
+67** n = (kernel_size + page_size - 1) / page_size
+68** m = (ramdisk_size + page_size - 1) / page_size
+69** o = (second_size + page_size - 1) / page_size
+70** p = (dt_size + page_size - 1) / page_size
+71**
+72** 0. all entities are page_size aligned in flash
+73** 1. kernel and ramdisk are required (size != 0)
+74** 2. second is optional (second_size == 0 -&gt; no second)
+75** 3. load each element (kernel, ramdisk, second) at
+76**    the specified physical address (kernel_addr, etc)
+77** 4. prepare tags at tag_addr.  kernel_args[] is
+78**    appended to the kernel commandline in the tags.
+79** 5. r0 = 0, r1 = MACHINE_TYPE, r2 = tags_addr
+80** 6. if second_size != 0: jump to second_addr
+81**    else: jump to kernel_addr
+82*/
+</pre>
+
+<h3 id="toc_0.0.2">附件</h3>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/parse_bootimg.pl">解析boot.img</a></BR>
+</p>
+
+</body>
+</html>

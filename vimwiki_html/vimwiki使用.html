@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>vimwiki使用</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h3 id="toc_0.0.1">关键字</h3>
+<p>
+<strong>关键字：</strong>
+</p>
+<pre>
+图片：{{local:images/ldo_gen1.png}}
+图片：{{http://www.berlinix.com/images/index-Vim.png}}
+附件：[[local:files/interactive_debug.patch|interactive_debug.patch]]&lt;/BR&gt;
+换行：&lt;/BR&gt;
+目录：%toc 目录
+</pre>
+
+<p>
+<strong>Trac与VimWiki关键字转换：</strong>
+</p>
+<pre>
+'''		=&gt; *
+''		=&gt; _
+\\		=&gt; &lt;/BR&gt;
+[[BR]]		=&gt; &lt;/BR&gt;
+[[Image(	=&gt; {{local:images/
+)]]		=&gt; }}
+||		=&gt; |
+0. 		=&gt; #
+</pre>
+<p>
+<strong>命令：</strong>
+</p>
+<pre>
+打开vimwiki：&lt;leader&gt;ww
+转成HTML：VimwikiAll2HTML
+</pre>
+<p>
+配置：
+</p>
+<pre>
+配置路径：
+let g:vimwiki_list = [{'path': '~/vimwiki/vimwiki/', 'path_html': '~/vimwiki/vimwiki_html/'}]
+</pre>
+
+<h3 id="toc_0.0.2">资料</h3>
+<p>
+<a href="http://code.google.com/p/vim-script-cn/source/browse/trunk/doc/vimwiki.cnx">http://code.google.com/p/vim-script-cn/source/browse/trunk/doc/vimwiki.cnx</a>
+</p>
+
+<h3 id="toc_0.0.3">附件</h3>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/vimwiki-2-1.vba">vimwiki-2-1.vba</a></BR>
+</p>
+
+</body>
+</html>

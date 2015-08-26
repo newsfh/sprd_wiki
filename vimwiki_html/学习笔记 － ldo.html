@@ -1,0 +1,846 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>学习笔记 － ldo</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.1">2713/2723配置开关</a>
+<li><a href="#toc_0.2">regulator in kernel</a>
+<ul>
+<li><a href="#toc_0.2.1">使用方法</a>
+<li><a href="#toc_0.2.2">文件节点</a>
+<li><a href="#toc_0.2.3">相关文件接口</a>
+</ul>
+<li><a href="#toc_0.3">ldo配置</a>
+<ul>
+<li><a href="#toc_0.3.1">各ldo电压</a>
+<li><a href="#toc_0.3.2">ldo sleep配置</a>
+<li><a href="#toc_0.3.3">案例</a>
+</ul>
+<li><a href="#toc_0.4">附件</a>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h2 id="toc_0.1">2713/2723配置开关</h2>
+<ul>
+<li>
+u-boot
+<pre>
+在各项目的头文件：
+u-boot/include/configs/&lt;project&gt;.h
+chipram/include/configs/&lt;project&gt;.h
+
+#define CONFIG_ADIE_SC2713S       // 2713
+#define CONFIG_ADIE_SC2723S       // 2723
+</pre>
+
+</ul>
+
+<ul>
+<li>
+kernel
+<pre>
+在各项目的配置开关文件：
+kernel/arch/arm/configs/&lt;project&gt;_defconfig
+
+# CONFIG_ADIE_SC2713S is not set
+CONFIG_ADIE_SC2723S=y
+
+CONFIG_REGULATOR_SC2723S=y
+CONFIG_REGULATOR_SC2723=y
+
+再搜索下与2723/2713相关的配置，
+如CONFIG_SPRD_VIBRATOR_2723、CONFIG_INPUT_HEADSET_SPRD_SC2723、CONFIG_SPRD_KPLED_2723、CONFIG_SPRD_2713_POWER、CONFIG_THERMAL_SC2713S等
+</pre>
+
+</ul>
+
+<hr />
+<h2 id="toc_0.2">regulator in kernel</h2>
+<h3 id="toc_0.2.1">使用方法</h3>
+<pre>
+struct regulator *vibrator_regulator = NULL;
+vibrator_regulator = regulator_get(NULL, "vddcammot");
+regulator_set_voltage(vibrator_regulator, 3300000, 3300000);
+</pre>
+
+<h3 id="toc_0.2.2">文件节点</h3>
+<ul>
+<li>
+文件节点
+
+</ul>
+<table>
+<tr>
+<td>
+/d/sprd-regulator
+</td>
+<td>
+ldo是否打开，及其值
+</td>
+</tr>
+<tr>
+<td>
+/d/regulator/
+</td>
+<td>
+ldo打开次数
+</td>
+</tr>
+<tr>
+<td>
+/sys/devices/regulators.1/regulator/
+</td>
+<td>
+用户设置的ldo参数
+</td>
+</tr>
+</table>
+
+<ul>
+<li>
+枚举所有regulator的脚本
+<pre>
+#!/system/bin/sh
+
+# readme:
+# 将文件push到手机里，运行即可
+
+# usage:
+# 如果带参数，读取各ldo当前的电压值
+# 如果不带参数，则读取各ldo当前的配置数据
+
+if [ -n "$1" ]; then
+	regdir="/d/sprd-regulator"
+	reginfo="enable voltage"
+else
+	regdir="/sys/class/regulator"
+	reginfo="name min_microvolts max_microvolts microvolts state"
+fi
+
+reglist=$(ls $regdir)
+
+for reg in $reglist
+do
+	echo "----------- $reg ------------"
+	for info in $reginfo
+	do
+		cat $regdir/$reg/$info
+	done
+done
+</pre>
+
+</ul>
+
+<h3 id="toc_0.2.3">相关文件接口</h3>
+<p>
+目录：kernel/drivers/regulator
+<table>
+<tr>
+<td>
+<strong>文件</strong>
+</td>
+<td>
+<strong>功能</strong>
+</td>
+<td>
+<strong>主要接口</strong>
+</td>
+</tr>
+<tr>
+<td>
+core.c
+</td>
+<td>
+对外接口</BR>文件节点/sys/class/regulator
+</td>
+<td>
+regulator_set_voltage</BR>regulator_get
+</td>
+</tr>
+<tr>
+<td>
+sc2723-regulator_dt.c</BR>sc2713s-regulator_dt.c
+</td>
+<td>
+regulator实现文件
+</td>
+<td>
+ldo_set_voltage</BR>dcdc_set_voltage
+</td>
+</tr>
+</table>
+</p>
+
+<hr />
+<h2 id="toc_0.3">ldo配置</h2>
+<h3 id="toc_0.3.1">各ldo电压</h3>
+<ul>
+<li>
+2723s寄存器
+
+</ul>
+<table>
+<tr>
+<td>
+<strong>ldo名称</strong>
+</td>
+<td>
+<strong>范围</strong>
+</td>
+<td>
+<strong>默认值</strong>
+</td>
+<td>
+<strong>默认开关</strong>
+</td>
+</tr>
+<tr>
+<td>
+VDD18
+</td>
+<td>
+1.2 - 1.8V, 6.25mV/step
+</td>
+<td>
+1.8V
+</td>
+<td>
+on
+</td>
+<td>
+IO/ NAND Flash/PMIC digital
+</td>
+</tr>
+<tr>
+<td>
+VDD28
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+2.8V
+</td>
+<td>
+on
+</td>
+<td>
+IO/ LCD analog
+</td>
+</tr>
+<tr>
+<td>
+AVDD28
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+2.5V
+</td>
+<td>
+on
+</td>
+<td>
+PLL, MIPI, shark DAC, OTP and EFUSE (internal)
+</td>
+</tr>
+<tr>
+<td>
+VDDGEN0
+</td>
+<td>
+1.2 - 1.8V, 6.25mV/step
+</td>
+<td>
+1.8V
+</td>
+<td>
+off
+</td>
+<td>
+General purpose
+</td>
+</tr>
+<tr>
+<td>
+VDDSDCORE
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+3.0V
+</td>
+<td>
+off
+</td>
+<td>
+SD Card
+</td>
+</tr>
+<tr>
+<td>
+VSIM0
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+1.8V
+</td>
+<td>
+off
+</td>
+<td>
+Supply for SIM Card
+</td>
+</tr>
+<tr>
+<td>
+VSIM1
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+1.8V
+</td>
+<td>
+off
+</td>
+<td>
+Supply for SIM Card
+</td>
+</tr>
+<tr>
+<td>
+VSIM2
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+1.8V
+</td>
+<td>
+off
+</td>
+<td>
+Supply for SIM Card
+</td>
+</tr>
+<tr>
+<td>
+VDDCAMA
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+2.8V
+</td>
+<td>
+off
+</td>
+<td>
+Supply for external CAM
+</td>
+</tr>
+<tr>
+<td>
+VDDRF0
+</td>
+<td>
+1.2 - 1.8V, 6.25mV/step
+</td>
+<td>
+1.8V
+</td>
+<td>
+on
+</td>
+<td>
+RF/TCXO
+</td>
+</tr>
+<tr>
+<td>
+VDDRSDIO
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+3.0V
+</td>
+<td>
+on
+</td>
+<td>
+SDIO
+</td>
+</tr>
+<tr>
+<td>
+VDDDCXO
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+1.8V
+</td>
+<td>
+on
+</td>
+<td>
+DCXO
+</td>
+</tr>
+<tr>
+<td>
+VDDCAMD
+</td>
+<td>
+1.2 - 1.8V, 6.25mV/step
+</td>
+<td>
+1.5V
+</td>
+<td>
+off
+</td>
+<td>
+Camera core
+</td>
+</tr>
+<tr>
+<td>
+VDDCAMIO
+</td>
+<td>
+1.2 - 1.8V, 6.25mV/step
+</td>
+<td>
+1.8V
+</td>
+<td>
+off
+</td>
+<td>
+Camera IO
+</td>
+</tr>
+<tr>
+<td>
+VDDCAMMOT
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+2.8V
+</td>
+<td>
+Off
+</td>
+<td>
+Camera Auto focus MOT
+</td>
+</tr>
+<tr>
+<td>
+VDDGEN1
+</td>
+<td>
+1.2 - 1.8V, 6.25mV/step
+</td>
+<td>
+1.8V
+</td>
+<td>
+On
+</td>
+<td>
+General purpose
+</td>
+</tr>
+<tr>
+<td>
+VDDEMMCCORE
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+3.0V
+</td>
+<td>
+On
+</td>
+<td>
+eMMC core
+</td>
+</tr>
+<tr>
+<td>
+VDDUSBH
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+3.3V
+</td>
+<td>
+Off
+</td>
+<td>
+USB IP (internal)
+</td>
+</tr>
+<tr>
+<td>
+VDDWIFIPA
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+3.3V
+</td>
+<td>
+Off
+</td>
+<td>
+WIFI PA
+</td>
+</tr>
+<tr>
+<td>
+KPLED LDO
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+3.3V
+</td>
+<td>
+Off
+</td>
+<td>
+Voltage mode for KPLED
+</td>
+</tr>
+<tr>
+<td>
+VIBR LDO
+</td>
+<td>
+1.8 – 3.3V, 10mV/step
+</td>
+<td>
+3.3V
+</td>
+<td>
+Off
+</td>
+<td>
+Voltage mode for VIBR
+</td>
+</tr>
+<tr>
+<td>
+DCDCARM
+</td>
+<td>
+0.6 - 1.3V, 100/32(mV)/step
+</td>
+<td>
+&nbsp;
+</td>
+<td>
+On
+</td>
+<td>
+ARM power
+</td>
+</tr>
+<tr>
+<td>
+DCDCCORE
+</td>
+<td>
+0.6 - 1.3V, 100/32(mV)/step
+</td>
+<td>
+&nbsp;
+</td>
+<td>
+On
+</td>
+<td>
+Digital core power
+</td>
+</tr>
+<tr>
+<td>
+DCDCMEM
+</td>
+<td>
+1.2 - 1.8V, 100/32(mV)/step
+</td>
+<td>
+&nbsp;
+</td>
+<td>
+On
+</td>
+<td>
+MEM power
+</td>
+</tr>
+<tr>
+<td>
+DCDCLDO
+</td>
+<td>
+1.8 - 2.5V, 100/32(mV)/step
+</td>
+<td>
+&nbsp;
+</td>
+<td>
+On
+</td>
+<td>
+LDO power
+</td>
+</tr>
+<tr>
+<td>
+DCDCWPA
+</td>
+<td>
+0.4 - 3.4V, 3.4/2x Vramp
+</td>
+<td>
+&nbsp;
+</td>
+<td>
+Off
+</td>
+<td>
+W-CDMA PA power
+</td>
+</tr>
+<tr>
+<td>
+DCDCRF
+</td>
+<td>
+1.2 - 1.8V, 100/32(mV)/step
+</td>
+<td>
+&nbsp;
+</td>
+<td>
+On
+</td>
+<td>
+W-CDMA RF power
+</td>
+</tr>
+</table>
+
+<h3 id="toc_0.3.2">ldo sleep配置</h3>
+<ul>
+<li>
+ldo sleep配置相关
+<pre>
+u-boot/board/spreadtrum/&lt;project&gt;/ldo_sleep.c
+该文件用于配置ldo的行为
+
+在配工程时，需要让硬件提供一份当前板子的ldo配置信息，如哪些ldo需要打开，哪些ldo在sleep时需要关闭，哪些在sleep时进入LP模式等
+</pre>
+
+</ul>
+
+<ul>
+<li>
+寄存器配置
+
+</ul>
+<table>
+<tr>
+<td>
+<strong>寄存器</strong>
+</td>
+<td>
+<strong>功能</strong>
+</td>
+</tr>
+<tr>
+<td>
+ANA_REG_GLB_LDO_DCDC_PD/ANA_REG_GLB_LDO_PD_CTRL
+</td>
+<td>
+配置正常状态下各ldo的开关状态
+</td>
+</tr>
+<tr>
+<td>
+ANA_REG_GLB_PWR_SLP_CTRL0/ANA_REG_GLB_PWR_SLP_CTRL1
+</td>
+<td>
+配置sleep时，各ldo能否关闭
+</td>
+</tr>
+<tr>
+<td>
+ANA_REG_GLB_PWR_SLP_CTRL2/ANA_REG_GLB_PWR_SLP_CTRL3
+</td>
+<td>
+配置sleep时是否能进LP模式
+</td>
+</tr>
+<tr>
+<td>
+ANA_REG_GLB_PWR_SLP_CTRL4
+</td>
+<td>
+配置是否软件配置LP模式
+</td>
+</tr>
+<tr>
+<td>
+ANA_REG_GLB_PWR_XTL_ENx
+</td>
+<td>
+当有XTLx_EN或EXT_XTLx_EN时，是否打开ldo
+</td>
+</tr>
+</table>
+
+<ul>
+<li>
+注意事项
+ 0. DCDCCORE, DCDCMEM, DCDCGEN, VDD18, VDD28，这几个ldo总是打开
+
+</ul>
+
+<h3 id="toc_0.3.3">案例</h3>
+<ul>
+<li>
+通过a-die或d-die输出26M clock
+
+</ul>
+
+<pre>
+26M clock从RF那边输出
+一般RF会有CLK26M/REFOUT1/REFOUT2/REFOUT3这几路26M时钟源
+CLK26M一般作为MCLK_26M输出给d-die
+REFOUT1/REFOUT2/REFOUT3则作为其他设备的时钟源，如BT/WIFI等设备
+这些26M时钟是否打开，是在RF那边配置
+AP打开vddrf0这路电，就会根据配置打开26M时钟
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/rf3592_26m_clk.png" /></BR>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/rf3592_vddrf0.png" /></BR>
+</p>
+<pre>
+a-die有EXT_XTL_EN0/EXT_XTL_EN1来控制
+通过ldo_sleep里的配置，当外部有信号时，就会打开vddrf0这个ldo，从而使能RF，输出26M clock
+首先，要将a-die相应pin脚本使能
+再，设置EXT_XTL_EN0的配置，将VDDRF0打开
+
+patch:
+diff --git a/board/spreadtrum/sp8730sea/ldo_sleep.c b/board/spreadtrum/sp8730sea/ldo_sleep.c
+index ad0331d..a7016cf 100755
+--- a/board/spreadtrum/sp8730sea/ldo_sleep.c
++++ b/board/spreadtrum/sp8730sea/ldo_sleep.c
+@@ -36,6 +36,8 @@ void init_ldo_sleep_gr(void)
+ 
+        while((ANA_REG_GET(ANA_REG_GLB_PWR_WR_PROT_VALUE) &amp; BIT_PWR_WR_PROT) != BIT_PWR_WR_PROT);
+ 
++       ANA_REG_OR(ANA_REG_PIN_EXT_XTL_EN0, BIT_EXT_XTL_EN0_DSIN_MODE);
++
+        ANA_REG_SET(ANA_REG_GLB_LDO_DCDC_PD,
+                //BIT_LDO_EMM_PD |
+                //BIT_DCDC_TOPCLK6M_PD |
+@@ -414,7 +416,7 @@ void init_ldo_sleep_gr(void)
+                //BIT_LDO_RF1_XTL0_EN |
+                //BIT_LDO_RF0_EXT_XTL2_EN |
+                //BIT_LDO_RF0_EXT_XTL1_EN |
+-               //BIT_LDO_RF0_EXT_XTL0_EN |
++               BIT_LDO_RF0_EXT_XTL0_EN |
+                BIT_LDO_RF0_XTL2_EN |
+                BIT_LDO_RF0_XTL1_EN |
+                BIT_LDO_RF0_XTL0_EN |
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/2723_ext_xtl_en0.png" />
+</p>
+<pre>
+d-die也有相应的EXT_XTL_EN引脚，但它需要与XTL_BUF_EN相关联后，才能作用到a-die
+首先要将pinmap设为EXT_XTL_EN功能
+再将EXT_XTL_EN关联到XTL_BUF_EN，这个关联寄存器是在aon_apb_reg中的RES_REG0中的
+
+patch:
+diff --git a/board/spreadtrum/sp8730sea/ldo_sleep.c b/board/spreadtrum/sp8730sea/ldo_sleep.c
+index ad0331d..26771ee 100755
+--- a/board/spreadtrum/sp8730sea/ldo_sleep.c
++++ b/board/spreadtrum/sp8730sea/ldo_sleep.c
+@@ -732,6 +732,11 @@ void init_ldo_sleep_gr(void)
+                0
+        );
+ 
++       CHIP_REG_SET(REG_AON_APB_RES_REG0,
++               BITS_RES_REG0(BIT(2)) |
++               0
++       );
++
+        ANA_REG_SET(ANA_REG_GLB_SLP_WAIT_DCDCARM,
+                BITS_SLP_IN_WAIT_DCDCARM(7)             |
+                BITS_SLP_OUT_WAIT_DCDCARM(8)            |
+diff --git a/board/spreadtrum/sp8730sea/pinmap-sp8830.c b/board/spreadtrum/sp8730sea/pinmap-sp8830.c
+index 1a78545..549b73b 100644
+--- a/board/spreadtrum/sp8730sea/pinmap-sp8830.c
++++ b/board/spreadtrum/sp8730sea/pinmap-sp8830.c
+@@ -107,7 +107,7 @@ static pinmap_t pinmap[]={
+ {REG_PIN_SIMRST2,             BIT_PIN_SLP_AP|BIT_PIN_NULL|BITS_PIN_DS(1)|BITS_PIN_AF(3)|BIT_PIN_WPD|BIT_PIN_SLP_WPD|BIT_PIN_SLP_Z},
+ {REG_PIN_MEMS_MIC_CLK0,       BIT_PIN_SLP_AP|BIT_PIN_NULL|BITS_PIN_DS(1)|BITS_PIN_AF(3)|BIT_PIN_WPD|BIT_PIN_SLP_WPD|BIT_PIN_SLP_Z},
+ {REG_PIN_MEMS_MIC_DATA0,      BIT_PIN_SLP_AP|BIT_PIN_NULL|BITS_PIN_DS(1)|BITS_PIN_AF(3)|BIT_PIN_WPD|BIT_PIN_SLP_WPD|BIT_PIN_SLP_Z},//CHG_EN
+-{REG_PIN_MEMS_MIC_CLK1,       BIT_PIN_SLP_AP|BIT_PIN_NULL|BITS_PIN_DS(1)|BITS_PIN_AF(3)|BIT_PIN_WPU|BIT_PIN_SLP_WPU|BIT_PIN_SLP_Z},//OTG
++{REG_PIN_MEMS_MIC_CLK1,       BIT_PIN_SLP_AP|BIT_PIN_NULL|BITS_PIN_DS(1)|BITS_PIN_AF(1)|BIT_PIN_NUL|BIT_PIN_SLP_NUL|BIT_PIN_SLP_IE},//OTG
+ {REG_PIN_MEMS_MIC_DATA1,      BIT_PIN_SLP_AP|BIT_PIN_NULL|BITS_PIN_DS(1)|BITS_PIN_AF(3)|BIT_PIN_WPU|BIT_PIN_SLP_WPU|BIT_PIN_SLP_IE},//CHG_DONE
+ {REG_PIN_SD1_CLK,             BIT_PIN_SLP_CP2|BIT_PIN_NULL|BITS_PIN_DS(1)|BITS_PIN_AF(2)|BIT_PIN_NUL|BIT_PIN_SLP_WPD|BIT_PIN_SLP_Z},//W_AGC2
+ {REG_PIN_SD1_CMD,             BIT_PIN_SLP_CP2|BIT_PIN_NULL|BITS_PIN_DS(1)|BITS_PIN_AF(2)|BIT_PIN_NUL|BIT_PIN_SLP_WPD|BIT_PIN_SLP_Z},//WB_EN_A
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/9830_ext_xtl_en2.png" /></BR>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/2723_xtl_buf_en.png" /></BR>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/9830_xtl_buf_en.png" />
+</p>
+
+<hr />
+<h2 id="toc_0.4">附件</h2>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/read_regulator.sh">read_regulator.sh</a></BR>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/read_voltage.sh">read_voltage.sh</a></BR>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/ldo_sleep_config_v0.2.docx">ldo_sleep_config_v0.2.docx</a></BR>
+</p>
+
+</body>
+</html>

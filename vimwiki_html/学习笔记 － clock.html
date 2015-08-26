@@ -1,0 +1,435 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>学习笔记 － clock</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.1">clk关系</a>
+<ul>
+<li><a href="#toc_0.1.1">晶振</a>
+<ul>
+<li><a href="#toc_0.1.1.1">26M晶振</a>
+<li><a href="#toc_0.1.1.2">32K晶振</a>
+</ul>
+<li><a href="#toc_0.1.2">芯片时钟</a>
+<ul>
+<li><a href="#toc_0.1.2.1">rf时钟</a>
+<li><a href="#toc_0.1.2.2">d-die时钟</a>
+<li><a href="#toc_0.1.2.3">a-die时钟</a>
+</ul>
+</ul>
+<li><a href="#toc_0.2">PLL</a>
+<ul>
+<li><a href="#toc_0.2.1">freq list</a>
+<li><a href="#toc_0.2.2">config</a>
+<li><a href="#toc_0.2.3">验证PLL是否工作</a>
+</ul>
+<li><a href="#toc_0.3">代码阅读</a>
+<ul>
+<li><a href="#toc_0.3.1">相关文件</a>
+</ul>
+<li><a href="#toc_0.4">调试经验</a>
+<ul>
+<li><a href="#toc_0.4.1">文件节点</a>
+</ul>
+<li><a href="#toc_0.5">参考资料</a>
+</ul>
+</ul>
+</div>
+<p>
+<em>以下是sharkl芯片，三星CorePrimeLite项目为例</em>
+</p>
+
+<hr />
+<h2 id="toc_0.1">clk关系</h2>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/clk.png" />
+</p>
+
+<h3 id="toc_0.1.1">晶振</h3>
+<h4 id="toc_0.1.1.1">26M晶振</h4>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/tcxo.png" />
+</p>
+<pre>
+是供给RF，或其他模块（如GPS/BT/WIFI）的一个26M晶振
+它由VDD_DCXO供电，可以通过切断该ldo来关闭这个晶振。
+</pre>
+
+<h4 id="toc_0.1.1.2">32K晶振</h4>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/32k_osc.png" />
+</p>
+<pre>
+是供给a-die的一个32K晶振
+该晶振即使在断电或deepsleep时也会工作，它会供RTC、中断等模块工作。
+</pre>
+
+<h3 id="toc_0.1.2">芯片时钟</h3>
+<h4 id="toc_0.1.2.1">rf时钟</h4>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/rf3592_clk.png" />
+</p>
+<pre>
+输入：
+XO_P：接入26M晶振
+
+输出：
+CLK26M：经过调校，所以会更精确
+REFOUT1/2/3：将输入源直接输出，精度与输入源一致
+CLK_32K：暂时未用
+</pre>
+
+<h4 id="toc_0.1.2.2">d-die时钟</h4>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/d-die_clk.png" />
+</p>
+<pre>
+输入：
+CLK26M_SINE0/1：从RF这边来，可以接一个或两个，内部选择
+CLK_32K：从a-die这边来，供RTC/中断等模块，断电也会工作
+
+输出：
+CLK26m_SINE_O：供a-die
+</pre>
+
+<h4 id="toc_0.1.2.3">a-die时钟</h4>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/a-die_clk.png" /></BR>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/a-die_32k_clk.png" />
+</p>
+<pre>
+输入：
+CLK_26M：从d-die的26M过来
+XIN/XOUT：接入32K晶振
+
+输出：
+CLK_32K：给d-die的一个永远工作的32K时钟
+</pre>
+
+<hr />
+<h2 id="toc_0.2">PLL</h2>
+<h3 id="toc_0.2.1">freq list</h3>
+<table>
+<tr>
+<td>
+<strong>PLL Inst</strong>
+</td>
+<td>
+<strong>Freq Cfg</strong>
+</td>
+<td>
+<strong>Freq</strong>
+</td>
+</tr>
+<tr>
+<td>
+MPLL
+</td>
+<td>
+Configurable
+</td>
+<td>
+1.5G, 1.0G-2.0G
+</td>
+</tr>
+<tr>
+<td>
+DPLL
+</td>
+<td>
+Configurable
+</td>
+<td>
+1.334G, 800M-1400M
+</td>
+</tr>
+<tr>
+<td>
+TWPLL
+</td>
+<td>
+Fixed
+</td>
+<td>
+1536M
+</td>
+</tr>
+<tr>
+<td>
+LPLL
+</td>
+<td>
+Fixed
+</td>
+<td>
+1228.8M
+</td>
+</tr>
+<tr>
+<td>
+LVDSPLL
+</td>
+<td>
+Configurable
+</td>
+<td>
+1.0G, 800M-1400M
+</td>
+</tr>
+</table>
+
+<h3 id="toc_0.2.2">config</h3>
+<p>
+The following is MPLL register description</BR>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/MPLL_CFG.png" />
+</p>
+
+<pre>
+In each PLL cfg register, there is a bit to set the clock source, SINE0 or SINE1.
+Take MPLL for example, bit8 will decide who is the clock source. If set 0, it will use SINE0, otherwise, it will use SINE1.
+
+Other bits describe which sub system will use this PLL.
+
+PLL is configed in ldo_sleep.c. If BIT_xPLL_REF_SEL is set, this PLL will be in sine1, otherwise, it will be in sine0.
+298     CHIP_REG_SET(REG_PMU_APB_MPLL_REL_CFG,
+299         //BIT_MPLL_REF_SEL |
+300         //BIT_MPLL_ARM7_SEL |
+301         //BIT_MPLL_VCP1_SEL |
+302         //BIT_MPLL_VCP0_SEL |
+303         //BIT_MPLL_CP1_SEL |
+304         //BIT_MPLL_CP0_SEL |
+305         BIT_MPLL_AP_SEL |
+306         0
+307     );
+</pre>
+<pre>
+另外，XTLBUF是PLL的前端，RF的26M时钟先经过它，然后再check各个子系统判断是否输出PLL
+如果它没有被置位，那PLL也不会有时钟
+
+如下，所有的子系统都需要置位
+288     CHIP_REG_SET(REG_PMU_APB_XTLBUF1_REL_CFG,
+289         BIT_XTLBUF1_ARM7_SEL |
+290         BIT_XTLBUF1_VCP1_SEL |
+291         BIT_XTLBUF1_VCP0_SEL |
+292         BIT_XTLBUF1_CP1_SEL |
+293         BIT_XTLBUF1_CP0_SEL |
+294         BIT_XTLBUF1_AP_SEL |
+295         0
+296     );
+
+XTLBUF0对应sine0，XTLBUF1对应sine1
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/clock_pll.png" />
+</p>
+
+<h3 id="toc_0.2.3">验证PLL是否工作</h3>
+<pre>
+因为PLL没有触点可以来测量，所以只有从侧面来了解PLL是否运行正常，即用REG_PIN_CLK_AUX0这个引脚可以用来测量PLL是否工作正常。
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/clk_aux0_pin.png" />
+</p>
+<pre>
+该引脚可以设为AUX0（功能0），或PROBE（功能1），两个都可以测量时钟信号
+但默认开的是或PROBE功能，AUX0是关闭的，如想开启，需要置APB_EB1的使能位
+在sharkl上该寄存器地址为0x402e0004
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/aux0_clk_eb.png" />
+</p>
+<pre>
+再设对应接到哪个时钟源上
+sharkl该寄存器地址：0x402e0088
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/aux0_clk_sel.png" />
+</p>
+<pre>
+spec上的寄存器描述有问题，对应的时钟源如下
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/aux0_clk_cfg.png" />
+</p>
+
+<hr />
+<h2 id="toc_0.3">代码阅读</h2>
+<h3 id="toc_0.3.1">相关文件</h3>
+<table>
+<tr>
+<td>
+<strong>文件</strong>
+</td>
+<td>
+<strong>功能</strong>
+</td>
+</tr>
+<tr>
+<td>
+kernel/arch/arm/boot/dts/scx35l-clocks.dtsi
+</td>
+<td>
+dts
+</td>
+</tr>
+<tr>
+<td>
+kernel/arch/arm/mach-sc/clock-sc8830.c
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+kernel/drivers/clk/clk-sc.c
+</td>
+<td>
+clk设置
+</td>
+</tr>
+<tr>
+<td>
+kernel/drivers/clk/clk.c
+</td>
+<td>
+clk公用代码，文件节点的实现
+</td>
+</tr>
+</table>
+
+<hr />
+<h2 id="toc_0.4">调试经验</h2>
+<h3 id="toc_0.4.1">文件节点</h3>
+<ul>
+<li>
+/sys/kernel/debug/clk
+<pre>
+shell@scx35l_coreprimelite:/sys/kernel/debug/clk # cat clk_summary
+   clock                        enable_cnt  prepare_cnt  rate
+---------------------------------------------------------------------
+ clk_lvdspll                    0           0            1000000000
+    clk_44m_lvds                0           0            31250000  
+ clk_twpll                      1           1            1536000000
+    clk_12m                     0           0            12000000  
+       clk_hsic_ref             0           0            12000000  
+       clk_otg_ref              0           0            12000000  
+    clk_24m                     0           0            24000000  
+       clk_ccir                 0           0            24000000  
+    clk_38m4                    0           0            38400000  
+    clk_48m                     1           1            48000000  
+       clk_uart0                1           1            48000000  
+       clk_sensor               0           0            48000000  
+       clk_sdio2                0           0            48000000  
+    clk_51m2                    0           0            51200000  
+       clk_mspi                 0           0            51200000  
+    clk_64m                     0           0            64000000  
+       clk_ap_apb               0           0            64000000  
+    clk_76m8                    0           0            76800000  
+       clk_dcam                 0           0            76800000  
+       clk_isp                  0           0            76800000  
+       clk_vsp                  0           0            76800000  
+       clk_jpg                  0           0            76800000  
+    clk_96m                     0           0            96000000  
+       clk_spi2                 0           0            96000000  
+       clk_sdio1                0           0            96000000  
+    clk_128m                    0           0            128000000 
+       clk_arm7_ahb             0           0            128000000 
+       clk_aon_apb              0           0            128000000 
+          clk_mm                0           0            128000000 
+          clk_gpu_axi           0           0            128000000 
+          clk_gsp_emc           0           0            128000000 
+          clk_disp_emc          0           0            128000000 
+       clk_pub_ahb              0           0            128000000 
+    clk_153m6                   0           0            153600000 
+       clk_mm_ahb               0           0            153600000 
+          clk_csi               0           0            153600000 
+             clk_dcam_mipi      0           0            153600000 
+          clk_mm_ckg            0           0            153600000 
+          clk_mmu               0           0            153600000 
+       clk_iis3                 0           0            153600000 
+       clk_iis2                 0           0            153600000 
+       clk_iis1                 0           0            153600000 
+       clk_iis0                 0           0            153600000 
+       clk_nandc_ecc            0           0            153600000 
+    clk_192m                    0           0            192000000 
+       clk_nandc_2x             0           0            192000000 
+       clk_ap_ahb               0           0            192000000 
+    clk_256m                    0           0            256000000 
+       clk_gsp                  0           0            256000000 
+       clk_gpu                  0           0            256000000 
+       clk_zipdec               0           0            256000000 
+       clk_zipenc               0           0            256000000 
+       clk_dispc0_dbi           0           0            256000000 
+       clk_dispc0               0           0            256000000 
+    clk_307m2                   0           0            307200000 
+    clk_312m                    0           0            307200000 
+    clk_384m                    0           0            384000000 
+       clk_emmc                 0           0            384000000 
+       clk_sdio0                0           0            384000000 
+       clk_dispc0_dpi           0           0            34909090  
+    clk_512m                    0           0            512000000 
+    clk_768m                    0           0            768000000 
+       clk_mcu                  0           0            768000000 
+          clk_ca7_dbg           0           0            153600000 
+          clk_ca7_axi           0           0            256000000 
+ clk_ltepll                     0           0            1228800000
+    clk_614m4                   0           0            614400000 
+    clk_38m4_lte                0           0            38400000  
+ clk_dpll                       0           0            1280000000
+    clk_emc                     0           0            1280000000
+    clk_42m_d                   0           0            40000000  
+ clk_mpll                       0           0            1000000000
+    clk_56m_m                   0           0            31250000  
+ clk_pad                        0           0            64000000  
+ ext_4m                         0           0            4000000   
+ ext_2m                         0           0            2000000   
+ ext_1m                         0           0            1000000   
+ ext_26m_rf1                    0           0            26000000  
+ ext_32k                        1           1            32768     
+    clk_thm                     0           0            32768     
+    clk_pwm3                    0           0            32768     
+    clk_pwm1                    0           0            32768     
+    clk_pwm0                    0           0            32768     
+    clk_aux2                    0           0            32768     
+    clk_aux1                    0           0            32768     
+    clk_aux0                    2           2            32768     
+ ext_26m                        3           3            26000000  
+    clk_spi1                    0           0            26000000  
+    clk_spi0                    0           0            26000000  
+    clk_i2c4                    0           0            26000000  
+    clk_i2c3                    0           0            26000000  
+    clk_i2c2                    0           0            26000000  
+    clk_i2c1                    0           0            26000000  
+    clk_i2c0                    0           0            26000000  
+    clk_uart4                   0           0            26000000  
+    clk_uart3                   1           1            26000000  
+    clk_uart2                   1           1            26000000  
+    clk_uart1                   1           1            26000000  
+    clk_ca5_ts                  0           0            26000000  
+    clk_djtag_tck               0           0            26000000  
+    clk_ca7_ts                  0           0            26000000  
+    clk_ca7_dap                 0           0            26000000  
+    clk_audif                   0           0            26000000  
+    clk_avs                     0           0            26000000  
+    clk_i2c                     0           0            26000000  
+    clk_pwm2                    0           0            26000000  
+    clk_adi                     0           0            26000000  
+ clk_mm_axi                     0           0            0         
+    clk_mm_mtx_axi              0           0            0         
+</pre>
+
+</ul>
+
+<hr />
+<h2 id="toc_0.5">参考资料</h2>
+
+</body>
+</html>

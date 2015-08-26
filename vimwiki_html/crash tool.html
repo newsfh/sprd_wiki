@@ -1,0 +1,843 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>crash tool</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h2 id="toc_0.1">crash tool</h2>
+
+<ul>
+<li>
+crash是RedHat开发的专门用于kernel crash dump分析的工具。
+
+<li>
+crash依赖GNU gdb工作，并针对kernel增加了很多命令，能显著的简化kernel分析的工作。
+
+</ul>
+
+<ul>
+<li>
+crash的官方主页： <a href="http://people.redhat.com/anderson/">http://people.redhat.com/anderson/</a>
+
+<li>
+crash的官方说明： <a href="http://people.redhat.com/anderson/crash_whitepaper/">http://people.redhat.com/anderson/crash_whitepaper/</a>
+
+</ul>
+
+<ul>
+<li>
+crash使用的前提准备：
+
+<ul>
+<li>
+kernel object file: &lt; vmlinux &gt;
+
+<ul>
+<li>
+ Must have been built with the -g C flag so that it will contain the debug data required for symbolic debugging.
+
+<li>
+ Best to be the same kernel object file that is associated with the memory image.
+<pre>
+IF vmlinux is NOT associated with memory-image, do the following:
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+It is necessary to rebuild a kernel of the same configuration with the -g C flag.
+The essential change done by this kernel rebuild task is a modification of top-level Makefile of the kernel source tree, such that the CFLAGS definition contains the -g flag. 
+
+For example, this is the line that must be changed:
+______________________________________________________________________
+CFLAGS := $(CPPFLAGS) -Wall -Wstrict-prototypes -Wno-trigraphs -O2 \
+          -fno-strict-aliasing -fno-common
+______________________________________________________________________
+
+by adding the -g flag:
+______________________________________________________________________
+CFLAGS := $(CPPFLAGS) -Wall -Wstrict-prototypes -Wno-trigraphs -O2 \
+          -fno-strict-aliasing -fno-common -g
+______________________________________________________________________
+
+
+For example, since RHEL2.1 kernels are not built with -g, a kernel rebuild is required. 
+
+Upon rebuilding the kernel, a new vmlinux file will be created that contains the debug data required by crash. 
+However, the symbol values will not match those of the running or dumped kernel. 
+
+To deal with this inequity, the actual symbol values can be gathered from either the original non-debug vmlinux file or from its associated System.map file. 
+That being the case, two arguments must be supplied to crash to fully describe the running/dumped kernel: 
+1. The newly-created vmlinux file compiled with -g; &lt;NOT Stripped&gt;
+2. A source of the real symbol values. &lt;Orignal stripped vmlinux  ||  System.map file&gt;
+
+
+So, for example, if the vmlinux file built with -g were renamed to vmlinux.dbg, the invocation line would look like this on a live system:
+______________________________________________________________________
+# crash vmlinux vmlinux.dbg
+(or)
+# crash /boot/System.map vmlinux.dbg
+(or)
+# crash -S vmlinux.debug
+______________________________________________________________________
+The -S argument above is simply an alternative to entering the default /boot/System.map string.
+
+
+Similarly, when looking at a dumpfile, two arguments are required to describe the dumped kernel, along with the vmcore image:
+______________________________________________________________________
+# crash vmlinux vmlinux.dbg vmcore
+(or)
+# crash /boot/System.map vmlinux.dbg vmcore 
+(or)
+# crash -S vmlinux.dbg vmcore 
+______________________________________________________________________
+</pre>
+
+</ul>
+<li>
+memory image: &lt; a kernel crash dump file like &gt;
+
+<ul>
+<li>
+ Live Linux systems
+
+<li>
+ Linux kernel core dumps created by the Kdump facility
+
+<li>
+ Compressed Linux kernel core dumps created by the makedumpfile command (from kdump dumpfiles)
+
+<li>
+ Linux kernel core dumps created from by the Red Hat Netdump facility
+
+<li>
+ Linux kernel core dumps created from by the Red Hat Diskdump facility
+
+<li>
+ Compressed Linux kernel core dumps created by the Red Hat Diskdump facility
+
+<li>
+ Xen host Linux kernel core dumps created by the Kdump facility
+
+<li>
+ Xen guest Linux kernel core dumps created by the original xendump facility
+
+<li>
+ Xen guest Linux kernel core dumps created by the ELF-format xendump facility
+
+<li>
+ Xen hypervisor core dumps created by the Kdump facility
+
+<li>
+ KVM guest Linux kernel core dumps created by the virsh dump facility
+
+<li>
+ s390 Linux kernel core dumps created by the IBM standalone core dump facility.
+
+<li>
+ s390x Linux kernel core dumps created by the IBM standalone core dump facility.
+
+<li>
+ Linux kernel core dumps created by the LKCD (Linux Kernel Crash Dumps) Sourceforge project
+
+<li>
+ Linux kernel core dumps created by the Mcore patch offered by Mission Critical Linux
+<pre>
+If no dump file argument is issued on the crash command line, live system memory will be used by default. 
+When examining a live system, root privileges are required. 
+</pre>
+
+</ul>
+<li>
+platform processor types:  &lt; crash tool is built according to processor &gt;
+
+<ul>
+<li>
+ x86, x86_64, ia64, ppc64, arm, s390 and s390x;
+
+<li>
+ Legacy support for the Alpha and 32-bit PowerPC platforms exists, but no longer actively maintained.
+
+</ul>
+<li>
+Linux kernel versions:
+
+<ul>
+<li>
+ Due to the constantly shifting sands of the upstream kernel internals, immediate support for the latest kernel versions cannot be guaranteed.
+
+<li>
+ However, modifications are constantly being implemented to support changes in upstream kernel versions. 
+
+</ul>
+</ul>
+</ul>
+
+<ul>
+<li>
+crash工具的编译：
+
+<ul>
+<li>
+The crash utility's source files come packaged in two typical formats, a compressed tar image. or a source RPM file. So, crash tool can be built from either of them.
+
+<li>
+New Code: <a href="http://people.redhat.com/anderson">http://people.redhat.com/anderson</a>
+
+<li>
+The source file layout consists of a top-level directory containing :
+
+<ul>
+<li>
+ a set of crash-specific files.
+
+<li>
+ a compressed tar image containing the full, unmodified, gdb source tree.
+
+<li>
+ a small number of modified gdb files required to merge the two entities. 
+
+</ul>
+<li>
+The build procedure:
+
+<ul>
+<li>
+ 1. the unmodified gdb sources are extracted into a subdirectory of the top-level crash source directory, and overlayed by the small set of modified gdb files.
+
+<li>
+ 2. the files in the gdb source tree are built first, creating the libbfd.a, libreadline.a, libopcodes.a, libiberty.a and libgdb.a libraries. 
+
+<li>
+ 3. the crash sources files in the top-level directory are then compiled into a crashlib.a library.
+
+<li>
+ 4. the objects are all linked into the crash executable, located in the top-level directory. 
+<pre>
+Depending upon the speed of the host system, the complete build may take several minutes, primarily due to the time consumed by the build of the gdb portion:
+
+Example:
+
+# tar xvzmf crash-4.0-8.11.tar.gz
+crash-4.0-8.11/
+crash-4.0-8.11/main.c
+crash-4.0-8.11/tools.c
+crash-4.0-8.11/global_data.c
+...
+
+# cd crash-4.0-8.11
+
+# make or make target=ARM
+TARGET: X86
+ CRASH: 4.0-8.11
+   GDB: 6.1
+gdb-6.1/gdb/CONTRIBUTE
+gdb-6.1/gdb/COPYING
+gdb-6.1/gdb/ChangeLog
+...
+
+</pre>
+
+</ul>
+</ul>
+</ul>
+
+<ul>
+<li>
+crash工具的使用例子：
+
+<ul>
+<li>
+Need Arguments:
+
+<ul>
+<li>
+ kernel object file: vmlinux
+
+<li>
+ Dumpfile: memory image
+
+</ul>
+<li>
+SPRD Crash工具使用案例： “一次Hardware Watchdog重启的分析： 长按power键重启”
+
+<ul>
+<li>
+ 1. 通过sysdump抓出来的文件生成vmcore：
+<pre>
+$ cat sysdump.core* &gt; vmcore
+</pre>
+
+<li>
+ 2. 用crash工具load该vmcore文件和vmlinux：
+
+<ul>
+<li>
+ 对于物理内存是从0开始的方案：
+<pre>
+$ ./crash vmlinux vmcore
+</pre>
+
+<li>
+ 对于物理内存不是从0开始的方案：
+<pre>
+$ ./crash -m phys_base=0x80000000 vmlinux vmcore (有的pc上该命令不能识别，可以用下面的全称)
+或者
+$ ./crash --machdep physbase=0x80000000 vmlinux vmcore
+
+    注意：这里0x80000000是展讯定义的物理内存的起始地址
+
+使用例子：
+crash7.0.4 7.0.4
+Copyright (C) 2002-2013  Red Hat, Inc.
+Copyright (C) 2004, 2005, 2006, 2010  IBM Corporation
+Copyright (C) 1999-2006  Hewlett-Packard Co
+Copyright (C) 2005, 2006, 2011, 2012  Fujitsu Limited
+Copyright (C) 2006, 2007  VA Linux Systems Japan K.K.
+Copyright (C) 2005, 2011  NEC Corporation
+Copyright (C) 1999, 2002, 2007  Silicon Graphics, Inc.
+Copyright (C) 1999, 2000, 2001, 2002  Mission Critical Linux, Inc.
+This program is free software, covered by the GNU General Public License,
+and you are welcome to change it and/or distribute copies of it under
+certain conditions.  Enter "help copying" to see the conditions.
+This program has absolutely no warranty.  Enter "help warranty" for details.
+ 
+NOTE: setting phys_base to: 0x80000000
+GNU gdb (GDB) 7.6
+Copyright (C) 2013 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later &lt;http://gnu.org/licenses/gpl.html&gt;
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "--host=x86_64-unknown-linux-gnu --target=arm-elf-linux"...
+
+WARNING: could not retrieve crash_notes         
+please wait... (determining panic task)       
+WARNING: cannot get stackframe for task
+      KERNEL: vmlinux                   
+    DUMPFILE: vmcore
+        CPUS: 1
+        DATE: Sun Jan  1 12:49:29 2012
+      UPTIME: 04:49:29
+LOAD AVERAGE: 2.44, 3.56, 4.27
+       TASKS: 686
+    NODENAME: localhost
+     RELEASE: 3.10.17-00022-g6683da1
+     VERSION: #1 PREEMPT Sat Feb 8 04:01:38 CST 2014
+     MACHINE: armv7l  (unknown Mhz)
+      MEMORY: 256 MB
+       PANIC: ""
+         PID: 0
+     COMMAND: "swapper"
+        TASK: c0783ab0  [THREAD_INFO: c0760000]
+         CPU: 0
+       STATE: TASK_RUNNING 
+     WARNING: panic task not found
+
+crash&gt; 
+</pre>
+
+</ul>
+<li>
+ 3. 用crash分析vmcore：
+<pre>
+由于该例子本该是hardware watchdog重启，但是没有开启hardware watchdog，于是测试人员长按的power键重启。
+
+对于hardware watchdog重启，可以分析cpu寄存器信息： 
+1、sprd_sysdump_extra --&gt; 静态全局的，但是在本例子中，由于是长按power键，这个东西并没有从cpu寄存器拷贝到内存，因此都是0：
+$ crash&gt; sprd_sysdump_extra
+sprd_sysdump_extra = $8 = {
+  enter_id = -1, 
+  enter_cpu = -1, 
+  reason = "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000", 
+  cpu_context = {{
+      uregs = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+    }}
+}
+
+2、sprd_debug_last_regs_access --&gt; cpu最后一次访问寄存器信息保存在这里，在本例子中：
+$ crash&gt; sprd_debug_last_regs_access
+sprd_debug_last_regs_access = $9 = (struct sprd_debug_regs_access *) 0xcf440000
+
+3、知道了last regs的地址，直接查看该变量：
+$ crash&gt; struct sprd_debug_regs_access 0xcf440000 -x //x表示16进制
+struct sprd_debug_regs_access {
+  vaddr = 0xf5340004, 
+  value = 0x800, 
+  stack = 0xc41b3d78, 
+  pc = 0xc0391e80, 
+  time = 0x1a0bda, 
+  status = 0x0
+}
+
+4、查看pc对应的code： 这里没有太多帮助，但是其它地方可能有用
+$ crash&gt; dis 0xc0391e80
+0xc0391e80 &lt;__hwspin_trylock+128&gt;:      cmp     r0, #0
+
+5、根据sprd_debug_last_regs_access中记录的vaddr地址：0xf5340004，可以根据头文件中对寄存器地址的定义，来反推寄存器：
+1）对于 0xf5000000:
+在open grok中搜索到文件：sprdroid4.4prime_3.10/kernel/arch/arm/mach-sc/include/mach/__hardware-sc8830.h中有定义：
+#define SCI_IOMAP_BASE	0xF5000000 
+#define SCI_IOMAP(x)	(SCI_IOMAP_BASE + (x))
+2）对于 340000： 应该是用SCI_IOMAP(0x340000)得到的，在同样的文件中锁搜到：
+#define SPRD_MMAHB_BASE			SCI_IOMAP(0x340000)
+3）对于 4： 应该是做的加法而已，因此搜索SPRD_MMAHB_BASE，在同样的文件中：
+#define REGS_MM_AHB_BASE	SPRD_MMAHB_BASE
+4）在搜索REGS_MM_AHB_BASE，在文件sprdroid4.4prime_3.10/kernel/arch/arm/mach-sc/include/mach/chip_x15/__regs_mm_ahb_rf.h中有定义：
+#define REG_MM_AHB_AHB_RST                             SCI_ADDR(REGS_MM_AHB_BASE, 0x0004)
+5）根据value的值，可知是在操作第11bit位
+#define BIT_OR1200_SOFT_RST                               ( BIT(11) )
+6）查看sprd_debug_last_regs_access相关的code： 
+在文件sprdroid4.4prime_3.10/kernel/arch/arm/include/asm/io.h中：
+116extern struct sprd_debug_regs_access *sprd_debug_last_regs_access;
+117#if __LINUX_ARM_ARCH__ &lt; 6
+118/*
+119 * Half-word accesses are problematic with RiscPC due to limitations of
+120 * the bus. Rather than special-case the machine, just let the compiler
+121 * generate the access for CPUs prior to ARMv6.
+122 */
+123#define __raw_writew(v,a)  ({sprd_debug_regs_write_start(v, a); \
+124               __chk_io_ptr(a); \
+125               *(volatile unsigned short __force  *)(a) = (v); \
+126               sprd_debug_regs_access_done(); \
+127               })
+128#define __raw_readw(a)     ({sprd_debug_regs_read_start(a);\
+129               volatile unsigned short v;  \
+130               __chk_io_ptr(a); \
+131               v = *(volatile unsigned short __force  *)(a); \
+132               sprd_debug_regs_access_done(); \
+133               v;\
+134               })
+同时在文件中：查看sprd_debug_regs_read/write_start/done的定义：
+17#define sprd_debug_regs_read_start(a)	({u32 cpu_id, stack, lr;	\
+18		asm volatile(						\
+19			"	mrc	p15, 0, %0, c0, c0, 5\n"	\
+20			"	ands %0, %0, #0xf\n"			\
+21			"	mov %2, r13\n"				\
+22			"	mov %1, lr\n"				\
+23			: "=&amp;r" (cpu_id), "=&amp;r" (lr), "=&amp;r" (stack)	\
+24			:						\
+25			: "memory");					\
+26		if(sprd_debug_last_regs_access){			\
+27		sprd_debug_last_regs_access[cpu_id].value = 0;		\
+28		sprd_debug_last_regs_access[cpu_id].vaddr = (u32)a;	\
+29		sprd_debug_last_regs_access[cpu_id].stack = stack;	\
+30		sprd_debug_last_regs_access[cpu_id].pc = lr;		\
+31		sprd_debug_last_regs_access[cpu_id].status = 0;}	\
+32		})
+33
+34#define sprd_debug_regs_write_start(v, a)	({u32 cpu_id, stack, lr;	\
+35		asm volatile(						\
+36			"	mrc	p15, 0, %0, c0, c0, 5\n"	\
+37			"	ands %0, %0, #0xf\n"			\
+38			"	mov %2, r13\n"				\
+39			"	mov %1, lr\n"				\
+40			: "=&amp;r" (cpu_id), "=&amp;r" (lr), "=&amp;r" (stack)	\
+41			:						\
+42			: "memory");					\
+43		if(sprd_debug_last_regs_access){			\
+44		sprd_debug_last_regs_access[cpu_id].value = (u32)(v);	\
+45		sprd_debug_last_regs_access[cpu_id].vaddr = (u32)(a);	\
+46		sprd_debug_last_regs_access[cpu_id].stack = stack;	\
+47		sprd_debug_last_regs_access[cpu_id].pc = lr;		\
+48		sprd_debug_last_regs_access[cpu_id].status = 0;}	\
+49		})
+50
+51#define sprd_debug_regs_access_done()	({u32 cpu_id, lr;		\
+52		asm volatile(						\
+53			"	mrc	p15, 0, %0, c0, c0, 5\n"	\
+54			"	ands %0, %0, #0xf\n"			\
+55			"	mov %1, lr\n"				\
+56			: "=&amp;r" (cpu_id), "=&amp;r" (lr)			\
+57			:						\
+58			: "memory");					\
+59		if(sprd_debug_last_regs_access){			\
+60		sprd_debug_last_regs_access[cpu_id].time = jiffies;     \
+61		sprd_debug_last_regs_access[cpu_id].status = 1;}	\
+62		})
+63
+64#endif
+同时结合sprd_debug_regs_last_access结构体中的内容：
+value=0x8000
+status=0x0
+可以推断是在做__raw_writew()写寄存器的时候出现异常。
+7）在open grok中搜索BIT_OR1200_SOFT_RST的使用，得到的却只有定义：
+发现没有人用该宏去访问该急促器的第11bit位，只能怀疑是有人直接用1&lt;&lt;11偏移去访问的
+8) 因此在文件中搜索SPRD_MMAHB_BASE查找可能+4的地方，我没有找到，但是vsp driver负责人定位到了：
+__raw_writel((1&lt;&lt;4) |(1&lt;&lt;11), SPRD_MMAHB_BASE + 0x1004); ----&gt;直接通过偏移操作了寄存器的bit位，而没有用到该比特位的宏定义
+udelay(1);
+__raw_writel((1&lt;&lt;4) , SPRD_MMAHB_BASE + 0x2004);
+最后修改成了：
+sci_glb_set(SPRD_MMAHB_BASE+0x04, BIT(4)); ----&gt;这里去掉了对寄存器bit位11的操作？
+sci_glb_clr(SPRD_MMAHB_BASE+0x04, BIT(4));
+</pre>
+
+</ul>
+<li>
+在live system使用crash工具：
+
+<ul>
+<li>
+ 用/dev/mem作为memory image.
+
+<li>
+ 需要root权限.
+
+<li>
+ 仅需要vmlinux即可，但是vmlinux需要是带符号表的. 命令如下：
+<pre>
+# crash vmlinux
+</pre>
+
+<li>
+ 当vmlinux位于如下地方的时候，不需要指定，crash会根据正在运行状态kernel的/proc/version节点，来搜索如下所有的位置，直到找到一个match的：
+
+<ul>
+<li>
+ /
+
+<li>
+ /boot
+
+<li>
+ /usr/lib/debug/lib/modules/&lt;release&gt;
+
+<li>
+ /usr/src &amp; its subdir
+
+<li>
+ /usr/src/redhat/BUILD/kernel-x.x.x/linux-&lt;release&gt; 红冒linux用
+<pre>
+# crash
+</pre>
+
+</ul>
+</ul>
+<li>
+crash工具初始化常见错误：
+
+<ul>
+<li>
+ vmlinux没有符号表：
+<pre>
+crash: /boot/vmlinux-2.4.18-14: no debugging data available
+</pre>
+
+<li>
+ vmlinux &amp; vmcore不匹配：
+<pre>
+crash: vmlinux and vmcore do not match!
+</pre>
+
+<li>
+ 在live system上没有找到vmlinux：
+<pre>
+crash: cannot find booted kernel -- please enter namelist argument
+</pre>
+
+<li>
+ crash工具支持的cpu架构与vmlinux、vmcore不匹配：
+<pre>
+WARNING: machine type mismatch:
+         crash utility: X86
+         vmlinux: X86_64
+
+crash: vmlinux: not a supported file format
+</pre>
+
+<li>
+ vmcore起始地址不正确、vmcore不完整：
+<pre>
+crash: read error: kernel virtual address: c0558754  type: "cpu_possible_mask"
+</pre>
+
+<li>
+ vmcore格式不正确：
+<pre>
+crash: vmcore: not a supported file format
+</pre>
+
+</ul>
+</ul>
+</ul>
+
+<ul>
+<li>
+crash工具的详细使用说明：
+
+<ul>
+<li>
+Usage: 
+
+<ul>
+<li>
+crash [-h [opt]][-v][-s][-i file][-d num] [-S] [mapfile] [namelist] [dumpfile]
+<pre>
+  [namelist]
+    The [namelist] argument is a pathname to an uncompressed kernel image
+    (a vmlinux file) that has been compiled with the "-g" switch, or
+    that has an accessible, associated, debuginfo file.  If the [dumpfile]
+    argument is entered, then the [namelist] argument must be entered
+    If the [namelist] argument is not entered when running on a live
+    system, a search will be made in several typical directories for
+    for a kernel namelist file that matches the live system.
+ 
+  [dumpfile]
+    The [dumpfile] argument is a pathname to a kernel memory core dump
+    file.  If the [dumpfile] argument is not entered, the session will be
+    invoked on the live system using /dev/mem, which usually requires root
+    privileges.
+ 
+  [mapfile]
+    If the live system kernel, or the kernel from which the [dumpfile] 
+    was derived, was not compiled with the -g switch, then the additional
+    [mapfile] argument is required.  The [mapfile] argument may consist
+    of either the associated System.map file, or the non-debug kernel
+    namelist.  However, if the [mapfile] argument is used, then the
+    [namelist] argument must be a kernel namelist of a similar kernel
+    version that was built with the -g switch.
+ 
+  [-S]
+    Use "/boot/System.map" as the [mapfile].
+ 
+    Examples when running on a live system:
+ 
+      $ crash
+      $ crash /usr/tmp/vmlinux
+      $ crash /boot/System.map vmlinux.dbg
+      $ crash -S vmlinux.dbg
+      $ crash vmlinux vmlinux.dbg
+ 
+    Examples when running on a dumpfile:
+ 
+      $ crash vmlinux vmcore
+      $ crash /boot/System.map vmlinux.dbg vmcore
+      $ crash -S vmlinux.dbg vmcore
+      $ crash vmlinux vmlinux.dbg vmcore
+ 
+  [-h [opt]]
+    The -h option alone displays this message.  If the [opt] argument is
+    a crash command name, the help page for that command is displayed.  If
+    the string "input" is entered, a page describing the various crash
+    command line input options is displayed.  If the string "output" is
+    entered, a page describing command line output options is displayed.
+ 
+  [-v]
+    Display the versions of crash and gdb making up this executable.
+ 
+  [-s]
+    Do not display any version, GPL, or crash initialization data; proceed
+    directly to the "crash&gt;" prompt.
+ 
+  [-i file]
+    Execute the crash command(s) in [file] prior to accepting any user
+    input from the "crash&gt;" prompt.
+ 
+  [-d num]
+    Set crash debug level [num].  The higher the number, the more debug data
+    will be printed during crash runtime.
+</pre>
+
+</ul>
+<li>
+Commands：
+
+<ul>
+<li>
+$ ./crash -h / --help： 显示帮助
+
+<li>
+$ ./crash -v / --version： 显示crash的版本信息
+
+<li>
+crash&gt; h： 查看history，使用过的命令
+<pre>
+crash&gt; h
+
+[1] bt -a
+[2] ps
+[3] foreach bt。
+[4] set 
+[5] dis -rl c0221141
+crash&gt;
+</pre>
+
+<li>
+crash&gt; r (or) !!：使用刚刚用过的命令，同up-arrow。
+
+<li>
+crash&gt; task $PID：查看PID的进程的task struct 与 thread info。
+<pre>
+crash&gt; task 1
+PID: 1      TASK: cec38000  CPU: 0   COMMAND: "init"
+struct task_struct {
+  state = 1, 
+  stack = 0xcec3a000, 
+  usage = {
+    counter = 2
+  }, 
+  flags = 1077936384, 
+  ptrace = 0, 
+...
+struct thread_info {
+  flags = 0, 
+  preempt_count = 2, 
+  addr_limit = 3204448256, 
+  task = 0xcec38000, 
+...
+crash&gt;
+</pre>
+
+<li>
+crash&gt; log：查看__log_buf中的内容，sprd即当时内存中保存的kernel log。
+<pre>
+crash&gt; log
+...
+[17369.494140] c0 DCAM: sof 1 wait 
+[17369.507041] c0 ZRAM: min_score_adj:176, zram_score_adj:230
+[17369.574099] c0 DCAM: No freed frame 
+[17369.574121] c0 DCAM: sof 1 wait 
+[17369.614087] c0 DCAM: No freed frame 
+[17369.614109] c0 DCAM: sof 1 wait 
+[17369.654068] c0 DCAM: No freed frame 
+[17369.654089] c0 DCAM: sof 1 wait 
+...
+crash&gt;
+</pre>
+
+<li>
+crash&gt; ps：查看当前系统进程信息。
+<pre>
+crash&gt; ps
+   PID    PPID  CPU   TASK    ST  %MEM     VSZ    RSS  COMM
+      0      0   0  c0783ab0  RU   0.0       0      0  [swapper]
+      1      0   0  cec38000  IN   0.1     568    176  init
+      2      0   0  cec382c0  IN   0.0       0      0  [kthreadd]
+      3      2   0  cec38580  IN   0.0       0      0  [ksoftirqd/0]
+      5      2   0  cec38b00  IN   0.0       0      0  [kworker/0:0H]
+      7      2   0  cec39080  IN   0.0       0      0  [khelper]
+      8      2   0  cec39340  IN   0.0       0      0  [suspend_sys_syn]
+...
+crash&gt; 
+</pre>
+
+<li>
+crash&gt; p $VAR：打印变量VAR的内容
+<pre>
+crash&gt; p sprd_debug_last_regs_access
+sprd_debug_last_regs_access = $14 = (struct sprd_debug_regs_access *) 0xcf440000
+crash&gt; 
+</pre>
+
+<li>
+crash&gt; rd \(ADDR \)NUM：读取内存地址\(ADDR起始的\)NUM个内存信息。
+<pre>
+crash&gt; rd cc69d600 32
+cc69d600:  c19bb780 cdadc840 ce3ab790 cd8f7aa0   ....@.....:..z..
+cc69d610:  cdc3e918 c055ad88 00000001 00020002   ......U.........
+cc69d620:  0000001f 00000000 00000000 00000000   ................
+cc69d630:  00000000 00000000 00000000 00000000   ................
+cc69d640:  00000000 cd79c000 00000000 00000000   ......y.........
+cc69d650:  00000000 00000000 00000000 00000000   ................
+cc69d660:  ffffffff ffffffff 00000000 00000000   ................
+cc69d670:  cb4f5a20 cc69d674 cc69d674 cc69d67c    ZO.t.i.t.i.|.i.
+crash&gt; 
+</pre>
+
+<li>
+crash&gt; bt $PID：查看进程PID的stack trace。
+<pre>
+crash&gt; bt 123
+PID: 123    TASK: cd08a000  CPU: 0   COMMAND: "sdcard"
+ #0 [&lt;c0529ffc&gt;] (__schedule) from [&lt;c01b1b84&gt;]
+ #1 [&lt;c01b1b84&gt;] (fuse_dev_do_read) from [&lt;c01b2374&gt;]
+ #2 [&lt;c01b2374&gt;] (fuse_dev_read) from [&lt;c00b7f7c&gt;]
+ #3 [&lt;c00b7f7c&gt;] (do_sync_read) from [&lt;c00b8994&gt;]
+ #4 [&lt;c00b8994&gt;] (vfs_read) from [&lt;c00b8b3c&gt;]
+ #5 [&lt;c00b8b3c&gt;] (sys_read) from [&lt;c000f400&gt;]
+    pc : [&lt;b6eec2b8&gt;]    lr : [&lt;b6f4080d&gt;]    psr: 60070010
+    sp : b6cfed58  ip : bea02978  fp : b6f4177a
+    r10: b6f4179b  r9 : b6f41755  r8 : b6f42ebc
+    r7 : 00000003  r6 : b6e3d060  r5 : b79eb118  r4 : b6e3d068
+    r3 : b6cfed34  r2 : 00040050  r1 : b6e3d068  r0 : 00000003
+    Flags: nZCv  IRQs on  FIQs on  Mode USER_32  ISA ARM
+crash&gt; 
+</pre>
+
+<li>
+crash&gt; set：查看cpu上当前的context。
+<pre>
+crash&gt; set
+    PID: 0
+COMMAND: "swapper"
+   TASK: c0783ab0  [THREAD_INFO: c0760000]
+    CPU: 0
+  STATE: TASK_RUNNING 
+crash&gt; 
+</pre>
+
+<li>
+crash&gt; set $PID （or）set task_struct_addr：将进程PID（或者：task_struct地址为task_struct_addr的）的context设置为当前的context。
+<pre>
+crash&gt; set 1
+    PID: 1
+COMMAND: "init"
+   TASK: c7f98000
+    CPU: 0
+  STATE: TASK_RUNNING
+crash&gt; set c0a52000
+
+    PID: 1503
+COMMAND: "cat"
+   TASK: c0a52000
+    CPU: 0
+  STATE: TASK_INTERRUPTIBLE
+crash&gt;
+</pre>
+
+<li>
+crash&gt; set -c cpu-number：将cpu-number上正在运行程task设置成当前的task。
+<pre>
+crash&gt; set -c 0
+    PID: 1696
+COMMAND: "insmod"
+   TASK: c74de000
+    CPU: 0
+  STATE: TASK_RUNNING (PANIC)
+crash&gt;
+</pre>
+
+<li>
+crash&gt; set -p：返回panic task。
+<pre>
+crash&gt; set -p
+    PID: 1696
+COMMAND: "insmod"
+   TASK: c74de000
+    CPU: 0
+  STATE: TASK_RUNNING (PANIC)
+crash&gt;
+</pre>
+
+</ul>
+<li>
+自定义Commands：
+
+<ul>
+<li>
+ ：
+
+<li>
+ ：
+
+</ul>
+</ul>
+</ul>
+
+<hr />
+<h2 id="toc_0.2">附件</h2>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/crash.zip">crash.zip</a></BR>
+</p>
+
+</body>
+</html>

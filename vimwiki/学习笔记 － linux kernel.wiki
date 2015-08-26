@@ -1,0 +1,21 @@
+=== 学习笔记 ===
+[[linux学习笔记 － 进程调度]]</BR>
+[[linux学习笔记 － 内存管理]]</BR>
+[[linux学习笔记 － 时钟管理]]</BR>
+[[linux学习笔记 － 中断系统]]</BR>
+[[linux学习笔记 － 同步机制]]</BR>
+[[linux学习笔记 － governor]]</BR>
+[[linux_note_system_call|linux学习笔记 － 系统调用]]<BR>
+[[linux学习笔记 － device tree]]</BR>
+[[linux学习笔记 － boot.img布局]]</BR>
+[[linux_note_common_API|linux学习笔记 － 常用API]]<BR>
+
+----
+=== 参考资料 ===
+[[http://www.cnblogs.com/wang_yb/p/3514730.html|《Linux内核设计与实现》读书笔记 - 目录]]</BR>
+[[http://oss.org.cn/kernel-book/|深入分析Linux内核源码]]</BR>
+[[http://oss.org.cn/ossdocs/gnu_linux/kernel-api/|The Linux Kernel API]]</BR>
+[[http://oss.org.cn/kernel-book/ldd3/index.html|Linux 设备驱动 Edition 3]]</BR>
+[[http://bbs.chinaunix.net/thread-2039668-1-1.html|arm linux kernel 从入口到start_kernel 的代码分析]]</BR>
+[[http://lli_njupt.0fees.net/index.html|Linux内核学习和研究及嵌入式(ARM)学习和研究的开放文档]]</BR>
+
