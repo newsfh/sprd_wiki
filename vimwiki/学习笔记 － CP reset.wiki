@@ -158,6 +158,26 @@ endif # TARGET_BUILD_VARIANT == user
 }}}
 
 ----
+=== kernel boot cp ===
+==== 原理 ====
+{{{
+在u-boot阶段，不去加载和启动cp的代码
+在整个android加载完启动modem_control服务时，会判断是否是kernel boot cp的功能，如果是，就去加载并启动cp
+判断的依据是，uboot会传“modem=shutdown”这个cmdline给kernel，modem_control判断是否有这个参数
+}}}
+
+==== config ====
+{{{
+在u-boot的项目头文件里定义CONFIG_KERNEL_BOOT_CP
+}}}
+
+==== 代码 ====
+{{{
+实现代码在：vendor/sprd/open-source/apps/modem_control/modem_control.c
+modem_ctrl_listen_thread会去调用modem_ctrl_parse_cmdline("shutdown")
+}}}
+
+----
 === Loading modem ===
 ==== modemd ====
 {{{
