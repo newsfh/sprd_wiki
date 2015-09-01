@@ -11,17 +11,17 @@ CPU Power Management  --->
 ----
 === DFS ===
 {{{
-kernel配置：CONFIG_SCX35L_SCENARIO_DFS
-kernel代码：kernel/drivers/misc/scx35_scenario_dmc.c
+sharkls的DFS配置：
 现在做成场景变频，AP侧是灭屏/亮屏时请求arm7变频，但arm7是否变频，还需根据CP的请求综合评定
 
-Power management options  --->
-    Operating Performance Point (OPP) Layer library
-    将此关闭，则DFS就不起作用了
+kernel配置：加上CONFIG_SCX35L_SCENARIO_DFS、去掉CONFIG_SIPC_PMIC
+kernel代码：kernel/drivers/misc/scx35_scenario_dmc.c
 
-Device Drivers  --->
-    Generic Dynamic Voltage and Frequency Scaling (DVFS) support  --->
-        再先governor和driver
+u-boot项目头文件加上：
+#define DFS_ON_ARM7	49
+#define DFS_PARAM_SRC_ADDR     0x0001c0c	50
+#define DFS_PARAM_TARGET_ADDR  0x50805400	51
+#define DFS_PARAM_LEN  0x400
 }}}
 
 ----

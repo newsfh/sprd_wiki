@@ -1,5 +1,4 @@
 ----
-== 20130820 ==
 === 抓log命令 ===
 {{{
 makesure all log output：
@@ -50,7 +49,6 @@ eng_modem2server  从phonserver读取内容
 }}}
 
 ----
-== 20130905 ==
 === sprdroid4.3 open ===
 {{{
 如果open以O_CREAT方式找开，后面需要加权限，如0660
@@ -62,7 +60,6 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/cai_20130807_logan
 }}}
 
 ----
-== 20130906 ==
 === LCD分频计算方式 ===
 {{{
 原始频率为384M，dpi使用时需要分频
@@ -72,7 +69,6 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/cai_20130807_logan
 }}}
 
 ----
-== 20130909 ==
 === lookat命令 ===
 {{{
 查看内存、寄存器的内容，如
@@ -89,7 +85,6 @@ lookat -l2 0x20900220
 }}}
 
 ----
-== 20130911 ==
 === 编译器对齐问题 ===
 {{{
 现有数据结构如下
@@ -154,7 +149,6 @@ typedef struct bmp_image {
 反编译u-boot，可以用arm-eabi-objdump -D u-boot
 }}}
 
-== 20130916 ==
 === git更新仓库 ===
 {{{
 git pull
@@ -166,7 +160,6 @@ adb shell gsnap /data/1.jpg /dev/graphics/fb0
 }}}
 
 ----
-== 20130918 ==
 === add board ===
 {{{
 http://wikiserver.spreadtrum.com/SoftwareSystem/wiki/add_board-renwei-4%E6%9C%887
@@ -178,7 +171,6 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/mengya_130423_debu
 }}}
 
 ----
-== 20130923 ==
 === service list ===
 {{{
 列举手机启动的服务
@@ -189,7 +181,6 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/mengya_130423_debu
 获取某个属性值
 }}}
 
-== 20130929 ==
 === FPGA启动 ===
 {{{
 1、开电源
@@ -198,13 +189,11 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/mengya_130423_debu
 4、开trace32，运行AP脚本，如果要切到CP，刚运行CP的脚本
 }}}
 
-== 20131001 ==
 === gpio配置 ===
 {{{
 http://10.0.64.31/AP-Android/wiki/PinGpioUserGuide
 }}}
 
-== 20131009 ==
 === board配置 ===
 {{{
 u-boot: http://review.source.spreadtrum.com/gerrit/#/c/70198/
@@ -221,7 +210,6 @@ ssh huafang@10.0.0.180
 }}}
 
 ----
-== 20131011 ==
 === 文档 ===
 {{{
 git clone gitosis@sprdroid.git.spreadtrum.com.cn:doc
@@ -233,7 +221,6 @@ http://10.0.64.31/AP-Android/wiki/UpdateRepoNew
 }}}
 
 ----
-== 20131015 ==
 === fastboot ===
 {{{
 1. sudo adb reboot bootloader
@@ -242,14 +229,12 @@ http://10.0.64.31/AP-Android/wiki/UpdateRepoNew
 可参考 http://10.0.64.31/AP-Android/wiki/How%20to%20use%20Android%20fastboot%20tool
 }}}
 
-== 20131017 ==
 === slogctl ===
 {{{
 slogctl off，将slog关闭，否则kmsg显示不正常
 }}}
 
 ----
-== 20131023 ==
 === 更新某个仓库 ===
 {{{
 1. repo sync
@@ -263,14 +248,12 @@ korg可以在.git/config里查remote标签，sprdroid4.1可以在manifest.xml里
 }}}
 
 ----
-== 20131030 ==
 === 如何编译三星的kernel ===
 {{{
 http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/samsung%20kernel%20build
 }}}
 
 ----
-== 20131112 ==
 === defconfig文件 ===
 {{{
 生成defconfig：kdconfig => kuconfig
@@ -278,7 +261,6 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/samsung%20kernel%2
 }}}
 
 ----
-== 20131115 ==
 === 列出指定后缀的文件列表 ===
 {{{
 在源代码的根目录下执行以下命令
@@ -289,7 +271,6 @@ find . -wholename ./out -prune -o -wholename ./.repo -prune -o -type f -regextyp
 }}}
 
 ----
-== 20131121 ==
 === 内核代码规范 ===
 {{{
 http://10.0.64.31/AP-Android/wiki/LinuxProgrammingDesignGuide
@@ -307,7 +288,6 @@ http://kernelnewbies.org/Linux_3.10-DriversArch
 }}}
 
 ----
-== 20131126 ==
 === linux mount上海 外传内共享目录的方法 ===
 {{{
 sudo mount -t cifs -o username=你的用户名,password=你的密码,domain=tsn,uid=$(id -u),gid=$(id -g) //10.0.0.165/To_Internal ~/to_internal
@@ -319,7 +299,6 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/mengya_110810_visi
 }}}
 
 ----
-== 20131127 ==
 === OpenGrok ===
 {{{
 天津  http://10.5.2.45:8080/
@@ -327,14 +306,12 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/mengya_110810_visi
 }}}
 
 ----
-== 20131129 ==
 === 客户版本发布 ===
 {{{
 http://10.0.64.31/AP-Android/wiki/MocorSmartReleaseNotes
 }}}
 
 ----
-== 20131224 ==
 === 用BeyondCompare做差分包 ===
 {{{
 BeyondCompare对比两个目录，列出所有不一样的文件
@@ -343,7 +320,6 @@ BeyondCompare对比两个目录，列出所有不一样的文件
 }}}
 
 ----
-== 20140210 ==
 === 连接服务器 ===
 {{{
 ssh本机：
@@ -357,14 +333,12 @@ sudo mount -t cifs -o username=hua.fang,password=12abAB,uid=$(id -u),gid=$(id -g
 }}}
 
 ----
-== 20140211 ==
 === 切换到tag ===
 {{{
 repo forall -c "git checkout <TAG_name>"
 }}}
 
 ----
-== 20140226 ==
 === 修改CP基址和大小 ===
 {{{
 u-boot部分：
@@ -464,7 +438,6 @@ static struct cproc_init_data sprd_cproc_td_pdata = {
 }}}
 
 ----
-== 20140313 ==
 === 拉分支 ===
 {{{
 给summer.duan发邮件，让她拉分支。
@@ -479,7 +452,6 @@ static struct cproc_init_data sprd_cproc_td_pdata = {
 }}}
 
 ----
-== 20140325 ==
 === DS-5 ===
 {{{
 http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/%E4%BD%BF%E7%94%A8DS-5%E6%80%A7%E8%83%BD%E5%88%86%E6%9E%90%E5%B7%A5%E5%85%B7
@@ -487,14 +459,12 @@ http://10.0.64.31/AP-Android/attachment/wiki/DebugTools/DS-5%E7%8E%AF%E5%A2%83%E
 }}}
 
 ----
-== 20140410 ==
 === SS SDK git ===
 {{{
 repo init -b Samsung_Kernel_Base -u gitosis@sprdroid.git.spreadtrum.com.cn:SSKernel/manifest --repo-url=gitosis@sprdroid.git.spreadtrum.com.cn:tools/repo.git
 }}}
 
 ----
-== 20140412 ==
 === 烧image ===
 {{{
 1. 从手机里提取image
@@ -510,7 +480,6 @@ dd if=/data/boot.img of=/dev/block/platform/sprd-sdhci.3/by-name/KERNEL
 }}}
 
 ----
-== 20140507 ==
 === 通过adb发AT命令 ===
 {{{
 1. 找到对应的SIPC通道，
@@ -536,7 +505,6 @@ ro.modem.tl.tty=/dev/stty_lte
 
 
 ----
-== 20140702 ==
 === sysdump搜log ===
 {{{
 strings sysdump.core.01_0x80000000-0x87ffffff_dump.lst > a.txt
@@ -544,14 +512,12 @@ strings sysdump.core.01_0x80000000-0x87ffffff_dump.lst > a.txt
 }}}
 
 ----
-== 20140708 ==
 === samsung doc ===
 {{{
 \\hw06\HW_Doc\2 Function\10 T1\SAMSUNG
 }}}
 
 ----
-== 20140731 ==
 === 公共盘 ===
 {{{
 \\shnas2\Dept_Folder\FPD          ----用来存放临时文件及log等，记得经常清空
@@ -559,7 +525,6 @@ P:\PLD\Samsung                    ----用来存放项目相关的文档、patch�
 }}}
 
 ----
-== 20140819 ==
 === light sleep ===
 {{{
 echo any_wake_lock > /sys/power/wake_lock
@@ -570,7 +535,6 @@ echo 1 > /sys/module/cpuidle_scx35/parameters/cpuidle_debug
 }}}
 
 ----
-== 20140827 ==
 === CSFB多形态命名方案建议 ===
 {{{
 总体命名：CCD5
@@ -596,7 +560,6 @@ CPD3   (针对公开市场3mode)
 }}}
 
 ----
-== 20140902 ==
 === Power Management ===
 [[http://10.0.64.31/AP-Android/wiki/Power%20Management|Power Management]]
 
@@ -605,18 +568,15 @@ CPD3   (针对公开市场3mode)
 [[local:files/build.patch|不用搜所有Android.mk的patch]]
 
 ----
-== 20140906 ==
 === parse log ===
 [[http://10.0.64.31/AP-Android/wiki/parse_log|parse log]]</BR>
 [[http://10.0.64.31/AP-Android/wiki/DebugTools|debug tools]]
 
 ----
-== 20140923 ==
 === WIKI format ===
 [[http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/WikiFormatting|WikiFormat]]
 
 ----
-== 20140929 ==
 === cp log ===
 {{{
 GED cp LOG：
@@ -627,12 +587,10 @@ GED cp LOG：
 }}}
 
 ----
-== 20141006 ==
 === modify modem size ===
 [[http://bugzilla.spreadtrum.com/bugzilla/show_bug.cgi?id=354198|modify modem size sample]]
 
 ----
-== 20141015 ==
 === 芯片失效分析手段 ===
 {{{
 降频：
@@ -649,7 +607,6 @@ vddcore：1.2v
 }}}
 
 ----
-== 20141111 ==
 === 各sdhci涵义 ===
 {{{
 sdhci0: t卡
@@ -659,7 +616,6 @@ sdhci3: emmc
 }}}
 
 ----
-== 20141117 ==
 === 校准模式mount sdcard，打开adb，抓slog ===
 {{{
 on cali
@@ -681,7 +637,6 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/sdb%E5%AE%89%E8%A3
 }}}
 
 ----
-== 20141125 ==
 === cp reset ===
 {{{
 1.ap patch：
@@ -697,7 +652,6 @@ Comment 31 cmadmin 2014-11-19 11:11:16 CST
 }}}
 
 ----
-== 20141207 ==
 === 关闭kernel console ===
 {{{
 一般，u-boot传给kernel的cmd是console=ttyS1,115200n8 no_console_suspend
@@ -781,7 +735,6 @@ u-boot/common/console.c
 }}}
 
 ----
-== 20141208 ==
 === DDR频点 ===
 {{{
 lpddr2支持：    200 384 400 466
@@ -789,14 +742,12 @@ lpddr3支持：192 200 384 400 500 640
 }}}
 
 ----
-== 20141212 ==
 === Power Management ===
 {{{
 http://10.0.64.31/AP-Android/wiki/Power%20Management
 }}}
 
 ----
-== 20141216 ==
 === 打印64位数 ===
 {{{
 printk("%llu", u64);
@@ -818,7 +769,6 @@ ktime_to_ms将ktime结构转换成ms
 }}}
 
 ----
-== 20141217 ==
 === 校准模式下保存armlog到t卡 ===
 {{{
 device/sprd/scx35/recovery/init.rc
@@ -828,7 +778,6 @@ on property:ro.bootmode=cali
 }}}
 
 ----
-== 20150104 ==
 === check current ddr freq ===
 {{{
 adb shell cat /d/clk/clk_summary | grep clk_emc?
@@ -843,7 +792,6 @@ then the current ddr frequence is 384M
 }}}
 
 ----
-== 20150109 ==
 === 寄存器虚拟地址映射 ===
 {{{
 调用地址映射的接口：
@@ -874,7 +822,6 @@ kernel/arch/arm/mach-sc/io-sc8830.c
 }}}
 
 ----
-== 20150112 ==
 === DCXO/TCXO/VC-TCXO ===
 {{{
 精准度：DCXO < TCXO < VC-TCXO
@@ -888,7 +835,6 @@ VC-TCXO:
 }}}
 
 ----
-== 20150122 ==
 === cpu升频升压 ===
 {{{
 cpu每档都有对应的vddarm电压值
@@ -904,7 +850,6 @@ cpu每档都有对应的vddarm电压值
 }}}
 
 ----
-== 20150123 ==
 === 截取文件内容命令/提取cp的内存 ===
 {{{
 dd if=sysdump.core.01_0x80000000-0xafffffff_dump.lst of=temp.mem bs=1048576 skip=150 count=64
@@ -921,14 +866,12 @@ dd if=sysdump.core.01_0x80000000-0xafffffff_dump.lst of=cp.mem bs=1048576 skip=1
 }}}
 
 ----
-== 20150127 ==
 === getevent ===
 {{{
 获取input event列表：getevent命令， getevent -lt /dev/input/event1可看到event1里的相关信息
 }}}
 
 ----
-== 20150129 ==
 === 模拟重启modem ===
 {{{
 setprop persist.sys.sprd.modemreset 1
@@ -936,7 +879,6 @@ echo "AT+SPATASSERT=1\r" > /dev/stty_lte31
 }}}
 
 ----
-== 20150216 ==
 === 屏幕横竖屏设置 ===
 {{{
 device/sprd/scx35_tsharkgoyave/system.prop
@@ -946,7 +888,6 @@ device/sprd/scx35_tsharkgoyave/system.prop
 }}}
 
 ----
-== 20150227 ==
 === 校准模式下抓armlog ===
 {{{
 === device/sprd/scx35/recovery/init.rc ===
@@ -991,14 +932,12 @@ lookat -s 0x285580 0x402a0008
 }}}
 
 ----
-== 20150302 ==
 === 看light sleep的log ===
 {{{
 ./sys/module/cpuidle_scx35/parameters/cpuidle_debug
 }}}
 
 ----
-== 20150309 ==
 === a-die chip id ===
 {{{
 chipid由两部分组成：ANA_REG_GLB_CHIP_ID_HIGH/ANA_REG_GLB_CHIP_ID_LOW
@@ -1010,14 +949,12 @@ sci_get_ana_chip_id/sci_get_ana_chip_ver
 }}}
 
 ----
-== 20150310 ==
 === WPA ===
 {{{
 WPA这路电由ps来控制，在ldo_sleep.c里，不能配置成sleep power down，否则dsp会有问题
 }}}
 
 ----
-== 20150325 ==
 === vi显示^M ===
 {{{
 用命令打开文件
@@ -1027,7 +964,6 @@ set fileformats=unix设置为unix格式
 }}}
 
 ----
-== 20150326 ==
 === enable engpc ===
 {{{
 persist.sys.engpc.disable : 控制engpc的开关
@@ -1036,7 +972,6 @@ persist.sys.engpc.disable : 控制engpc的开关
 }}}
 
 ----
-== 20150401 ==
 === 开启/关闭服务 ===
 {{{
 c代码：
@@ -1089,7 +1024,6 @@ kernel/include/uapi/asm-generic/errno-base.h
 }}}
 
 ----
-== 20150408 ==
 === 工具前缀 ===
 {{{
 arm: arm-eabi-
@@ -1122,7 +1056,6 @@ allow engpc sysfs:file write;
 }}}
 
 ----
-== 20150413 ==
 === ANA_REG_GLB_PWR_WR_PROT_VALUE ===
 {{{
 ANA_REG_GLB_PWR_WR_PROT_VALUE需要根据spec来设置相应的值，如果设置完正确的值后，就可以修改ANA_REG_GLB_LDO_DCDC_PD，否则无法修改
@@ -1130,14 +1063,12 @@ ANA_REG_GLB_PWR_WR_PROT_VALUE需要根据spec来设置相应的值，如果设�
 }}}
 
 ----
-== 20150418 ==
 === 打印函数名 ===
 {{{
 printk("%pF\n", printk);
 }}}
 
 ----
-== 20150420 ==
 === 生成manifest.xml ===
 {{{
 repo manifest -o ~/manifest.xml -r
@@ -1150,7 +1081,6 @@ repo manifest -o ~/manifest.xml -r
 }}}
 
 ----
-== 20150424 ==
 === panic后不重启 ===
 {{{
 kernel/drivers/platform/sprd/sys_reset.c
@@ -1190,14 +1120,12 @@ index 7a3e34e..4cc86ce 100755
 }}}
 
 ----
-== 20150428 ==
 === pr_debug ===
 {{{
 echo 'file sprdfb_main.c +p' > /sys/kernel/debug/dynamic_debug/control
 }}}
 
 ----
-== 20150501 ==
 === printk文件节点实现 ===
 {{{
 实现文件：kernel/kernel/sysctl.c
@@ -1243,7 +1171,6 @@ echo 'file sprdfb_main.c +p' > /sys/kernel/debug/dynamic_debug/control
 }}}
 
 ----
-== 20150507 ==
 === 编译器 ===
 {{{
 arm32：arm-eabi-
@@ -1251,7 +1178,6 @@ arm64：aarch64-linux-android-
 }}}
 
 ----
-== 20150522 ==
 === EMMC和DDR性能测试 ===
 {{{
 EMMC用bonnie
@@ -1273,7 +1199,6 @@ Machine    MB K/sec %CPU K/sec %CPU K/sec %CPU K/sec %CPU K/sec %CPU  /sec %CPU
 }}}
 
 ----
-== 20150527 ==
 === 查看dfs是否起作用 ===
 {{{
 看0x30000108是否有变化
@@ -1285,7 +1210,6 @@ shell@scx35l_sharkl_j1poplte_old:/ # lookat 0x30000108
 }}}
 
 ----
-== 20150601 ==
 === /proc/sysrq-trigger ===
 {{{
 
@@ -1321,7 +1245,6 @@ i — Kills all processes except init using SIGKILL
 }}}
 
 ----
-== 20150603 ==
 === module_param_named ===
 {{{
 #define module_param(name, type,perm) \
@@ -1333,7 +1256,6 @@ module_param_named(name, name, type, perm)
 }}}
 
 ----
-== 20150610 ==
 === chip_sleep ===
 {{{
 chip_sleep信号是指ap是否已经进入睡眠
@@ -1345,7 +1267,6 @@ vdd18是否进lp，只受chip_sleep信号影响，不受xtl影响
 }}}
 
 ----
-== 20150619 ==
 === spl加打印函数 ===
 {{{
 
@@ -1370,7 +1291,6 @@ void spl_print(const unsigned char *string)
 }}}
 
 ----
-== 20150703 ==
 === SharkLT8 FLATMEM ===
 {{{
 默认是SPARSEMEM，需要加以下内容才能在menu config里看到FLATMEM的配置
@@ -1421,7 +1341,6 @@ packages/apps/EngineerMode/src/com/sprd/engineermode/telephony/TelephonyManagerS
 }}}
 
 ----
-== 20150708 ==
 === boot core1 on SharkLT8 ===
 {{{
 上电流程如下：
@@ -1479,14 +1398,12 @@ http://review.source.spreadtrum.com/gerrit/#/c/187967/
 }}}
 
 ----
-== 20150710 ==
 === 不输入密码执行sudo ===
 {{{
 echo <password> | sudo -S fastboot reboot
 }}}
 
 ----
-== 20150714 ==
 === thread_info与sp关系 ===
 {{{
 sp = thread_info + 0x2000
