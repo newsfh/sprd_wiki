@@ -1687,6 +1687,28 @@ gcc -E -P xxxx.c
 
 === 定时周期timer ===
 {{{
-2G dsp在飞行模式下，会有一个18.9s左右的主动醒
+2.5s：do-idle
+	飞行模式下会关闭
+18.9s：dsp
+	出现的场景：
+	1）flight mode
+	2）w standby only
+
 如果cp有周期性醒来，有可能开了log
 }}}
+
+=== 打开uart驱动的打印 ===
+{{{
+1、关于uart打开log方法如下：
+在uart驱动文件，serial_sprd_dt.c
+将private_data->debug_function_flag = 0;改为private_data->debug_function_flag = 1；
+默认log就打开了
+}}}
+
+=== camera hal ===
+{{{
+camera 用hal3.0还是1.0，可以在device/sprd的system.prop里配
+persist.sys.camera.camera_api=0                //用1.0
+persist.sys.camera.camera_api=1                //用3.0
+}}}
+

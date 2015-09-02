@@ -1710,8 +1710,29 @@ gcc -E -P xxxx.c
 
 <h3 id="toc_0.0.132">定时周期timer</h3>
 <pre>
-2G dsp在飞行模式下，会有一个18.9s左右的主动醒
+2.5s：do-idle
+	飞行模式下会关闭
+18.9s：dsp
+	出现的场景：
+	1）flight mode
+	2）w standby only
+
 如果cp有周期性醒来，有可能开了log
+</pre>
+
+<h3 id="toc_0.0.133">打开uart驱动的打印</h3>
+<pre>
+1、关于uart打开log方法如下：
+在uart驱动文件，serial_sprd_dt.c
+将private_data-&gt;debug_function_flag = 0;改为private_data-&gt;debug_function_flag = 1；
+默认log就打开了
+</pre>
+
+<h3 id="toc_0.0.134">camera hal</h3>
+<pre>
+camera 用hal3.0还是1.0，可以在device/sprd的system.prop里配
+persist.sys.camera.camera_api=0                //用1.0
+persist.sys.camera.camera_api=1                //用3.0
 </pre>
 
 </body>
