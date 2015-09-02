@@ -1,0 +1,44 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>学习笔记 － AT</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">常用AT命令</a>
+<ul>
+<li><a href="#toc_0.0.1.1">设置单卡</a>
+</ul>
+<li><a href="#toc_0.0.2">附件</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">常用AT命令</h3>
+<h4 id="toc_0.0.1.1">设置单卡</h4>
+<pre>
+AT+SFUN=5关闭协议栈。
+AT+SPTESTMODEM=6，254 设置成单卡
+AT+SFUN=4 重新开启协议栈
+
+其中testmode的命令参数：
+device/sprd/scx35l_sharkls_j1mini/scx35l_sharkls_j1mini.mk
+68         persist.radio.ssda.testmode=6 \
+69         persist.radio.ssda.testmode1=254 \
+</pre>
+
+<hr />
+<h3 id="toc_0.0.2">附件</h3>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/AT Command User Guide_1216.pdf">AT Command User Guide_1216.pdf</a><BR>
+</p>
+
+</body>
+</html>

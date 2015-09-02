@@ -1,0 +1,20 @@
+%toc 目录
+
+----
+=== 常用AT命令 ===
+==== 设置单卡 ====
+{{{
+AT+SFUN=5关闭协议栈。
+AT+SPTESTMODEM=6，254 设置成单卡
+AT+SFUN=4 重新开启协议栈
+
+其中testmode的命令参数：
+device/sprd/scx35l_sharkls_j1mini/scx35l_sharkls_j1mini.mk
+68         persist.radio.ssda.testmode=6 \
+69         persist.radio.ssda.testmode1=254 \
+}}}
+
+----
+=== 附件 ===
+[[local:files/AT Command User Guide_1216.pdf|AT Command User Guide_1216.pdf]]<BR>
+
