@@ -97,3 +97,20 @@ vendor/sprd/open-source/apps/modem_control/modem_control.h
 #define L_WARM_SIZE                (0x280000)
 
 }}}
+
+----
+=== CP uart出log ===
+{{{
+J1OPLTE通过蓝盒子输出ARMLog调试功耗：
+NV_REF_PARAMETER_下面的 com_debug
+改成 0x0 CP从uart0输出log
+波特率可以改NV 的 com_debug_band_rate 改成
+2000000
+寄存器0x402a008 的值      改成 0x285480 修改pinmap映射到uart0
+
+LDSP log输出
+工程模式修改DSPlog从uart输出
+寄存器0x402a008 的值      改成 0x285500 修改pinmap映射到uart0
+buad设置成12000000，但由于蓝盒子不支持这么高的buad，因此无法输出。
+}}}
+

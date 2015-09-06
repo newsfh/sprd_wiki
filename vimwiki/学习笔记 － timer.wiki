@@ -2,7 +2,7 @@
 _以下是sharkl的timer，代码：kernel/arch/arm/mach-sc/timer_sc8830.c_
 
 ----
-== timer分配 ==
+=== timer分配 ===
 |*地址区别*|*功能描述*|*说明*|
 |0x4023_0000 - 0x4023_FFFF|AP System Timer|clocksource，其rating为200|
 |0x4005_0000 - 0x4005_FFFF|AON Timer|挂在core0，里面又有3种timer，现在系统里是这么使用，timer0为clockevent，timer1为broadcast timer，timer1为clocksource。该timer也做为clocksource，其rating为300|
@@ -26,18 +26,19 @@ static int irq_nr[4] = {
 };
 
 上述配置在dts里体现为
-    timer{
-        compatible = "sprd,scx35-timer";
-        reg = <0xf5204000 0x1000>,
-              <0xf51d2000 0x1000>,
-              <0xf5202000 0x1000>,
-              <0xf5292000 0x1000>,
-              <0xf5294000 0x1000>;
+    timer {
+        compatible  = "sprd,scx35-timer";
+        reg =   <0x40230000 0x1000>, /* SYSCNT */
+            <0x40050000 0x1000>, /* GPTIMER0 */
+            <0x40220000 0x1000>, /* APTIMER0 */
+            <0x40320000 0x1000>, /* APTIMER1 */
+            <0x40330000 0x1000>; /* APTIMER2 */
         interrupts = <0 118 0x0>,
-                     <0 28 0x0>,
-                     <0 29 0x0>,
-                     <0 119 0x0>,
-                     <0 121 0x0>;
+                <0 28 0x0>,
+                <0 29 0x0>,
+                <0 119 0x0>,
+                <0 121 0x0>,
+                <0 31 0x0>;
     };   
 }}}
 {{{
@@ -55,7 +56,7 @@ static int irq_nr[4] = {
 }}}
 
 ----
-== 初始化 ==
+=== 初始化 ===
 {{{
 void __init sci_enable_timer_early(void)
 {
@@ -113,11 +114,28 @@ static void __init sprd_init_timer(struct device_node *np)
 }}}
 
 ----
-== 调试经验 ==
-=== 全局变量 ===
+=== 调试经验 ===
+==== 全局变量 ====
 |*变量名*|*类型*|*功能*|
 |local_evt|struct clock_event_device *local_evt![4]|4个core上的clock event device|
 
+==== 调用堆栈 ====
+{{{
+scheduler_tick();
+update_process_times
+tick_sched_handle
+tick_sched_timer
+__run_hrtimer
+hrtimer_interrupt
+__gptimer_interrupt
+handle_irq_event_percpu
+handle_irq_event
+handle_fasteoi_irq
+generic_handle_irq
+handle_IRQ
+gic_handle_irq
+}}}
+
 ----
-== 参考资料 ==
+=== 参考资料 ===
 [[linux学习笔记%20－%20时钟管理|linux学习笔记 － 时钟管理]]</BR>

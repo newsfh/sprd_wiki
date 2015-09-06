@@ -1,0 +1,21 @@
+%toc 目录
+
+----
+=== 注意点 ===
+# 关armlog和kernel log
+# 测电流前，先让机器进下deep
+
+----
+=== 影响功耗的点 ===
+# DDR频率
+{{{
+camera recording，频率从640M降到500M，可以省8mA
+}}}
+# CPU频率
+{{{
+camera recording，将interactive timer_rate从20ms改为100ms，可以省7mA
+}}}
+# GPU/GSP
+{{{
+新增3层gsp overlay合成，可以省功耗
+}}}

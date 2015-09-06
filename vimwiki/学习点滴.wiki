@@ -1712,3 +1712,70 @@ persist.sys.camera.camera_api=0                //用1.0
 persist.sys.camera.camera_api=1                //用3.0
 }}}
 
+=== SharkL/SharkLS配置差异 ===
+{{{
+一、kernel
+1. dts
+ 1）修改：
+/include/ "scx35l-clocks.dtsi"
+=>
+/include/ "scx35l-sp9830iea-5m-clocks.dtsi"
+
+ 2）新增：
+codecahb {
+       compatible = "sprd,codecahb";
+       reg = <0x62000000 0x1000>;
+};
+
+2. defconfig
+ 1）新增：
+CONFIG_MACH_SP9830I=y
+
+3. board-sharkls_z3lte.c
+ 1）__clock_init_early函数：
+#if defined(CONFIG_MACH_SHARKLS_Z3LTE) 	164
+»       sci_glb_set(REG_AON_APB_APB_EB1, BIT_CODEC_EB | 0);	165
+#endif
+
+ 2）iotable_build函数：
+ADD_SPRD_DEVICE("sprd,codecahb", CODECAHB);
+
+ 3）sc8830_pmu_init函数：
+__raw_writel(__raw_readl(REG_AON_APB_APB_EB1) | BIT_CODEC_EB, REG_AON_APB_APB_EB1);
+
+
+二、chipram
+1. sharkls_z3lte.h
+新增：
+#define CONFIG_SP9830I
+
+三、u-boot64
+1. sharkls_z3lte.h
+新增：
+#define CONFIG_SP9830I
+
+2. ldo_sleep.c
+新增：
+CHIP_REG_SET(REG_PMU_APB_PD_CODEC_TOP_CFG,
+       BIT_PD_CODEC_TOP_AUTO_SHUTDOWN_EN
+       BITS_PD_CODEC_TOP_PWR_ON_DLY(8)
+       BITS_PD_CODEC_TOP_PWR_ON_SEQ_DLY(0)
+       BITS_PD_CODEC_TOP_ISO_ON_DLY(4)
+       0
+);
+}}}
+
+=== 判断gsp/gpu合成 ===
+{{{
+命令：dumpsys SurfaceFlinger
+
+显示的type
+GSP：HWC
+GPU：gles
+}}}
+
+=== ps代码 ===
+{{{
+system/core/toolbox/ps.c
+}}}
+

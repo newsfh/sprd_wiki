@@ -1,0 +1,55 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>功耗调试</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">注意点</a>
+<li><a href="#toc_0.0.2">影响功耗的点</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">注意点</h3>
+<ol>
+<li>
+关armlog和kernel log
+
+<li>
+测电流前，先让机器进下deep
+
+</ol>
+
+<hr />
+<h3 id="toc_0.0.2">影响功耗的点</h3>
+<ol>
+<li>
+DDR频率
+<pre>
+camera recording，频率从640M降到500M，可以省8mA
+</pre>
+
+<li>
+CPU频率
+<pre>
+camera recording，将interactive timer_rate从20ms改为100ms，可以省7mA
+</pre>
+
+<li>
+GPU/GSP
+<pre>
+新增3层gsp overlay合成，可以省功耗
+</pre>
+
+</ol>
+
+</body>
+</html>

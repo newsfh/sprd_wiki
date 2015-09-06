@@ -1,0 +1,71 @@
+diff --git a/drivers/platform/sprd/pm_debug_scx35.c b/drivers/platform/sprd/pm_debug_scx35.c
+index 4572a42..97033b4 100644
+--- a/drivers/platform/sprd/pm_debug_scx35.c
++++ b/drivers/platform/sprd/pm_debug_scx35.c
+@@ -817,10 +817,12 @@ static void print_debug_info(void)
+ 
+ }
+ 
++int print_tick_info();
+ static int print_thread(void * data)
+ {
+ 	while(1){
+ 		wake_lock(&messages_wakelock);
++		print_tick_info();
+ 		if (print_thread_enable)
+ 			print_debug_info();
+ 		has_wake_lock(WAKE_LOCK_SUSPEND);
+diff --git a/drivers/platform/sprd/timer_sc8830.c b/drivers/platform/sprd/timer_sc8830.c
+index fa8b921..81e7a15 100755
+--- a/drivers/platform/sprd/timer_sc8830.c
++++ b/drivers/platform/sprd/timer_sc8830.c
+@@ -227,6 +227,40 @@ static struct local_timer_ops sprd_local_timer_ops __cpuinitdata = {
+ #endif
+ #endif /* CONFIG_LOCAL_TIMERS */
+ 
++typedef struct _info {
++	u64 jiffies;
++	u32 cp_slp_status;
++} CP_SLP_INFO;
++
++#define TICK_INFO_COUNT 100
++static CP_SLP_INFO cp_slp_info[TICK_INFO_COUNT];
++static int info_count=0;
++
++int print_tick_info()
++{
++	int i = 0;
++	for (i = 0; i < TICK_INFO_COUNT; i++) {
++		printk("~~~ %llu, %08x\n", cp_slp_info[i].jiffies, cp_slp_info[i].cp_slp_status);
++	}
++	return 0;
++}
++
++void catch_info()
++{
++	u32 val=0;
++	static u32 old_val=0xffffffff;
++
++
++	val = sci_glb_read(REG_PMU_APB_CP_SLP_STATUS_DBG0, -1UL);
++	if (old_val != val) {
++		cp_slp_info[info_count].jiffies=jiffies;
++		cp_slp_info[info_count].cp_slp_status=val;
++		info_count++;
++		if (info_count >= TICK_INFO_COUNT) info_count = 0;
++		old_val = val;
++	}
++}
++
+ static irqreturn_t __gptimer_interrupt(int irq, void *dev_id)
+ {
+ 	unsigned int value;
+@@ -240,6 +274,8 @@ static irqreturn_t __gptimer_interrupt(int irq, void *dev_id)
+ 	if (evt[cpu]->event_handler)
+ 		evt[cpu]->event_handler(evt[cpu]);
+ 
++	catch_info();
++
+ 	return IRQ_HANDLED;
+ }
+ 
