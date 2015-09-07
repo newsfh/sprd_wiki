@@ -8,3 +8,31 @@
 === /d/gpio ===
 === /d/memblock/reserved ===
 
+=== gpu ===
+* Android4.4 / Android5.1--Utgard
+{{{
+adb root
+adb remount
+adb shell
+cd sys/modules/mali/paramters
+cat gpufreq_table 查看GPU支持的所有频率
+echo GPU频率 > gpufreq_min_limit；echo GPU频率 > gpufreq_max_limit
+}}}
+* Android5.1 -- Midgard-自带DVFS
+{{{
+adb root
+adb remount
+adb shell
+cd sys/modules/mali_kbase/paramters
+cat gpu_freq_list 查看GPU支持的所有频率
+echo GPU频率 > gpu_freq_min_limit；echo GPU频率 > gpu_freq_max_limit
+}}}
+* Android5.1 -- Midgard-Devfreq
+{{{
+adb root
+adb remount
+adb shell
+cd /sys/devices/60000000.gpu/devfreq/60000000.gpu
+cat available_frequencies 查看GPU支持的所有频率
+echo GPU频率 > min_freq；echo GPU频率 > max_freq
+}}}

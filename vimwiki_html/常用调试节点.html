@@ -16,6 +16,7 @@
 <li><a href="#toc_0.0.4">/proc/interrupts</a>
 <li><a href="#toc_0.0.5">/d/gpio</a>
 <li><a href="#toc_0.0.6">/d/memblock/reserved</a>
+<li><a href="#toc_0.0.7">gpu</a>
 </ul>
 </ul>
 </ul>
@@ -28,6 +29,43 @@
 <h3 id="toc_0.0.4">/proc/interrupts</h3>
 <h3 id="toc_0.0.5">/d/gpio</h3>
 <h3 id="toc_0.0.6">/d/memblock/reserved</h3>
+
+<h3 id="toc_0.0.7">gpu</h3>
+<ul>
+<li>
+Android4.4 / Android5.1--Utgard
+<pre>
+adb root
+adb remount
+adb shell
+cd sys/modules/mali/paramters
+cat gpufreq_table 查看GPU支持的所有频率
+echo GPU频率 &gt; gpufreq_min_limit；echo GPU频率 &gt; gpufreq_max_limit
+</pre>
+
+<li>
+Android5.1 -- Midgard-自带DVFS
+<pre>
+adb root
+adb remount
+adb shell
+cd sys/modules/mali_kbase/paramters
+cat gpu_freq_list 查看GPU支持的所有频率
+echo GPU频率 &gt; gpu_freq_min_limit；echo GPU频率 &gt; gpu_freq_max_limit
+</pre>
+
+<li>
+Android5.1 -- Midgard-Devfreq
+<pre>
+adb root
+adb remount
+adb shell
+cd /sys/devices/60000000.gpu/devfreq/60000000.gpu
+cat available_frequencies 查看GPU支持的所有频率
+echo GPU频率 &gt; min_freq；echo GPU频率 &gt; max_freq
+</pre>
+
+</ul>
 
 </body>
 </html>
