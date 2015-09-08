@@ -1,13 +1,26 @@
 %toc 目录
 
 ----
-=== /proc/sys/kernel/printk ===
-=== /proc/kmsg ===
-=== /dev/kmsg ===
-=== /proc/interrupts ===
-=== /d/gpio ===
-=== /d/memblock/reserved ===
+=== log & print ===
+==== /proc/sys/kernel/printk ====
+==== /proc/kmsg ====
+==== /dev/kmsg ====
 
+----
+=== system ===
+==== /proc/interrupts ====
+==== /d/gpio ====
+==== /d/clk ====
+==== /d/sprd-regulator ====
+==== /sys/class/regulator ====
+
+----
+=== memory & EMMC ===
+==== /d/memblock/reserved ====
+==== /proc/meminfo ====
+==== /dev/block/platform/sdio_emmc ====
+
+----
 === gpu ===
 * Android4.4 / Android5.1--Utgard
 {{{

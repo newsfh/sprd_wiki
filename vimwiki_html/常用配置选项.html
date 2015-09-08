@@ -15,6 +15,7 @@
 <li><a href="#toc_0.0.3">Memory Size</a>
 <ul>
 <li><a href="#toc_0.0.3.1">CP size</a>
+<li><a href="#toc_0.0.3.2">uboot的堆栈大小</a>
 </ul>
 <li><a href="#toc_0.0.4">CP uart出log</a>
 </ul>
@@ -117,7 +118,12 @@ vendor/sprd/open-source/apps/modem_control/modem_control.h
 #define L_TGDSP_SIZE               (0x2e0000)
 #define L_LDSP_SIZE                (0x1c0000)
 #define L_WARM_SIZE                (0x280000)
+</pre>
 
+<h4 id="toc_0.0.3.2">uboot的堆栈大小</h4>
+<pre>
+u-boot64/include/configs/sharkl_j1poplte.h
+#define CONFIG_SYS_MALLOC_LEN          (2 &lt;&lt; 20)       /* 1 MiB */
 </pre>
 
 <hr />

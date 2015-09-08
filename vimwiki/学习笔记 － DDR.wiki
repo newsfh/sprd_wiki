@@ -46,6 +46,26 @@ REG_AON_APB_DPLL_CFG2：0x402e0050，[29:24]是NINT，[19:0]是KINT
 REG_AON_CLK_EMC_CFG：0x50820010，[1:0]是PLL选择，7代表DPLL，6代表TWPLL384M，3代表TWPLL192M
 }}}
 
+*通过查配置表看*
+{{{
+每个DDR频点都对应自己的timing，可以通过查看DDR的timing，比对落在代码的哪个频点
+
+lookat 0x30000108
+如果值为0x060a0d10，查看chipram/arch/arm/cpu/sprd_dmc/umctl_28nm.c的DDR_TIMING_INFO数组，可以看到落在640M这档
+
+DDR3的配置：
+192MHZ：0x03060A0C
+200MHZ：0x03060A0C
+384MHZ：0x03060B0C
+400MHZ：0x03060B0C
+500MHZ：0x04080C0D
+533MHZ：0x04080c0d
+600MHZ：0x05090D0f
+640MHZ：0x060A0D10
+667MHZ：0x060A0D11
+}}}
+
+
 ==== clock register ====
 {{{
 DDR use TWPLL and DPLL as its clock parent.
@@ -146,6 +166,22 @@ pub port4 addr remap register的详细设置方法:
  bit[20-23]: 9, 表示port4的0xD... remap到0x9...
  bit[24-27]: 8, 表示port4的0xE... remap到0x8...
  bit[28-31]: 9, 表示port4的0xF... remap到0x9...
+}}}
+
+=== 频点 ===
+==== 支持的频点 ====
+{{{
+代码：chipram/arch/arm/cpu/sprd_dmc/umctl_28nm.c
+数组DDR_TIMING_INFO，显示所有支持的频点
+
+DDR2：200MHZ/384MHZ/400MHZ/466MHZ/500MHZ/533MHZ
+DDR3：192MHZ(非TShark)/200MHZ/384MHZ(非TShark)/400MHZ/500MHZ/533MHZ/600MHZ(SharkL/T8)/640MHZ/667MHZ
+}}}
+
+==== DFS频点 ====
+{{{
+代码：chipram/arch/arm/cpu/sprd_dmc/umctl_28nm.c
+数组DDR_DFS_POINT，显示DFS支持的频点
 }}}
 
 === debug ===
