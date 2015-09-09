@@ -39,11 +39,16 @@ REG_AON_CLK_EMC_CFG：0x402d0024
 REG_AON_APB_DPLL_CFG：0x402e3004
 REG_AON_APB_DPLL_CFG1：0x402e3074
 
+SharkL:
+REG_AON_CLK_EMC_CFG：0x402d0058
+REG_AON_APB_DPLL_CFG：0x402e004c
+REG_AON_APB_DPLL_CFG1：0x402e0050
+
 SharkLT8：
 计算公式同上
+REG_AON_CLK_EMC_CFG：0x50820010，[1:0]是PLL选择，7代表DPLL，6代表TWPLL384M，3代表TWPLL192M
 REG_AON_APB_DPLL_CFG1：0x402e004c, [19:18]是REFIN
 REG_AON_APB_DPLL_CFG2：0x402e0050，[29:24]是NINT，[19:0]是KINT
-REG_AON_CLK_EMC_CFG：0x50820010，[1:0]是PLL选择，7代表DPLL，6代表TWPLL384M，3代表TWPLL192M
 }}}
 
 *通过查配置表看*
@@ -71,10 +76,15 @@ DDR3的配置：
 DDR use TWPLL and DPLL as its clock parent.
 DDR clock config register is clk_emc_cfg(0x402d0058)
 }}}
+* clk_emc_cfg
 {{local:images/clk_emc_cfg.png}}
 {{{
 If the value is 7, the parent will be DPLL, otherwise, the parent will be TWPLL.
 }}}
+* DPLL_CFG1
+{{local:images/DPLL_CFG1.png}}<BR>
+* DPLL_CFG2
+{{local:images/DPLL_CFG2.png}}<BR>
 
 ----
 === DDR port ===

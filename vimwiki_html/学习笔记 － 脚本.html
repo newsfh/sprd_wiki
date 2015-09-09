@@ -22,6 +22,7 @@
 <li><a href="#toc_0.0.2.3">数组</a>
 <li><a href="#toc_0.0.2.4">逐行操作的方法</a>
 <li><a href="#toc_0.0.2.5">cat &lt;&lt; EOF</a>
+<li><a href="#toc_0.0.2.6">删除行尾空行</a>
 </ul>
 </ul>
 </ul>
@@ -971,6 +972,11 @@ function read_cpmem() {
 	warm    0x8CE80000              0x00200000
 	EOF
 }
+</pre>
+
+<h4 id="toc_0.0.2.6">删除行尾空行</h4>
+<pre>
+tr -d '\r'
 </pre>
 
 </body>
