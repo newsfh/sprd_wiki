@@ -10,26 +10,27 @@
 <h1>目录</h1>
 <div class="toc">
 <ul>
-<li><a href="#toc_0.1">2713/2723配置开关</a>
-<li><a href="#toc_0.2">regulator in kernel</a>
+<li><a href="#toc_0.0.1">2713/2723配置开关</a>
+<li><a href="#toc_0.0.2">regulator in kernel</a>
 <ul>
-<li><a href="#toc_0.2.1">使用方法</a>
-<li><a href="#toc_0.2.2">文件节点</a>
-<li><a href="#toc_0.2.3">相关文件接口</a>
+<li><a href="#toc_0.0.2.1">使用方法</a>
+<li><a href="#toc_0.0.2.2">文件节点</a>
+<li><a href="#toc_0.0.2.3">相关文件接口</a>
 </ul>
-<li><a href="#toc_0.3">ldo配置</a>
+<li><a href="#toc_0.0.3">ldo配置</a>
 <ul>
-<li><a href="#toc_0.3.1">各ldo电压</a>
-<li><a href="#toc_0.3.2">ldo sleep配置</a>
-<li><a href="#toc_0.3.3">案例</a>
+<li><a href="#toc_0.0.3.1">各ldo电压</a>
+<li><a href="#toc_0.0.3.2">ldo sleep配置</a>
+<li><a href="#toc_0.0.3.3">案例</a>
 </ul>
-<li><a href="#toc_0.4">附件</a>
+<li><a href="#toc_0.0.4">附件</a>
+</ul>
 </ul>
 </ul>
 </div>
 
 <hr />
-<h2 id="toc_0.1">2713/2723配置开关</h2>
+<h3 id="toc_0.0.1">2713/2723配置开关</h3>
 <ul>
 <li>
 u-boot
@@ -64,15 +65,15 @@ CONFIG_REGULATOR_SC2723=y
 </ul>
 
 <hr />
-<h2 id="toc_0.2">regulator in kernel</h2>
-<h3 id="toc_0.2.1">使用方法</h3>
+<h3 id="toc_0.0.2">regulator in kernel</h3>
+<h4 id="toc_0.0.2.1">使用方法</h4>
 <pre>
 struct regulator *vibrator_regulator = NULL;
 vibrator_regulator = regulator_get(NULL, "vddcammot");
 regulator_set_voltage(vibrator_regulator, 3300000, 3300000);
 </pre>
 
-<h3 id="toc_0.2.2">文件节点</h3>
+<h4 id="toc_0.0.2.2">文件节点</h4>
 <ul>
 <li>
 文件节点
@@ -140,7 +141,7 @@ done
 
 </ul>
 
-<h3 id="toc_0.2.3">相关文件接口</h3>
+<h4 id="toc_0.0.2.3">相关文件接口</h4>
 <p>
 目录：kernel/drivers/regulator
 <table>
@@ -181,8 +182,8 @@ ldo_set_voltage</BR>dcdc_set_voltage
 </p>
 
 <hr />
-<h2 id="toc_0.3">ldo配置</h2>
-<h3 id="toc_0.3.1">各ldo电压</h3>
+<h3 id="toc_0.0.3">ldo配置</h3>
+<h4 id="toc_0.0.3.1">各ldo电压</h4>
 <ul>
 <li>
 2723s寄存器
@@ -664,7 +665,7 @@ W-CDMA RF power
 </tr>
 </table>
 
-<h3 id="toc_0.3.2">ldo sleep配置</h3>
+<h4 id="toc_0.0.3.2">ldo sleep配置</h4>
 <ul>
 <li>
 ldo sleep配置相关
@@ -735,12 +736,30 @@ ANA_REG_GLB_PWR_XTL_ENx
 
 <ul>
 <li>
+LDO_XTL
+<pre>
+LDO可以关联子系统，或是外部的XTL
+如果外部有信号，则会把ldo打开，即使用户置了PD位
+
+如果要用这个功能，还需要使能LDO_XTL_EN，如2723的配置：
+    ANA_REG_SET(ANA_REG_GLB_PWR_XTL_EN0,
+	        BIT_LDO_XTL_EN |
+</pre>
+
+</ul>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/ldo_pd_flow.png" /></BR>
+</p>
+
+
+<ul>
+<li>
 注意事项
  0. DCDCCORE, DCDCMEM, DCDCGEN, VDD18, VDD28，这几个ldo总是打开
 
 </ul>
 
-<h3 id="toc_0.3.3">案例</h3>
+<h4 id="toc_0.0.3.3">案例</h4>
 <ul>
 <li>
 通过a-die或d-die输出26M clock
@@ -835,7 +854,7 @@ index 1a78545..549b73b 100644
 </p>
 
 <hr />
-<h2 id="toc_0.4">附件</h2>
+<h3 id="toc_0.0.4">附件</h3>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/read_regulator.sh">read_regulator.sh</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/read_voltage.sh">read_voltage.sh</a></BR>

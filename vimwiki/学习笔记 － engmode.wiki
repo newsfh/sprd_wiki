@@ -25,10 +25,10 @@
 == architecture ==
 * engpc整个数据传输流程大致如下
 {{local:images/engmode.png}}</BR>
-0. PC工具通过uart将数据传递给engpc
-0. engpc通过sipc将数据传递给CP
-0. CP再通过sipc将数据传递给engpc
-0. engpc再通过uart将数据传递给PC工具
+# PC工具通过uart将数据传递给engpc
+# engpc通过sipc将数据传递给CP
+# CP再通过sipc将数据传递给engpc
+# engpc再通过uart将数据传递给PC工具
 PC与engpc的传输通道(uart)：/dev/ttyS1</BR>
 CP与engpc的传输通道：/dev/slog_lte</BR>
 </BR>
