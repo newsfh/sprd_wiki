@@ -50,6 +50,7 @@
 [[ubuntu使用]]<BR>
 [[git学习]]</BR>
 [[adb使用]]</BR>
+[[编译工具]]<BR>
 [[MobileTester]]</BR>
 [[ubuntu串口工具]]</BR>
 [[vmware]]</BR>
