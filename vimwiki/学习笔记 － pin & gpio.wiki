@@ -196,6 +196,11 @@ GPIOs 304-319, sprd-a-eic:
  gpio-306 (powerkey            ) in  lo
 }}}
 
+==== kernel代码 ====
+{{{
+kernel/drivers/gpio/gpio-eic.c
+}}}
+
 ----
 === SS DVS ===
 ==== Introduction ====

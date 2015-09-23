@@ -13,6 +13,10 @@
 ==== /d/clk ====
 ==== /d/sprd-regulator ====
 ==== /sys/class/regulator ====
+==== /sys/class/power_supply ====
+{{{
+跟电池管理相关，如充电、电量检测、AC充电等
+}}}
 
 ----
 === memory & EMMC ===

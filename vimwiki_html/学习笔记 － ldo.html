@@ -21,7 +21,8 @@
 <ul>
 <li><a href="#toc_0.0.3.1">各ldo电压</a>
 <li><a href="#toc_0.0.3.2">ldo sleep配置</a>
-<li><a href="#toc_0.0.3.3">案例</a>
+<li><a href="#toc_0.0.3.3">DCDC_CORE_SLP</a>
+<li><a href="#toc_0.0.3.4">案例</a>
 </ul>
 <li><a href="#toc_0.0.4">附件</a>
 </ul>
@@ -759,7 +760,13 @@ LDO可以关联子系统，或是外部的XTL
 
 </ul>
 
-<h4 id="toc_0.0.3.3">案例</h4>
+<h4 id="toc_0.0.3.3">DCDC_CORE_SLP</h4>
+<pre>
+dcdc_core在sleep时会降压到0.82V左右
+代码在u-boot64/arch/arm/cpu/armv7/sc9630/chip_phy_v3.c
+</pre>
+
+<h4 id="toc_0.0.3.4">案例</h4>
 <ul>
 <li>
 通过a-die或d-die输出26M clock

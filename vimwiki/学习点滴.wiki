@@ -1850,3 +1850,30 @@ echo "c" > /proc/sysrq-trigger
            it so that only emergency messages like PANICs or OOPSes would
            make it to your console.)
 }}}
+
+=== arm7 memory layout on SharkL ===
+{{{
+基地址：0x50800000
+
+0 ~ 0x53FF
+CODE + RO
+ 
+0x5400 ~ 0x57FF
+DFS parameters (根据DSF调试结果决定是否使用此区域)
+ 
+0x5800 ~ 0x58FF
+AP state on crash (由于SharkL芯片bug，这个区域未使用)
+ 
+0x5900 ~ 0x77FF
+RW/ZI data
+ 
+0x7800 ~ 0x7FFF
+Stack defined in tx_illdb.s
+}}}
+
+=== 如何让arm7不睡(SharkLs) ===
+{{{
+arm7在进deep时会去polling 0x402b0178是否为0，将其改为1，可让其不睡
+但前提是arm7是醒着的，所以先进deep，再退出来时设
+}}}
+

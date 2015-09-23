@@ -1874,5 +1874,31 @@ echo "c" &gt; /proc/sysrq-trigger
            make it to your console.)
 </pre>
 
+<h3 id="toc_0.0.140">arm7 memory layout on SharkL</h3>
+<pre>
+基地址：0x50800000
+
+0 ~ 0x53FF
+CODE + RO
+ 
+0x5400 ~ 0x57FF
+DFS parameters (根据DSF调试结果决定是否使用此区域)
+ 
+0x5800 ~ 0x58FF
+AP state on crash (由于SharkL芯片bug，这个区域未使用)
+ 
+0x5900 ~ 0x77FF
+RW/ZI data
+ 
+0x7800 ~ 0x7FFF
+Stack defined in tx_illdb.s
+</pre>
+
+<h3 id="toc_0.0.141">如何让arm7不睡(SharkLs)</h3>
+<pre>
+arm7在进deep时会去polling 0x402b0178是否为0，将其改为1，可让其不睡
+但前提是arm7是醒着的，所以先进deep，再退出来时设
+</pre>
+
 </body>
 </html>

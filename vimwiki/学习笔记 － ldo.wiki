@@ -144,6 +144,12 @@ LDO可以关联子系统，或是外部的XTL
 * 注意事项
  0. DCDCCORE, DCDCMEM, DCDCGEN, VDD18, VDD28，这几个ldo总是打开
 
+==== DCDC_CORE_SLP ====
+{{{
+dcdc_core在sleep时会降压到0.82V左右
+代码在u-boot64/arch/arm/cpu/armv7/sc9630/chip_phy_v3.c
+}}}
+
 ==== 案例 ====
 * 通过a-die或d-die输出26M clock
 
