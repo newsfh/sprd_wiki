@@ -15,13 +15,17 @@
 <li><a href="#toc_0.0.1.1">TW使用</a>
 <li><a href="#toc_0.0.1.2">GED使用</a>
 </ul>
-<li><a href="#toc_0.0.2">configuration</a>
+<li><a href="#toc_0.0.2">slog</a>
 <ul>
 <li><a href="#toc_0.0.2.1">property</a>
 <li><a href="#toc_0.0.2.2">configuration file</a>
 <li><a href="#toc_0.0.2.3">存储路径</a>
+<li><a href="#toc_0.0.2.4">command</a>
 </ul>
-<li><a href="#toc_0.0.3">command</a>
+<li><a href="#toc_0.0.3">slog_modem</a>
+<ul>
+<li><a href="#toc_0.0.3.1">配置文件</a>
+</ul>
 <li><a href="#toc_0.0.4">附件</a>
 </ul>
 </ul>
@@ -43,7 +47,7 @@ engpc与slog是互斥的，使用slog前关闭engpc
 </pre>
 
 <hr />
-<h3 id="toc_0.0.2">configuration</h3>
+<h3 id="toc_0.0.2">slog</h3>
 <h4 id="toc_0.0.2.1">property</h4>
 <pre>
 persist.sys.slog.enabled：用来决定是否启动slog
@@ -67,8 +71,7 @@ slog.conf.user：其余情况下的配置
 内部存储空间定义在vendor/sprd/open-source/tools/slog/slog.h中，用宏INTERNAL_LOG_PATH定义
 </pre>
 
-<hr />
-<h3 id="toc_0.0.3">command</h3>
+<h4 id="toc_0.0.2.4">command</h4>
 <ul>
 <li>
 slogctl
@@ -79,6 +82,31 @@ slogctl disable: disable slog
 </pre>
 
 </ul>
+
+<hr />
+<h3 id="toc_0.0.3">slog_modem</h3>
+<h4 id="toc_0.0.3.1">配置文件</h4>
+<pre>
+文件：vendor/sprd/open-source/tools/slogmodem/slog_modem.conf
+
+内容：
+#type  state
+minidump    enable
+
+log_file_size 512 											// log文件最大大小
+data_log_size 1024											// /data分区的modem_log目录最大size
+sd_log_size 0												// sd卡的modem_log目录最大size
+log_overwrite enable										// 是否支持覆写
+
+#type   name    state   size    level
+stream  cp_wcdma    off 0   5   							// 是否使能
+stream  cp_td-scdma off 0   5   
+stream  cp_3mode    off 0   5   
+stream  cp_4mode    off 0   5   
+stream  cp_5mode    off 0   5   
+stream  cp_wcn      off 0   5   
+stream  cp_gnss     off 0   5   
+</pre>
 
 <hr />
 <h3 id="toc_0.0.4">附件</h3>

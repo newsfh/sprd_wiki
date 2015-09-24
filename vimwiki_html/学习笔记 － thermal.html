@@ -21,55 +21,61 @@
 <hr />
 <h3 id="toc_0.0.1">Introduction</h3>
 <pre>
+外部thermal，如sec_fuelgauge
+电池thermal，如battery（sprd只是一个假的）
+芯片thermal，如CPU/GPU/A-DIE
 </pre>
 
 <h3 id="toc_0.0.2">Configuration</h3>
 <pre>
 kernel driver file:
- sprd_2713s_thm.c and sprd_thm.c in kernel/drivers/thermal/
+ /kernel/drivers/thermal/sprd_ddie_thm.c
 
 macro:
- CONFIG_THERMAL_SC2713S
+ CONFIG_THERMAL=y
+ CONFIG_THERMAL_OF=y
+ CONFIG_THERMAL_DDIE=y
+ # CONFIG_THERMAL_SC2723S_PMIC is not set
 
 sensor config:
- kernel/arch/arm/boot/dts/sprd-scx35l_coreprimelite.dts
-    sprd_thermal {
+ kernel/arch/arm/boot/dts/sprd-scx35l_sharkls_j3lte.dts
+    sprd_thermal: thermal@402F0000{
         compatible = "sprd,sprd-thermal";
-        id = &lt;0&gt;;
+        id = &lt;0&gt;; 
         interrupts = &lt;0 26 0x0&gt;;
-        reg = &lt;0xf5260000 0x1000&gt;;
-        trip_points_active = &lt;56 60 90 110&gt;;
-        trip_points_lowoff = &lt;0 46 50 80&gt;;
+        reg = &lt;0x402f0000 0x1000&gt;;
+        trip_points_active = &lt;31 56 60 90 110&gt;;
+        trip_points_lowoff = &lt;0 29 46 50 80&gt;; 
         trip_points_critical = &lt;110&gt;;
-        trip_num = &lt;5&gt;;
-    };
-
-    sprd_thermal1 {
+        trip_num = &lt;6&gt;; 
+    };   
+    sprd_thermal1:thermal1@402F0000 {
         compatible = "sprd,sprd-thermal";
         id = &lt;1&gt;; 
-        interrupt-parent = &lt;&amp;adi&gt;;
-        interrupts = &lt;9 0x0&gt;;
-        reg = &lt;0xf51c8280 0x1000&gt;;
-        trip_points_active = &lt;100&gt;;
-        trip_points_lowoff = &lt;90&gt;; /*no use, jut for compatiable*/
-        trip_points_critical = &lt;114&gt;;
-        trip_num = &lt;2&gt;; 
-    };
-
-    sprd_thermal2 {
-        compatible = "sprd,sprd-thermal";
-        id = &lt;2&gt;; 
         interrupts = &lt;0 26 0x0&gt;;
-        reg = &lt;0xf5260000 0x1000&gt;;
-        trip_points_active = &lt;100&gt;;
+        reg = &lt;0x402F0000 0x1000&gt;;
+        trip_points_active = &lt;110&gt;;
         trip_points_lowoff = &lt;90&gt;;
         trip_points_critical = &lt;110&gt;;
         trip_num = &lt;2&gt;; 
     };   
-thermal:  arm
-thermal1: a-die
-thermal2: GPU
-now, thermal is used.
+     sprd_thermal2: thermal@40038280{
+        compatible = "sprd,sprd-thermal";
+        id = &lt;2&gt;; 
+        interrupt-parent = &lt;&amp;adi&gt;;
+        interrupts = &lt;9 0x0&gt;;
+        reg = &lt;0x40038280 0x1000&gt;;
+        trip_points_active = &lt;110&gt;;
+        trip_points_lowoff = &lt;90&gt;;
+        trip_points_critical = &lt;110&gt;;
+        trip_num = &lt;2&gt;;
+    };
+
+id 0 : CPU
+id 1 : GPU
+id 2 : a-die
+
+TShark上用CPU和GPU，其他芯片只用CPU
 </pre>
 
 <h3 id="toc_0.0.3">Debug</h3>
@@ -77,6 +83,7 @@ now, thermal is used.
 /sys/class/thermal/thermal_zone1
 
 temp: current temperature
+type: thermal名
 </pre>
 
 </body>
