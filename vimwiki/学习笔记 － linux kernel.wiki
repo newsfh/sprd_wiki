@@ -9,6 +9,8 @@
 [[linux学习笔记 － device tree]]</BR>
 [[linux学习笔记 － boot.img布局]]</BR>
 [[linux学习笔记 － 常用API]]<BR>
+<BR>
+[[linux学习笔记 － firmware]]<BR>
 
 ----
 === 参考资料 ===
