@@ -11,6 +11,7 @@
 <div class="toc">
 <ul>
 <li><a href="#toc_0.0.1">加载Android hw so库</a>
+<li><a href="#toc_0.0.2">coredump</a>
 </ul>
 </ul>
 </ul>
@@ -128,6 +129,234 @@ static const char *variant_keys[] = {
 #define HAL_LIBRARY_PATH1 "/system/lib/hw"
 #define HAL_LIBRARY_PATH2 "/vendor/lib/hw"
 #endif
+</pre>
+
+<hr />
+<h3 id="toc_0.0.2">coredump</h3>
+<pre>
+之前整理过一篇linux core dump的文章，一直想把这个特性在手机上应用起来，帮助排查错误，今天终于如愿以偿，记录如下。
+
+【1】概述
+在Android系统上，java应用程序出错时很容易通过logcat获取出错信息，一般会有详细的callstack（调用栈），例如：
+java.lang.NullPointerException:
+at com.android.providers.calendar.CalendarSyncAdapter.onAccountsChanged(CalendarSyncAdapter.java:1400)
+at android.content.AbstractSyncableContentProvider$1.onAccountsUpdated(AbstractSyncableContentProvider.java:187)
+at android.accounts.AccountManager$10.run(AccountManager.java:826)
+at android.os.Handler.handleCallback(Handler.java:587)
+at android.os.Handler.dispatchMessage(Handler.java:92)
+at android.os.Looper.loop(Looper.java:123)
+at android.app.ActivityThread.main(ActivityThread.java:4325)
+at java.lang.reflect.Method.invokeNative(Method.java:-2)
+at java.lang.reflect.Method.invoke(Method.java:521)
+at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:860)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:618)
+at dalvik.system.NativeStart.main(NativeStart.java:-2)java.lang.NullPointerException:
+at com.android.providers.calendar.CalendarSyncAdapter.onAccountsChanged(CalendarSyncAdapter.java:1400)
+at android.content.AbstractSyncableContentProvider$1.onAccountsUpdated(AbstractSyncableContentProvider.java:187)
+at android.accounts.AccountManager$10.run(AccountManager.java:826)
+at android.os.Handler.handleCallback(Handler.java:587)
+at android.os.Handler.dispatchMessage(Handler.java:92)
+at android.os.Looper.loop(Looper.java:123)
+at android.app.ActivityThread.main(ActivityThread.java:4325)
+at java.lang.reflect.Method.invokeNative(Method.java:-2)
+at java.lang.reflect.Method.invoke(Method.java:521)
+at com.android.internal.os.ZygoteInit$MethodAndArgsCaller.run(ZygoteInit.java:860)
+at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:618)
+at dalvik.system.NativeStart.main(NativeStart.java:-2)
+
+该信息给出了函数调用关系及对应的源代码及行号，因此很容易解决。
+
+但是非java程序就比较困难了，例如同样是一个空指针操作，非java程序通过logcat获取的log信息示例如下：
+
+I/DEBUG   ( 851): *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+I/DEBUG   ( 851): Build fingerprint: 'generic/OMS1_6/OMS1_6/OMS1_6:2.1-update1/ECLAIR/eng.svnadmin.20100928.022506:eng/test-keys'
+I/DEBUG   ( 851): pid: 1399, tid: 1399 &gt;&gt;&gt; ./foo &lt;&lt;&lt;
+I/DEBUG   ( 851): signal 11 (SIGSEGV), fault addr 00000000
+I/DEBUG   ( 851): r0 fffff2a0 r1 bea3ed24 r2 00000000 r3 000090e8
+I/DEBUG   ( 851): r4 00000000 r5 00000000 r6 00000000 r7 00000000
+I/DEBUG   ( 851): r8 00000000 r9 00000000 10 00000000 fp 00000000
+I/DEBUG   ( 851): ip 000090f8 sp bea3ed10 lr afe0c419 pc 0000836a cpsr 40000030
+I/DEBUG   ( 851):          #00 pc 0000836a /local/foo
+I/DEBUG   ( 851):          #01 pc 0000c416 /system/lib/libc.so
+I/DEBUG   ( 851):          #02 pc b00018ac /system/bin/linker
+I/DEBUG   ( 851):
+I/DEBUG   ( 851): code around pc:
+I/DEBUG   ( 851): 00008358 e1a00000 e1a00000 4b05b510 22004805
+I/DEBUG   ( 851): 00008368 6811447b f7ff1818 2000efd4 46c0bd10
+I/DEBUG   ( 851): 00008378 00000d7c fffff2a0 e51ff004 00008361
+I/DEBUG   ( 851):
+I/DEBUG   ( 851): code around lr:
+I/DEBUG   ( 851): afe0c408 1c01b510 1c13c901 00921c42 4798188a
+I/DEBUG   ( 851): afe0c418 fe4af00b 4804b510 68032200 60da68d8
+I/DEBUG   ( 851): afe0c428 fb8af013 46c0bd10 ffff0ff0 00000000
+I/DEBUG   ( 851):
+I/DEBUG   ( 851): stack:
+I/DEBUG   ( 851):     bea3ecd0 00000000
+I/DEBUG   ( 851):     bea3ecd4 bea3ed58 [stack]
+I/DEBUG   ( 851):     bea3ecd8 b000f4c4 /system/bin/linker
+I/DEBUG   ( 851):     bea3ecdc bea3ee3b [stack]
+I/DEBUG   ( 851):     bea3ece0 b00163c8
+I/DEBUG   ( 851):     bea3ece4 b0017a04
+I/DEBUG   ( 851):     bea3ece8 00000000
+I/DEBUG   ( 851):     bea3ecec 00000000
+I/DEBUG   ( 851):     bea3ecf0 00000000
+I/DEBUG   ( 851):     bea3ecf4 00000000
+I/DEBUG   ( 851):     bea3ecf8 00000000
+I/DEBUG   ( 851):     bea3ecfc 00000000
+I/DEBUG   ( 851):     bea3ed00 00000000
+I/DEBUG   ( 851):     bea3ed04 00000000
+I/DEBUG   ( 851):     bea3ed08 df002777
+I/DEBUG   ( 851):     bea3ed0c e3a070ad
+I/DEBUG   ( 851): #00 bea3ed10 00000000
+I/DEBUG   ( 851):     bea3ed14 afe0c419 /system/lib/libc.so
+I/DEBUG   ( 851): #01 bea3ed18 00000000
+I/DEBUG   ( 851):     bea3ed1c b00018b1 /system/bin/linker
+
+是不是很头大？
+本篇文章就是探索一种方式来解决这种问题的。
+
+【2】准备知识
+先仔细阅读此篇文章：linux coredump 知识整理
+其中的要点：
+（1）使用ulimit命令开启coredump功能。
+（2）修改coredump文件生成位置与名称
+（3）gdb的使用方法
+
+
+【3】实践
+
+（1）adb连接手机，开启coredump
+	# ulimit -a
+	ulimit -a
+	time(seconds)        unlimited
+	file(blocks)         unlimited
+	data(kbytes)         unlimited
+	stack(kbytes)        8192
+	coredump(blocks)     100 ==》我这里coredump是开启的，大小为100，可以用ulimit -c unlimited修改成不限制大小
+	memory(kbytes)       unlimited
+	locked memory(kbytes) 64
+	process(processes)   4096
+	nofiles(descriptors) 1024
+
+（2）配置coredump文件生成位置与名称（没找到默认情况下放在哪里）
+	#echo "1" &gt; /proc/sys/kernel/core_uses_pid
+	#echo "/local/log/core-%e-%p" &gt; /proc/sys/kernel/core_pattern
+	把dump文件存放目录改到local/log下。
+
+（3）示例程序
+	foo.c
+	#include &lt;stdio.h&gt;
+
+	static void sub(void);
+
+	int main(void)
+	{
+	sub();
+	return 0;
+	}
+
+	static void sub(void)
+	{
+	int *p = NULL;
+
+	printf("%d",*p);
+	}
+
+	Android.mk
+	LOCAL_PATH:= $(call my-dir)
+	include $(CLEAR_VARS)
+
+	LOCAL_MODULE := foo
+	LOCAL_SRC_FILES := foo.c\
+
+	include $(BUILD_EXECUTABLE)
+
+	将以上两文件放到android源码树的一个目录中，我是放到eclair/external/coredump文件下
+	编译（eclair目录下执行./build/envsetup.sh，然后转到coredump目录下mm命令；或者直接eclair目录下make，全编译）
+
+	android会生成两种版本的文件，一种是带符号信息的，
+	/homeeclair/out/target/product/generic/symbols/system/bin/foo
+	另一种是不带符号信息的（即strip过的）
+	/homeeclair/out/target/product/generic/system/bin/foo
+
+	不带符号信息的会做到system.img中去，带符号信息的我们需要保存住，以备后续调试用。
+
+	上面第二个log信息就是此程序运行的结果。
+
+（4）运行
+	我们把generic/system/bin/foo文件拷贝到手机中，比如local目录下，修改权限(chmod 777 foo)，执行，结果如下。
+	#./foo
+	[1] + Stopped (signal)        ./foo
+	#
+
+	[1]   Segmentation fault (core dumped) ./foo
+	#
+
+	# ls
+	ls
+	core-foo-1672   ==》生成了coredump文件，1672为进程id
+	foo
+	etc
+	log
+	lost+found
+
+（5）gdb调试
+	将core-foo-1672与generic/symbols/system/bin/foo（这个必须是带符号的）拷贝到相同目录下
+	运行gdb进行调试，注意这里要运行的gdb是android自带的，我这里的名称叫arm-eabi-gdb
+
+	$arm-eabi-gdb ./foo
+	GNU gdb 6.6
+	Copyright (C) 2006 Free Software Foundation, Inc.
+	GDB is free software, covered by the GNU General Public License, and you are
+	welcome to change it and/or distribute copies of it under certain conditions.
+	Type "show copying" to see the conditions.
+	There is absolutely no warranty for GDB. Type "show warranty" for details.
+	The GDB was configured as "--host=i686-unknown-linux-gnu --target=arm-elf-linux"...
+	(gdb)
+
+	输入core-file文件，回车
+	(gdb) core-file core-foo-1672
+	warning: core file may not match specified executable file.
+	Error while mapping shared library sections:
+	/system/bin/linker: No such file or directory.
+	Error while mapping shared library sections:
+	libc.so: Success.
+	Error while mapping shared library sections:
+	libstdc++.so: Success.
+	Error while mapping shared library sections:
+	libm.so: Success.
+	Symbol file not found for /system/bin/linker
+	Symbol file not found for libc.so
+	Symbol file not found for libstdc++.so
+	Symbol file not found for libm.so
+	warning: Unable to find dynamic linker breakpoint function.
+	GDB will be unable to debug shared library initializers
+	and track explicitly loaded dynamic code.
+	Core was generated by `./foo'.
+	Program terminated with signal 11, Segmentation fault.
+	#0 0x0000836a in main () at external/coredump/foo.c:15 ==》看到这种信息知道该知道哪出错了把
+	15   printf("%d",*p)
+	(gdb)
+
+	如果函数调用关系比较复杂，可试试bt（backtrace）指令
+
+
+【4】总结
+上面虽然是一个小例子，但android中的其他非java可执行程序原理与此一样。
+我们只需要对手机进行一定的配置，出错时就可以抓到有效的信息，然后如果对应带符号的文件没有丢失的话，就可以通过gdb精确定位到出错的位置
+
+coredump是适用于用户空间的应用出错，对内核不适用。
+经测试，java程序jni调用库文件，库文件中空指针操作，无法生成coredump。
+
+如果可以将coredump的设置自动化的话（比如在init.rc中添加命令），还是有一定实用价值的，
+所要做的就是每做一个版本的镜像时把带符号的相关文件备份一下，即可在后续出错时获取到非常有用的信息。
+
+备注：查了下我手机init.rc中有这样的设置
+# set RLIMIT_CORE to enable core dump file up to 100kB (512*)
+     setrlimit 4 51200 51200
+     write /proc/sys/kernel/core_pattern "/local/log/core-%e-%p-%t"
+
+原文地址：http://hi.baidu.com/donghaozheng/blog/item/b3f03a9b6abe16bac8eaf43d.html}}}
 </pre>
 
 </body>

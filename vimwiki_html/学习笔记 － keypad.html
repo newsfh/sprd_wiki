@@ -334,10 +334,17 @@ static irqreturn_t sci_keypad_isr(int irq, void *dev_id)
 </pre>
 
 <h2 id="toc_0.4">注意事项</h2>
-<pre>
-1、kl文件，需要跟驱动节点名一致，否则找不到相应的键值
-2、uboot里配置的键盘，需要跟实际键盘一致
-</pre>
+<ul>
+<li>
+kl文件，需要跟驱动节点名一致，否则找不到相应的键值。驱动名可以通过getevent来获取
+
+<li>
+uboot里配置的键盘，需要跟实际键盘一致
+
+<li>
+kl文件在手机里的位置：/system/usr/keylayout
+
+</ul>
 
 </body>
 </html>
