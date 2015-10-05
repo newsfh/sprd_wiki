@@ -68,3 +68,10 @@ gcc -O2 source_file.c
 -I, 指定头文件所在的文件夹，本例中预编译器会尝试搜索/path/to/include文件夹。
 }}}
 
+----
+=== add2line ===
+{{{
+$ arm-linux-gnueabi-addr2line -e vmlinux c0294320
+/home/huafang/android_samsung/kernel/drivers/video/backlight/sprd_pwm_bl.c:212
+}}}
+

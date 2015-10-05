@@ -22,6 +22,30 @@
 === memory & EMMC ===
 ==== /d/memblock/reserved ====
 ==== /proc/meminfo ====
+==== /proc/buddyinfo ====
+{{{
+伙伴算法中，各个order所剩余的个数
+
+如，
+# cat /proc/buddyinfo 
+ Node 0, zone      DMA      4      4      3      3      3      3      2      0      1      1      2 
+ Node 0, zone   Normal    140     90     34   5201   2816    556     29      0      0      0      0 
+ Node 0, zone  HighMem      0   2542   1859    253    961   3568    560     19      1      0      0 
+
+ 内存管理的信息，主要用来分析内存碎片的
+
+ 内存分为三个区域，DMA，Normal，HighMem，如果分页大小为4K，那我们可以分区域来看：
+ DMA：
+  有4块1页大小的空间、4块2页大小的空间，3块4页大小的空间，3块8页大小的空间。。。。。。
+ Normal：
+  有140块1页大小的空间、90块2页大小的空间。。。。。。
+ 以此类推，越是往后的空间，就越是连续，数目越多，就代表这个大小的连续空间越多，当大的连续空间很少的时候，也就说明，内存碎片已经非常多了。
+}}}
+
+==== /proc/slabinfo ====
+{{{
+各个slab的分配情况
+}}}
 ==== /dev/block/platform/sdio_emmc ====
 
 ----
@@ -53,3 +77,9 @@ cd /sys/devices/60000000.gpu/devfreq/60000000.gpu
 cat available_frequencies 查看GPU支持的所有频率
 echo GPU频率 > min_freq；echo GPU频率 > max_freq
 }}}
+
+----
+=== 资料 ===
+[[http://blog.csdn.net/adaptiver/article/details/6891666|proc下文件(buddyinfo/vmallocinfo...)]]<BR>
+[[http://bbs.chinaunix.net/thread-2002769-1-1.html|proc文件系统详解]]<BR>
+

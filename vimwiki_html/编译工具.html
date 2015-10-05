@@ -12,6 +12,7 @@
 <ul>
 <li><a href="#toc_0.0.1">make</a>
 <li><a href="#toc_0.0.2">gcc</a>
+<li><a href="#toc_0.0.3">add2line</a>
 </ul>
 </ul>
 </ul>
@@ -83,6 +84,13 @@ gcc -O2 source_file.c
 -l, 指定所使用到的函数库，本例中链接器会尝试链接名为libxxx.a的函数库。
 -L，指定函数库所在的文件夹，本例中链接器会尝试搜索/path/to/lib文件夹。
 -I, 指定头文件所在的文件夹，本例中预编译器会尝试搜索/path/to/include文件夹。
+</pre>
+
+<hr />
+<h3 id="toc_0.0.3">add2line</h3>
+<pre>
+$ arm-linux-gnueabi-addr2line -e vmlinux c0294320
+/home/huafang/android_samsung/kernel/drivers/video/backlight/sprd_pwm_bl.c:212
 </pre>
 
 </body>

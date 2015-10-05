@@ -51,10 +51,13 @@
 <ul>
 <li><a href="#toc_0.5.1">全局变量</a>
 <li><a href="#toc_0.5.2">文件节点</a>
-<li><a href="#toc_0.5.3">根据已分配内存地址找到slab</a>
-<li><a href="#toc_0.5.4">找到所有partial的页</a>
-<li><a href="#toc_0.5.5">查找kmem里的freelist</a>
-<li><a href="#toc_0.5.6">虚拟地址转物理地址</a>
+<li><a href="#toc_0.5.3">内存泄漏检测</a>
+<li><a href="#toc_0.5.4">内存越界检测</a>
+<li><a href="#toc_0.5.5">Native 的内存泄漏和越界</a>
+<li><a href="#toc_0.5.6">根据已分配内存地址找到slab</a>
+<li><a href="#toc_0.5.7">找到所有partial的页</a>
+<li><a href="#toc_0.5.8">查找kmem里的freelist</a>
+<li><a href="#toc_0.5.9">虚拟地址转物理地址</a>
 </ul>
 <li><a href="#toc_0.6">参考资料</a>
 </ul>
@@ -902,14 +905,103 @@ swapper_pg_dir
 <li>
 /proc/slabinfo
 
+<li>
+/proc/buddyinfo
+
 </ul>
 
-<h3 id="toc_0.5.3">根据已分配内存地址找到slab</h3>
+<h3 id="toc_0.5.3">内存泄漏检测</h3>
+<pre>
+内核配置：
+CONFIG_DEBUG_KMEMLEAK=y
+CONFIG_DEBUG_KMEMLEAK_EARLY_LOG_SIZE=1000
+
+其中 CONFIG_DEBUG_KMEMLEAK_EARLY_LOG_SIZE 的大小跟board 的kernel porting相关，
+有的不需要定义，有的需要定义大一点，可以在kmemleak.c 中模块初始化代码中调试.
+
+kmemleak 模块初始化成功后，会产生/sys/kernel/debug/kmemleak 这个文件
+
+操作命令如下:
+#su
+#echo scan &gt; /sys/kernel/debug/kmemleak 扫描泄漏
+#cat /sys/kernel/debug/kmemleak   查看泄漏
+#echo clear &gt; /sys/kernel/debug/kmemleak 清除结果
+ 
+当出现泄漏后，会有提示，比如
+unreferenced object 0xd25f3cc0 (size 64):
+  comm "Binder_5", pid 1257, jiffies 68676 (age 3105.280s)
+  hex dump (first 32 bytes):
+    00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00  ................
+    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+  backtrace:
+    [&lt;c00fa860&gt;] create_object+0x12c/0x248
+    [&lt;c0540fd4&gt;] kmemleak_alloc+0x88/0xcc
+    [&lt;c00f6f10&gt;] kmem_cache_alloc_trace+0x13c/0x1f4
+    [&lt;c026749c&gt;] ion_carveout_heap_map_dma+0x34/0xcc
+    [&lt;c0265280&gt;] ion_alloc+0x170/0x3f0
+    [&lt;c02655c0&gt;] ion_ioctl+0xc0/0x410
+    [&lt;c010d9b0&gt;] do_vfs_ioctl+0x4f4/0x568
+    [&lt;c010da6c&gt;] sys_ioctl+0x48/0x6c
+    [&lt;c000f800&gt;] ret_fast_syscall+0x0/0x48
+    [&lt;ffffffff&gt;] 0xffffffff
+</pre>
+
+<h3 id="toc_0.5.4">内存越界检测</h3>
+<pre>
+内核配置为使用 slub 作为内存分配器 ,slub 本身提供了检查越界的接口，如果 kernel 刚启动就要检查内存破坏，则需要编译的时候配置 CONFIG_SLUB_DEBUG_ON=y
+否则可以使用 slabinfo –d A 来打开检查功能，打开后， slub 会在内存后面加一些关键字， 释放的时候会检查是否被破坏，如果破坏了，check_bytes_and_report中print一个警告,
+可以修改check_bytes_and_report后面部分的代码，在debug版本中加入panic让系统死机来报告内存越界错误。
+ 
+static int check_bytes_and_report(struct kmem_cache *s, struct page *page,
+            u8 *object, char *what,
+            u8 *start, unsigned int value, unsigned int bytes)
+{
+    u8 *fault;
+    u8 *end;
+    fault = memchr_inv(start, value, bytes);
+    if (!fault)
+        return 1;
+    end = start + bytes;
+    while (end &gt; fault &amp;&amp; end[-1] == value)
+        end--;
+    slab_bug(s, "%s overwritten", what);
+    printk(KERN_WARN "INFO: 0x%p-0x%p. First byte 0x%x instead of 0x%x\n",
+                    fault, end - 1, fault[0], value);
+    print_trailer(s, page, object);
+    restore_bytes(s, what, value, fault, end);
+    return 0;
+}
+</pre>
+
+<h3 id="toc_0.5.5">Native 的内存泄漏和越界</h3>
+<pre>
+Android的native内存泄漏可以用valgrind工具，但是这个工具在android里运行太慢，Android里的bionic库提供了内存泄漏的检测方法
+见 bionic/libc/bionic/malloc_debug_common.c 里的注释.
+所有的native 内存分配函数都在libc库里，为了跟踪，需要使用这个库的特别版版本libc_malloc_debug_leak.so和libc_malloc_debug_qemu.so,可以看看eng或这user-debug版中的/system/lib/下是否有这两个文件，其中libc_malloc_debug_qemu.so是模拟器用的。
+ 
+在 malloc_debug_common.c 中的内存调试靠读取属性 libc.debug.malloc 来控制的，属性值含义如下:
+libc.debug.malloc      1    检测内存泄漏
+libc.debug.malloc      5    分配的内存用0xeb 填充，释放的内存用0xef填充
+libc.debug.malloc     10   内存分配打pre- 和post- 的桩子，可以检测内存的overruns
+libc.debug.malloc     20   SDK 模拟器上检测内存用
+ 
+简单的内存泄漏检测可以通过adb shell 写为
+# setprop libc.debug.malloc  1
+#stop
+#start 
+然后logcat 就可以显示内存泄漏，有的server可能stop杀不掉，为了开机就启动，可以在开机的时候就设置属性。
+可以修改init.rc, 增加 setprop libc.debug.malloc  10 属性 编译烧机，
+或者
+#adb remount
+#vi system/build.prop 增加 libc.debug.malloc = 10 属性
+</pre>
+
+<h3 id="toc_0.5.6">根据已分配内存地址找到slab</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mem_find_page.PNG" />
 </p>
 
-<h3 id="toc_0.5.4">找到所有partial的页</h3>
+<h3 id="toc_0.5.7">找到所有partial的页</h3>
 <pre>
 从slab_caches中得到kmem_cache
 kmem_cache-&gt;list是串起kmem_cache的链表，所以从slab_caches中得到链表值，就可以通过偏移得到kmem_cache
@@ -920,7 +1012,7 @@ v.v (struct kmem_cache*)(0xABCDEFGH - 0xXY)
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mem_partital_list.PNG" />
 </p>
 
-<h3 id="toc_0.5.5">查找kmem里的freelist</h3>
+<h3 id="toc_0.5.8">查找kmem里的freelist</h3>
 <pre>
 kmem_cacheslab有两种管理方式：
 1、cpu_slab
@@ -936,7 +1028,7 @@ kmem_cacheslab有两种管理方式：
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/slab_freelist.PNG" />
 </p>
 
-<h3 id="toc_0.5.6">虚拟地址转物理地址</h3>
+<h3 id="toc_0.5.9">虚拟地址转物理地址</h3>
 <pre>
 每个进程都有自己的页目录，放在task_struct-&gt;mm.pgd
 高1G的地址空间给内核用，各进程间是共享的，用全局变量swapper_pg_dir(0xc0004000~0xc0008000)来保存信息，进程在fork时，会把这部分内容copy过去
@@ -983,6 +1075,11 @@ kmem_cacheslab有两种管理方式：
 <a href="http://blog.csdn.net/cosmoslhf/article/details/42742975">arm的2级页表在Linux内核创建过程解析</a></BR>
 <a href="http://blog.csdn.net/hsly_support/article/details/7463609">浅析linux内核内存管理之分页</a></BR>
 <a href="http://www.360doc.com/content/13/1225/14/10366845_339992189.shtml">Android/Linux Kernel 記憶體管理-入門筆記</a><BR>
+</p>
+
+<p>
+--
+<a href="http://www.tuicool.com/articles/eYj6ji">Android 内存检测</a><BR>
 </p>
 
 </body>
