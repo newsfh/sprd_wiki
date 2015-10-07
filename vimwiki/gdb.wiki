@@ -1,0 +1,309 @@
+%toc 目录
+
+----
+=== 我的常用命令 ===
+{{{
+1. 断点
+  b                 打断点
+  dis[able] n       禁止断点
+  dis b             禁止所有断点
+  en[able] n        打开断点
+  d[elete] n        删除断点
+  i[nfo] b          查看所有断点信息
+  wa[tch]           为一个表达式设置观察点，在表达式的值发生改变时，或者当表达式的值被读取的时候，程序停止执行
+
+2. 线程
+  i[nfo] thr[eads]  查看所有线程
+  thr[ead] n        切到线程号
+
+3. 程序执行
+  c                 继续执行
+  n                 执行下一行语句
+  s                 执行下一行语句，如果有函数调用则进入到函数中
+  fini[sh]          连续运行到当前函数返回为止，然后停下来等待命令
+
+4. 查看信息
+  bt                查看调用栈
+  f[rame] n         切栈帧
+  l[ist]            列出源代码，接着上次的位置往下列，每次列10行
+  i reg             列出寄存器值
+  whatis var        显示变量数据类型
+  pt[ype] var       显示变量数据类型的定义
+  p[rint] var       查看变量值
+  p *var            查看变量的详细信息
+
+5. 图形化模式
+[可参考http://beej.us/guide/bggdb/]
+  wh                进入图形化模式
+  ctrl+x+a          退出图形化模式
+  layout src/split/asm   切换代码窗口类型
+  i win             显示窗口信息
+  fs src/cmd        让某窗口获得焦点
+}}}
+
+----
+=== gdb常用命令 ===
+{{{
+　　gdb命令手册
+　　1	关于断点(breakpoint)的命令：
+　　1.1	设置断点的命令
+　　1.	awatch:awatch用来为一个表达式设置观察点，在表达式的值发生改变时，或者当表达式的值被读取的时候，程序停止执行。
+　　 awatch + 表达式
+　　2.	watch: 数据断点，与awatch类似
+　　3.	break（可以简写为b）: 用于在程序中设置断点
+　　（1）	命令形式
+　　 break + line-number要设置断点的行号	//使程序恰好在执行给定行之前停止
+　　 break + function-name函数名	 //使程序恰好在进入指定的函数之前停止
+　　 break + routine-name	 //在指定例程的入口处设置断点
+　　 break + line-or-function if condition	//break if命令——如果condition（条件）是真，程序到达指定行或函数时停止
+　　如果该程序是由很多原文件构成的，你可以在各个原文件中设置断点，而不是在当前的原文件中设置断点，方法：在设置的断点前加filename:（ 文件名:）修饰，如(gdb) break filename:line-number 、(gdb) break filename:function-name
+　　（2）	相关命令
+　　 countinue 命令（可以简写为c）：从断点继续运行 
+　　 info break：显示当前gdb的断点信息，显示断点信息的形式： 
+　　Num Type Disp Enb Address What 
+　　1 breakpoint keep y 0x000028bc in init_random at qsort2.c:155 
+　　2 breakpoint keep y 0x0000291c in init_organ at qsort2.c:168 
+　　4.	tbreak:用于设置临时断点，所谓临时断点就是断点只在设置之后起作用一次。
+　　5.	condition:在满足一定的条件时才在指定的行上设置断点 
+　　 condition + 断点编号+ 条件表达式 
+　　1.2	管理断点的命令
+　　1.	clean:清除原文件中某一代码行上的所有断点
+　　 clean + number //number 为原文件的某个代码行的行号
+　　2.	clear: 用于清除断点
+　　 clear + number	 //number 为要清除断点的行号
+　　3.	delete:用于清除断点和自动显示的表达式的命令。
+　　 delete breakpoint 断点编号 //删除指定的某个断点
+　　 delete breakpoint //如果不带编号参数，将删除所有的断点
+　　与clear的不同之处：
+　　 clear要给出断点的行号，delete要给出断点的编号。
+　　 用clear命令清除断点时gdb会给出提示，而用delete清除断点时gdb不会给出任何提示
+　　4.	disable:让所设断点暂时失效，禁止使用。如果要让多个编号处的断点失效可将编号之间用空格隔开
+　　 disable 断点编号	 //该命令将禁止断点,同时断点信息的 (Enb)域将变为n
+　　5.	enable:与disable 相对，允许使用某个断点
+　　 enable 断点编号	 //该命令将允许断点,同时断点信息的 (Enb)域将变为 y
+　　6.	ignore:这条命令在一定范围内忽略用户设定的断点
+　　 ignore + N CONT
+　　1.3	其他
+　　1.	commands: 用于为遇到断点之后执行特定的指令而设置的，如果commands 之后没有断点号，gdb会将最后一个设置的断点编号作为默认值。
+　　 command + 断点号
+　　2	关于表达式的命令
+　　2.1	显示表达式值的命令
+　　1.	display:该命令用于显示表达式的值，使用了该命令后，每当程序运行到断点处都会显示表达式的值。 
+　　 display + 表达式 如:display 5*j
+　　2.	info display:用于显示当前所有要显示值的表达式的有关情况
+　　3.	delete display:用于删除一个要显示值的表达式，调用这个命令删除一个表达式后，被删除的表达式将不被显示。 
+　　 delete display 1
+　　4.	undisplay:用于结束某个表达式值的显示。同delete display功能相似
+　　5.	disable display:使一个要显示的表达式暂时无效。可有enable重新使之有效
+　　6.	enable display:反操作disable diplay 
+　　7.	print: print 是gdb的一个功能很强的命令，利用它可以显示被调试的语言中任何有效的表达式。可以打印内存中从某个部分开始的一块连续空间的内容，print可以对变量赋值。
+　　 print + base@length——开始表达式@要打印的连续空间的大小 //打印内存内容
+　　 prin t + 变量名=8 //对变量赋值
+　　 print find_entry(1,0) //对程序中函数的调用
+　　 prin t + 变量名 //检查变量值
+　　 print *table_start //数据结构和其他复杂对象
+　　显示 $8={e=reference=’\000’,location＝0x0,next=0x0}
+　　 print $1 //值的历史成分
+　　($1为历史记录变量,在以后可以直接引用 $1 的值)
+　　早期的调试程序没有很好的方法将任意的指针换成一个数组。
+　　$表示给定序号的前一个序号，$$表示给定序号的向前第2个序号。例如给定序号是5，那么$代表4,$$代表3.如果是print $表示 print 1
+　　2.2	设置表达式值的命令
+　　1.	set: 用于为变量赋值 类似print 
+　　 set variable ：set variable j=9 类似于：print j=9
+　　2.3	显示表达式类型的命令
+　　1.	whatis:显示某个表达式的数据类型（或识别数组或变量的类型？）
+　　 whatis + 表达式 如:whatis j ，显示type = 类型信息
+　　2.	ptype:用于给出类型的定义。
+　　 ptype + 变量or数据类型 
+　　疑问：ptype与whatis的区别——比whatis的功能更强，他可以提供一个结构的定义？
+　　3	关于文件的命令
+　　1.	add-shared-symbol-files:该命令用于从动态的连接映射的共享目标文件中装入符号表。
+　　2.	add-symbol-file:该命令用于从已经动态装入的文件中装入符号表。使用格式是：
+　　 add-symbol-file + FILE + ADDR：其中FILE给出的是动态装入的文件的名称，ADDR是文件中正文的起始地址。
+　　3.	load:该命令用于动态的向正在调试的程序中装入文件，并记录它的符号表，准备联接
+　　4.	core-file:使某个文件成为core dump
+　　5.	cd：改变当前工作目录。
+　　6.	file:用来装入待调试程序的命令。
+　　7.	path:该命令用于向目标文件的搜索路径中增加目录的，可以使用当前目录的$cwd
+　　8.	pwd:显示当前工作路径
+　　9.	directory:用来向源文件搜索目录中添加一个目录
+　　10.	list:list的非空系数的几种形式：
+　　 list 起始行号 截止行号
+　　 LINENUM：当前文件的LINENUM行
+　　 FILE：LINENUM： 指定文件的LINENUM行
+　　 FUNCTION：当前文件的FUNCTION函数
+　　 FILE：FUNCTION
+　　 *ADDRESS列出包含该地址的文件
+　　11.	forward:用来从列表当前行开始向后查找第一个匹配某个字符串的程序行 
+　　 forward 匹配的字符串
+　　12.	search:同forward。
+　　13.	reverse-search:从列表当前行开始向前查找第一个匹配的字符串，查找到的行号保存在$_中
+　　4	关于程序运行的命令：
+　　4.1	启动运行
+　　1.	run:运行准备调试的程序，在它后面可以跟随发给该程序的任何参数，包括标准输入和标准输出说明符(<和>)和外壳通配符（*、？、[、]）在内。 
+　　如果你使用不带参数的run命令，gdb就再次使用你给予前一条run命令的参数。 
+　　2.	set args: 可以修改发送给程序的参数
+　　 set args –b –x
+　　3.	show args:可以查看其缺省参数的列表
+　　 show args
+　　4.2	继续运行
+　　1.	cont:使程序继续执行
+　　2.	continue 命令（c）：继续执行正在调试的程序。该命令用在程序由于处理信号或断点而 导致停止运行时。
+　　3.	stop:如果信号发生，重新进入调试器，并打印出提示信息；
+　　4.	print：如果信号发生就打印一条提示信息
+　　5.	pass:让程序能看到这个信号发生
+　　6.	jump:指定程序开始调试的指令和地址——在源程序中的另一点开始运行
+　　 jump 行号或是指令地址
+　　4.3	结束运行、gdb
+　　1.	kill:结束当前程序的调试。
+　　2.	quit:退出gdb
+　　4.4	控制执行
+　　1.	next: 不进入的单步执行——继续程序的运行，越过子程序调用
+　　2.	nexti:用于单步执行一条语句中的一条指令，它会跟踪到子程序的内部
+　　 next用于单步执行一条语句
+　　 nexti用于单步执行一条指令，一条语句可能有几条指令构成。
+　　3.	step: 进入的单步执行——用于执行一条语句的，也不越过子过程的调用
+　　如果已经进入了某函数，而想退出该函数返回到它的调用函数中，调用finish命令。
+　　4.	stepi:用于执行一条指令的，它不越过子程序的调用，而是跟踪到子过程的内部
+　　5.	finish:退出当前函数，返回到它的调用函数中。
+　　6.	until:结束当前循环
+　　4.5	调用函数
+　　1.	call:调用和执行一个函数
+　　 call name
+　　call gen_and_sork( 1234,1,0 )
+　　call printf(“abcd”) ——显示： $1=4
+　　2.	finish:结束执行当前函数，显示其返回值（如果有的话） 
+　　4.6	信号控制
+　　gdb通常可以捕捉到发送给它的大多数信号，通过捕捉信号，它就可决定对于正在运行的进程要做些什么工作。例如，按CTRL-C将中断信号发送给gdb，通常就会终止gdb。但是你或许不想中断gdb，真正的目的是要中断gdb正在运行的程序，因此，gdb要抓住该信号并停止它正在运行的程序，这样就可以执行某些调试操作。 
+　　1.	Handle: 对信号设置处理函数，控制信号的处理。信号可以是符号，也可以是数字。如果用all来作参数，则意味着调试器接受除了（信号SIGTRAP和信号SIGINT）之外的所有信号处理函数。
+　　（1）	格式
+　　 handle + 信号名 + 信号处理(接受到信号时该作什么)
+　　（2）	几种可能的参数是
+　　 l nostop 接收到信号时，不要将它发送给程序，也不要停止程序。 
+　　 l stop 接受到信号时停止程序的执行，从而允许程序调试；显示一条表示已接受到信号的消息（禁止使用消息除外） 
+　　 l print 接受到信号时显示一条消息 
+　　 l noprint 接受到信号时不要显示消息（而且隐含着不停止程序运行） 
+　　 l pass 将信号发送给程序，从而允许你的程序去处理它、停止运行或采取别的动作。 
+　　 l nopass 停止程序运行，但不要将信号发送给程序。 
+　　（3）	例
+　　 handle SIGPIPE stop print：截获SIGPIPE信号，以防止正在调试的程序接受到该信号，而且只要该信号一到达，就要求该程序停止，并通知你。
+　　注意：UNIX的信号名总是采用大写字母！你可以用信号编号替代信号名。
+　　如：SIGINT（键盘输入，或CTRL-C；信号2）
+　　2.	signal: 将信号发送给程序
+　　如果你的程序要执行任何信号处理操作，就需要能够测试其信号处理程序，为此，就需要一种能将信号发送给程序的简便方法，这就是signal命令的任务。
+　　（1）	格式
+　　 signal + 信号名
+　　（2）	例
+　　 signal 2 —— 发送信号
+　　假定你的程序已将一个专用的SIGINT信号处理程序设置成采取某个清理动作，测试handle命令设置的SIGINT信号处理程序，可以设置一个断点并使用如下命令： signal 2 
+　　 continuing with signal SIGINT(2) —— 该程序继续执行，但是立即传输该信号，而且处理程序开始运行。 
+　　5	关于堆栈的命令：
+　　1.	backtrace:用来打印栈侦指针的。backtrace命令为堆栈提供向后跟踪功能。
+　　 backtrace 要打印的栈侦指针的个数
+　　Backtrace 命令产生一张列表，包含着从最近的过程开始的所以有效过程和调用这些过程的参数。
+　　同where。
+　　2.	frame: 该命令用于打印栈侦的——选择下一条continue命令的帧。
+　　 frame 要打印的编号
+　　3.	select-frame:指定要选择的栈侦的编号。一般与info frame连用。
+　　4.	info reg：查看寄存器使用情况。
+　　5.	info stack：查看栈。
+　　6.	where：查看当前位置。
+　　7.	up：跳到上一层函数 —— 上移栈帧，使另一函数成为当前函数。
+　　8.	down：与up相对。
+　　9.	attach：把当前高度的程序粘在某个进程上，用于调试运行中的进程。
+　　 attach 进程号 
+　　6	机器语言工具 
+　　有一组专用的gdb变量可以用来检查和修改计算机的通用寄存器，gdb提供了目前每一台计算机中实际使用的4个寄存器的标准名字： 
+　　1.	$pc ： 程序计数器 
+　　2.	$fp ： 帧指针（当前堆栈帧） 
+　　3.	$sp ： 栈指针
+　　4.	$ps ： 处理器状态
+　　
+　　7	其他命令
+　　1.	UNIX接口 
+　　 shell 命令可启动UNIX外壳——使你能不离开 gdb 就执行 UNIX shell 命令.
+　　 CTRL-D退出外壳，返回到 gdb. 
+　　2.	info 显示与该程序有关的各种信息 
+　　3.	make:使你能不退出 gdb 就可以重新产生可执行文件.
+　　8	历史命令
+　　1.	set history expansion on:允许使用历史命令
+　　 set history expansion on 
+　　9	gdb介绍
+　　GNU的调试器称为gdb，该程序是一个交互式工具，工作在字符模式。在 X Window 系统中，有一个gdb的前端图形工具，称为xxgdb。gdb 是功能强大的调试程序，可完成如下的调试任务： 
+　　1.	设置断点； 
+　　2.	监视程序变量的值； 
+　　3.	程序的单步执行； 
+　　4.	修改变量的值。 
+　　在可以使用 gdb 调试程序之前，必须使用 -g 选项编译源文件。可在 makefile 中如下定义 CFLAGS 变量： 
+　　CFLAGS = -g 
+　　运行 gdb 调试程序时通常使用如下的命令： 
+　　gdb progname 
+　　9.1	信息获取
+　　1.	Help
+　　在 gdb 提示符处键入help，将列出命令的分类，主要的分类有： 
+　　 aliases：命令别名 
+　　 breakpoints：断点定义； 
+　　 data：数据查看； 
+　　 files：指定并查看文件； 
+　　 internals：维护命令； 
+　　 running：程序执行； 
+　　 stack：调用栈查看； 
+　　 statu：状态查看； 
+　　 tracepoints：跟踪程序执行。 
+　　键入 help 后跟命令的分类名，可获得该类命令的详细清单。 
+　　2.	gdb 的常用命令： 命令 解释
+　　 break NUM 在指定的行上设置断点。 
+　　 bt 显示所有的调用栈帧。该命令可用来显示函数的调用顺序。 
+　　 clear 删除设置在特定源文件、特定行上的断点。其用法为clear FILENAME:NUM 
+　　 continue 继续执行正在调试的程序。该命令用在程序由于处理信号或断点而 导致停止运行时。 
+　　 display EXPR 每次程序停止后显示表达式的值。表达式由程序定义的变量组成。 
+　　 file FILE 装载指定的可执行文件进行调试。 
+　　 help NAME 显示指定命令的帮助信息。 
+　　 info break 显示当前断点清单，包括到达断点处的次数等。 
+　　 info files 显示被调试文件的详细信息。 
+　　 info func 显示所有的函数名称。 
+　　 info local 显示当函数中的局部变量信息。 
+　　 info prog 显示被调试程序的执行状态。 
+　　 info var 显示所有的全局和静态变量名称。 
+　　 kill 终止正被调试的程序。 
+　　 list 显示源代码段。 
+　　 make 在不退出 gdb 的情况下运行 make 工具。 
+　　 next 在不单步执行进入其他函数的情况下，向前执行一行源代码。 
+　　 print EXPR 显示表达式 EXPR 的值。 
+　　9.2	gdb 使用范例 
+　　----------------- 
+　　清单 一个有错误的 C 源程序 bugging.c 
+　　代码: 
+　　----------------- 
+　　1　#include 
+　　2 
+　　3　static char buff [256]; 
+　　4　static char* string; 
+　　5　int main () 
+　　6　{ 
+　　7　　　printf ("Please input a string: "); 
+　　8　　　gets (string);　　 
+　　9　　 printf ("\nYour string is: %s\n", string); 
+　　10 } 
+　　----------------- 
+　　上面这个程序非常简单，其目的是接受用户的输入，然后将用户的输入打印出来。该程序使用了一个未经过初始化的字符串地址 string，因此，编译并运行之后，将出现 Segment Fault 错误： 
+　　$ gcc -o bugging -g bugging.c 
+　　$ ./bugging 
+　　Please input a string: asfd 
+　　Segmentation fault (core dumped) 
+　　为了查找该程序中出现的问题，我们利用 gdb，并按如下的步骤进行： 
+　　1.	运行 gdb bugging 命令，装入 bugging 可执行文件； 
+　　2.	执行装入的 bugging 命令 run； 
+　　3.	使用 where 命令查看程序出错的地方； 
+　　4.	利用 list 命令查看调用 gets 函数附近的代码； 
+　　5.	唯一能够导致 gets 函数出错的因素就是变量 string。用print命令查看 string 的值； 
+　　6.	在 gdb 中，我们可以直接修改变量的值，只要将 string 取一个合法的指针值就可以了，为此，我们在第8行处设置断点 break 8； 
+　　7.	程序重新运行到第 8行处停止，这时，我们可以用 set variable 命令修改 string 的取值； 
+　　8.	然后继续运行，将看到正确的程序运行结果。
+}}}
+
+----
+=== 资料 ===
+[[http://blog.csdn.net/yaopeng_2005/article/details/6793833|使用gdb调试多线程程序总结]]<BR>
+[[http://www.programlife.net/gdb-manual.html|GDB调试手册]]
+

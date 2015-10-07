@@ -55,6 +55,7 @@
 [[ubuntu串口工具]]</BR>
 [[vmware]]</BR>
 [[Trace32使用]]</BR>
+[[gdb]]<BR>
 [[crash tool]]</BR>
 [[crash command]]</BR>
 [[ramdisk的打包和解压]]</BR>
