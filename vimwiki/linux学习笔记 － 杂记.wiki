@@ -1,0 +1,11 @@
+%toc 目录
+
+=== /proc/<pid>/节点代码 ===
+{{{
+kernel/fs/proc/base.c
+tid_base_stuff
+}}}
+
+=== trace ===
+[[http://itlab.idcquan.com/linux/kernel/821106.html|Linux内核跟踪之trace框架分析]]<BR>
+

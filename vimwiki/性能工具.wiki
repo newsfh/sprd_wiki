@@ -1,0 +1,71 @@
+%toc 工具
+
+----
+=== 总览 ===
+{{local:images/linux_perf_tools.jpg}}
+
+----
+=== perf ===
+==== perf sched ====
+{{{
+perf sched [<options>] {record|latency|map|replay|script}
+-i, --input <file>    input file name
+-v, --verbose         be more verbose (show symbol address, etc)
+-D, --dump-raw-trace  dump raw trace in ASCII
+
+record: 记录调度数据
+latency: 运行时间及延时时间
+replay: 数据回放
+map: task的迁徙过程
+script: 详细的task迁徙过程
+}}}
+* perf sched record
+{{{
+记录10s的调度数据：
+perf sched record sleep 10
+需要先切到/data分区，然后会生成perf.data
+}}}
+
+* perf sched map
+{{{
+回放perf.data
+星号表示调度事件发生所在的 CPU。
+点号表示该 CPU 正在 IDLE。
+}}}
+
+* perf sched latency
+{{{
+perf sched latency --sort max
+}}}
+==== 资料 ====
+[[http://www.ibm.com/developerworks/cn/linux/l-cn-perf1/|Perf -- Linux下的系统性能调优工具，第 1 部分]]<BR>
+[[http://www.ibm.com/developerworks/cn/linux/l-cn-perf2/|Perf -- Linux下的系统性能调优工具，第 2 部分]]<BR>
+[[http://blog.csdn.net/zhangskd/article/details/37902159|系统级性能分析工具 — Perf]]<BR>
+
+----
+=== ftrace ===
+{{{
+路径：
+/d/tracing
+}}}
+
+==== set event ====
+{{{
+cat available_events
+echo "" > trace
+echo 1 > tracing_on
+echo "sched:sched_switch sched:sched_stat_wait sched:sched_stat_sleep sched:sched_stat_iowait sched:sched_stat_runtime sched:sched_process_exit sched:sched_process_fork sched:sched_wakeup  sched:sched_migrate_task" > set_event
+cat trace
+}}}
+
+==== 资料 ====
+[[http://blog.csdn.net/cybertan/article/details/8258394|ftrace的使用]]<BR>
+[[http://m.blog.csdn.net/blog/trochiluses/10185951|利用ftrace跟踪内核static tracepoint]]<BR>
+[[http://blog.csdn.net/adaptiver/article/details/7930646|使用 ftrace 调试 Linux 内核]]<BR>
+[[http://itlab.idcquan.com/linux/kernel/821106.html|Linux内核跟踪之trace框架分析]]<BR>
+
+----
+=== strace ===
+==== 资料 ====
+[[http://www.cnblogs.com/ggjucheng/archive/2012/01/08/2316692.html|Linux strace命令]]<BR>
+

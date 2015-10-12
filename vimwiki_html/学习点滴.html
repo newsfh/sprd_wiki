@@ -1710,12 +1710,20 @@ gcc -E -P xxxx.c
 
 <h3 id="toc_0.0.132">定时周期timer</h3>
 <pre>
+CP:
 2.5s：do-idle
 	飞行模式下会关闭
 18.9s：dsp
 	出现的场景：
 	1）flight mode
 	2）w standby only
+
+AP:
+30s：pm_print(kernel/drivers/platform/sprd/pm_debug_scx35.c)
+30s：电量检测
+40s：sprd_hotplug(kernel/drivers/cpuhotplug/sprd_hotplug.c)
+5s：loopcheck
+3s：slog
 
 如果cp有周期性醒来，有可能开了log
 </pre>
@@ -1898,6 +1906,20 @@ Stack defined in tx_illdb.s
 <pre>
 arm7在进deep时会去polling 0x402b0178是否为0，将其改为1，可让其不睡
 但前提是arm7是醒着的，所以先进deep，再退出来时设
+</pre>
+
+<h3 id="toc_0.0.142">Android ps代码</h3>
+<pre>
+system/core/toolbox/ps.c
+
+Android的ps命令参数: -t -x -P -p -c [pid|name]
+-t 显示进程下的线程列表
+-x 显示进程耗费的用户时间和系统时间，格式:(u:0, s:0)，单位:秒(s)
+-P 显示调度策略，通常是bg或fg，当获取失败将会是un和er
+-p 显示进程的优先级和nice等级
+-c 显示进程耗费的CPU时间 (可能不兼容Android 4.0以前的老版本系统)
+[pid] 过滤指定的进程PID
+[name] 过滤指定的进程NAME
 </pre>
 
 </body>

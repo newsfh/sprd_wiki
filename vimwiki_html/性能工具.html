@@ -1,0 +1,123 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>性能工具</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>工具</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">总览</a>
+<li><a href="#toc_0.0.2">perf</a>
+<ul>
+<li><a href="#toc_0.0.2.1">perf sched</a>
+<li><a href="#toc_0.0.2.2">资料</a>
+</ul>
+<li><a href="#toc_0.0.3">ftrace</a>
+<ul>
+<li><a href="#toc_0.0.3.1">set event</a>
+<li><a href="#toc_0.0.3.2">资料</a>
+</ul>
+<li><a href="#toc_0.0.4">strace</a>
+<ul>
+<li><a href="#toc_0.0.4.1">资料</a>
+</ul>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">总览</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_perf_tools.jpg" />
+</p>
+
+<hr />
+<h3 id="toc_0.0.2">perf</h3>
+<h4 id="toc_0.0.2.1">perf sched</h4>
+<pre>
+perf sched [&lt;options&gt;] {record|latency|map|replay|script}
+-i, --input &lt;file&gt;    input file name
+-v, --verbose         be more verbose (show symbol address, etc)
+-D, --dump-raw-trace  dump raw trace in ASCII
+
+record: 记录调度数据
+latency: 运行时间及延时时间
+replay: 数据回放
+map: task的迁徙过程
+script: 详细的task迁徙过程
+</pre>
+<ul>
+<li>
+perf sched record
+<pre>
+记录10s的调度数据：
+perf sched record sleep 10
+需要先切到/data分区，然后会生成perf.data
+</pre>
+
+</ul>
+
+<ul>
+<li>
+perf sched map
+<pre>
+回放perf.data
+星号表示调度事件发生所在的 CPU。
+点号表示该 CPU 正在 IDLE。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+perf sched latency
+<pre>
+perf sched latency --sort max
+</pre>
+
+</ul>
+<h4 id="toc_0.0.2.2">资料</h4>
+<p>
+<a href="http://www.ibm.com/developerworks/cn/linux/l-cn-perf1/">Perf -- Linux下的系统性能调优工具，第 1 部分</a><BR>
+<a href="http://www.ibm.com/developerworks/cn/linux/l-cn-perf2/">Perf -- Linux下的系统性能调优工具，第 2 部分</a><BR>
+<a href="http://blog.csdn.net/zhangskd/article/details/37902159">系统级性能分析工具 — Perf</a><BR>
+</p>
+
+<hr />
+<h3 id="toc_0.0.3">ftrace</h3>
+<pre>
+路径：
+/d/tracing
+</pre>
+
+<h4 id="toc_0.0.3.1">set event</h4>
+<pre>
+cat available_events
+echo "" &gt; trace
+echo 1 &gt; tracing_on
+echo "sched:sched_switch sched:sched_stat_wait sched:sched_stat_sleep sched:sched_stat_iowait sched:sched_stat_runtime sched:sched_process_exit sched:sched_process_fork sched:sched_wakeup  sched:sched_migrate_task" &gt; set_event
+cat trace
+</pre>
+
+<h4 id="toc_0.0.3.2">资料</h4>
+<p>
+<a href="http://blog.csdn.net/cybertan/article/details/8258394">ftrace的使用</a><BR>
+<a href="http://m.blog.csdn.net/blog/trochiluses/10185951">利用ftrace跟踪内核static tracepoint</a><BR>
+<a href="http://blog.csdn.net/adaptiver/article/details/7930646">使用 ftrace 调试 Linux 内核</a><BR>
+<a href="http://itlab.idcquan.com/linux/kernel/821106.html">Linux内核跟踪之trace框架分析</a><BR>
+</p>
+
+<hr />
+<h3 id="toc_0.0.4">strace</h3>
+<h4 id="toc_0.0.4.1">资料</h4>
+<p>
+<a href="http://www.cnblogs.com/ggjucheng/archive/2012/01/08/2316692.html">Linux strace命令</a><BR>
+</p>
+
+</body>
+</html>

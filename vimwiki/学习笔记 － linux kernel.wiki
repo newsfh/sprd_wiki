@@ -11,6 +11,7 @@
 [[linux学习笔记 － 常用API]]<BR>
 <BR>
 [[linux学习笔记 － firmware]]<BR>
+[[linux学习笔记 － 杂记]]<BR>
 
 ----
 === 参考资料 ===

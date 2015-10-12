@@ -9,6 +9,72 @@
 ----
 === system ===
 ==== /proc/interrupts ====
+==== /proc/<pid>/stat ====
+{{{
+    seq_printf(m, "%d (%s) %c", pid_nr_ns(pid, ns), tcomm, state);              // 进程(包括轻量级进程，即线程)号；
+                                                                                // 应用程序或命令的名字；
+                                                                                // 任务的状态，R:runnign, S:sleeping (TASK_INTERRUPTIBLE), D:disk sleep (TASK_UNINTERRUPTIBLE), T: stopped, T:tracing stop,Z:zombie, X:dead
+    seq_put_decimal_ll(m, ' ', ppid);                                           // 父进程ID
+    seq_put_decimal_ll(m, ' ', pgid);                                           // 线程组号
+    seq_put_decimal_ll(m, ' ', sid);                                            // 该任务所在的会话组ID
+    seq_put_decimal_ll(m, ' ', tty_nr);                                         // 该任务的tty终端的设备号，INT（34817/256）=主设备号，（34817-主设备号）=次设备号
+    seq_put_decimal_ll(m, ' ', tty_pgrp);                                       // 终端的进程组号，当前运行在该任务所在终端的前台任务(包括shell 应用程序)的PID
+    seq_put_decimal_ull(m, ' ', task->flags);                                   // 进程标志位，查看该任务的特性
+    seq_put_decimal_ull(m, ' ', min_flt);                                       // 该任务不需要从硬盘拷数据而发生的缺页（次缺页）的次数
+    seq_put_decimal_ull(m, ' ', cmin_flt);                                      // 累计的该任务的所有的waited-for进程曾经发生的次缺页的次数目
+    seq_put_decimal_ull(m, ' ', maj_flt);                                       // 该任务需要从硬盘拷数据而发生的缺页（主缺页）的次数
+    seq_put_decimal_ull(m, ' ', cmaj_flt);                                      // 累计的该任务的所有的waited-for进程曾经发生的主缺页的次数目
+    seq_put_decimal_ull(m, ' ', cputime_to_clock_t(utime));                     // 该任务在用户态运行的时间，单位为jiffies
+    seq_put_decimal_ull(m, ' ', cputime_to_clock_t(stime));                     // 该任务在核心态运行的时间，单位为jiffies
+    seq_put_decimal_ll(m, ' ', cputime_to_clock_t(cutime));                     // 累计的该任务的所有的waited-for进程曾经在用户态运行的时间，单位为jiffies
+    seq_put_decimal_ll(m, ' ', cputime_to_clock_t(cstime));                     // 累计的该任务的所有的waited-for进程曾经在核心态运行的时间，单位为jiffies
+    seq_put_decimal_ll(m, ' ', priority);                                       // 任务的动态优先级
+    seq_put_decimal_ll(m, ' ', nice);                                           // 任务的静态优先级
+    seq_put_decimal_ll(m, ' ', num_threads);                                    // 该任务所在的线程组里线程的个数
+    seq_put_decimal_ull(m, ' ', 0);                                             // 由于计时间隔导致的下一个 SIGALRM 发送进程的时延，以 jiffy 为单位.
+    seq_put_decimal_ull(m, ' ', start_time);                                    // 该任务启动的时间，单位为jiffies
+    seq_put_decimal_ull(m, ' ', vsize);                                         // 该任务的虚拟地址空间大小
+    seq_put_decimal_ull(m, ' ', mm ? get_mm_rss(mm) : 0);                       // 该任务当前驻留物理地址空间的大小
+    seq_put_decimal_ull(m, ' ', rsslim);                                        // 该任务能驻留物理地址空间的最大值
+    seq_put_decimal_ull(m, ' ', mm ? (permitted ? mm->start_code : 1) : 0);     // 该任务在虚拟地址空间的代码段的起始地址
+    seq_put_decimal_ull(m, ' ', mm ? (permitted ? mm->end_code : 1) : 0);       // 该任务在虚拟地址空间的代码段的结束地址
+    seq_put_decimal_ull(m, ' ', (permitted && mm) ? mm->start_stack : 0);       // 该任务在虚拟地址空间的栈的结束地址
+    seq_put_decimal_ull(m, ' ', esp);                                           // esp(32 位堆栈指针) 的当前值, 与在进程的内核堆栈页得到的一致.
+    seq_put_decimal_ull(m, ' ', eip);                                           // 指向将要执行的指令的指针, EIP(32 位指令指针)的当前值.
+    seq_put_decimal_ull(m, ' ', task->pending.signal.sig[0] & 0x7fffffffUL);    // 待处理信号的位图，记录发送给进程的普通信号
+    seq_put_decimal_ull(m, ' ', task->blocked.sig[0] & 0x7fffffffUL);           // 阻塞信号的位图
+    seq_put_decimal_ull(m, ' ', sigign.sig[0] & 0x7fffffffUL);                  // 忽略的信号的位图
+    seq_put_decimal_ull(m, ' ', sigcatch.sig[0] & 0x7fffffffUL);                // 被俘获的信号的位图
+    seq_put_decimal_ull(m, ' ', wchan);                                         // 如果该进程是睡眠状态，该值给出调度的调用点
+    seq_put_decimal_ull(m, ' ', 0);                                             // 被swapped的页数，当前没用
+    seq_put_decimal_ull(m, ' ', 0);                                             // 所有子进程被swapped的页数的和，当前没用
+    seq_put_decimal_ll(m, ' ', task->exit_signal);                              // 该进程结束时，向父进程所发送的信号
+    seq_put_decimal_ll(m, ' ', task_cpu(task));                                 // 运行在哪个CPU上
+    seq_put_decimal_ull(m, ' ', task->rt_priority);                             // 实时进程的相对优先级别
+    seq_put_decimal_ull(m, ' ', task->policy);                                  // 进程的调度策略，0=非实时进程，1=FIFO实时进程；2=RR实时进程
+    seq_put_decimal_ull(m, ' ', delayacct_blkio_ticks(task));
+    seq_put_decimal_ull(m, ' ', cputime_to_clock_t(gtime));
+    seq_put_decimal_ll(m, ' ', cputime_to_clock_t(cgtime));
+
+    if (mm && permitted) {
+        seq_put_decimal_ull(m, ' ', mm->start_data);
+        seq_put_decimal_ull(m, ' ', mm->end_data);
+        seq_put_decimal_ull(m, ' ', mm->start_brk);
+        seq_put_decimal_ull(m, ' ', mm->arg_start);
+        seq_put_decimal_ull(m, ' ', mm->arg_end);
+        seq_put_decimal_ull(m, ' ', mm->env_start);
+        seq_put_decimal_ull(m, ' ', mm->env_end);
+    } else
+        seq_printf(m, " 0 0 0 0 0 0 0");
+
+    if (permitted)
+        seq_put_decimal_ll(m, ' ', task->exit_code);
+    else
+        seq_put_decimal_ll(m, ' ', 0);
+}}}
+
+----
+=== chip ===
 ==== /d/gpio ====
 ==== /d/clk ====
 ==== /d/sprd-regulator ====
