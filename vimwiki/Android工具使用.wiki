@@ -1,0 +1,74 @@
+%toc 目录
+
+----
+=== logcat ===
+* 简介
+{{{
+logcat日志中的优先级/tag标记：
+android输出的每一条日志都有一个标记和优先级与其关联。
+如下是一个日志输出的消息，优先级是“D”，标记是“PowerManagerService”：
+D/PowerManagerService( 305): onSensorChanged: light value: 306.0
+}}}
+* 使用logcat命令查看android日志输出
+{{{
+adb logcat     //显示全部日志
+adb logcat > c:\test.log //将日志保存到文件test.log
+}}}
+* 根据tag标记和级别过滤日志输出
+{{{
+优先级是下面的字符，顺序是从低到高：
+V — 明细 verbose(最低优先级)
+D — 调试 debug
+I — 信息 info
+W — 警告 warn
+E — 错误 error
+F — 严重错误 fatal
+S — 无记载 silent
+
+标记是一个简短的字符串，用于标识原始消息的来源。
+
+仅输出标记为“ActivityManager”且优先级大于等于“Info”和标记为“PowerManagerService”并且优先级大于等于“Debug”的日志：
+	adb logcat ActivityManager:I PowerManagerService:D *:S
+注：*:S用于设置所有标记的日志优先级为S，这样可以确保仅输出符合条件的日志。
+	adb logcat *:W   //显示所有优先级大于等于“warning”的日志
+	adb logcat -s PowerManagerService   //显示PowerManagerService的日志信息
+}}}
+* Logcat命令列表
+{{{
+-d 将日志显示在控制台后退出
+-c 清理已存在的日志
+-f <filename> 将日志输出到文件
+adb logcat -f /sdcard/test.txt
+-v <format>设置日志输入格式控制输出字段，默认的是brief格式
+	brief — 显示优先级/标记和原始进程的PID (默认格式)
+	process — 仅显示进程PID
+	tag — 仅显示优先级/标记
+	thread — 仅显示进程：线程和优先级/标记
+	raw — 显示原始的日志信息，没有其他的元数据字段
+	time — 显示日期，调用时间，优先级/标记，PID
+	long —显示所有的元数据字段并且用空行分隔消息内容
+		adb logcat -v thread   //使用 thread 输出格式
+	注意-v 选项中只能指定一种格式。
+-b <buffer>加载一个可使用的日志缓冲区供查看，默认值是main。
+	radio — 查看包含在无线/电话相关的缓冲区消息
+	events — 查看事件相关的消息
+	main — 查看主缓冲区 (默认缓冲区)
+		adb logcat -b radio     //查看radio缓冲区
+}}}
+
+
+----
+=== 抓图工具：screencap ===
+{{{
+screencap: invalid option -- v
+usage: screencap [-hp] [-d display-id] [FILENAME]
+   -h: this message
+   -p: save the file as a png.
+   -d: specify the display id to capture, default 0.
+If FILENAME ends with .png it will be saved as a png.
+If FILENAME is not given, the results will be printed to stdout.
+
+e.g.
+	screencap -p /data/screen.png
+}}}
+

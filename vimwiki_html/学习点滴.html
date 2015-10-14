@@ -1922,5 +1922,13 @@ Android的ps命令参数: -t -x -P -p -c [pid|name]
 [name] 过滤指定的进程NAME
 </pre>
 
+<h3 id="toc_0.0.143">apk签名</h3>
+<pre>
+生成signapk.jar
+现在签名文件的目录，在build/target/product/security下，如果是userdebug的，直接在这个目录下，如果是user版本，则在release下
+
+java -jar build/target/product/security/signapk.jar build/target/product/security/release/platform.x509.pem build/target/product/security/release/platform.pk8 ~/FTAT_1.89_user.apk ~/FTAT_1.89_user_signed.apk
+</pre>
+
 </body>
 </html>

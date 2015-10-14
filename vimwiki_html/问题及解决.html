@@ -14,6 +14,7 @@
 <li><a href="#toc_0.0.2">读clk寄存器卡死原因</a>
 <li><a href="#toc_0.0.3">sleep/wakeup不稳定问题</a>
 <li><a href="#toc_0.0.4">数据网络</a>
+<li><a href="#toc_0.0.5">您的设备内部出现了问题</a>
 </ul>
 </ul>
 </ul>
@@ -69,6 +70,20 @@ lookat -s 0x7FFF 0x400388d0
 2. 建立了数据连接
 01-01 09:02:03.941   203   254 D use-Rlog/RLOG-AT: [0] Channel1: AT&gt;AT+CGDCONT?
 01-01 09:02:03.941   203   258 D use-Rlog/RLOG-AT: [0] Channel1: AT&lt;+CGDCONT:1,"IP","3gnet","10.63.107.158",0,0,"210.22.70.3","210.22.84.3"
+</pre>
+
+<h3 id="toc_0.0.5">您的设备内部出现了问题</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/bootup_device_error.png" /><BR>
+</p>
+<pre>
+经排查发现，是因为“ro.build.fingerprint=S/scx35l_sharkls_j1mini/scx35l_sharkls_j1mini:5.1.1/LMY47V/huafang10092053:userdebug/test-keys”这个字段长度过长，已经超过了android规定的最大长度92个字符，所以会在开机时报错
+ 
+这个属性的命名规则如下：
+BUILD_FINGERPRINT := $(PRODUCT_BRAND)/$(TARGET_PRODUCT)/$(TARGET_DEVICE):$(PLATFORM_VERSION)/$(BUILD_ID)/$(BF_BUILD_NUMBER):$(TARGET_BUILD_VARIANT)/$(BUILD_VERSION_TAGS)
+它跟board名、本地用户名等都有关系，很容易出现超出92个字符
+ 
+这个属性跟OTA有关，不会影响使用，点确认就可以
 </pre>
 
 </body>
