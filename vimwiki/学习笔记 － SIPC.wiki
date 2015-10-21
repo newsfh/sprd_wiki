@@ -59,28 +59,34 @@ The SIPC interfaces in user-land are,
 
 === SIPC channel ===
 {{{
-49/* smsg channel definition */
-50enum {
-51	SMSG_CH_CTRL = 0,	/* some emergency control */
-52	SMSG_CH_COMM,		/* general communication channel */
-53	SMSG_CH_RPC_AP,		/* RPC server channel in AP side */
-54	SMSG_CH_RPC_CP,		/* RPC server channel in CP side */
-55	SMSG_CH_PIPE,		/* general pipe channel */                      // nv
-56	SMSG_CH_PLOG,		/* pipe for debug log/dump */                   // log
-57	SMSG_CH_TTY,		/* virtual serial for telephony */              // AT cmd
-58	SMSG_CH_DATA0,		/* 2G/3G wirleless data */
-59	SMSG_CH_DATA1,		/* 2G/3G wirleless data */
-60	SMSG_CH_DATA2,		/* 2G/3G wirleless data */
-61	SMSG_CH_VBC,		/* audio conrol channel */
-62	SMSG_CH_PLAYBACK, 	/* audio playback channel */
-63	SMSG_CH_CAPTURE,	/* audio capture channel */
-64	SMSG_CH_MONITOR_AUDIO,	/* audio monitor channel */
-65	SMSG_CH_CTRL_VOIP,	/* audio voip conrol channel */
-66	SMSG_CH_PLAYBACK_VOIP, 	/* audio voip playback channel */
-67	SMSG_CH_CAPTURE_VOIP,	/* audio voip capture channel */
-68	SMSG_CH_MONITOR_VOIP,	/* audio voip monitor channel */
-69	SMSG_CH_NR,		/* total channel number */
-70};
+42/* smsg channel definition */
+43enum {
+44	SMSG_CH_CTRL = 0,	/* some emergency control */
+45	SMSG_CH_COMM,		/* general communication channel */
+46	SMSG_CH_RPC_AP,		/* RPC server channel in AP side */
+47	SMSG_CH_RPC_CP,		/* RPC server channel in CP side */
+48	SMSG_CH_PIPE,		/* general pipe channel */                       // nv
+49	SMSG_CH_PLOG,		/* pipe for debug log/dump */                    // log
+50	SMSG_CH_TTY,		/* virtual serial for telephony */               // at
+51	SMSG_CH_DATA0,		/* 2G/3G wirleless data */
+52	SMSG_CH_DATA1,		/* 2G/3G wirleless data */
+53	SMSG_CH_DATA2,		/* 2G/3G wirleless data */
+54	SMSG_CH_VBC,		/* audio conrol channel */
+55	SMSG_CH_PLAYBACK, 	/* audio playback channel */
+56	SMSG_CH_CAPTURE,	/* audio capture channel */
+57	SMSG_CH_MONITOR_AUDIO,	/* audio monitor channel */
+58	SMSG_CH_CTRL_VOIP,	/* audio voip conrol channel */
+59	SMSG_CH_PLAYBACK_VOIP, 	/* audio voip playback channel */
+60	SMSG_CH_CAPTURE_VOIP,	/* audio voip capture channel */
+61	SMSG_CH_MONITOR_VOIP,	/* audio voip monitor channel */
+62	SMSG_CH_DATA3,		/* 2G/3G wirleless data */
+63	SMSG_CH_DATA4,		/* 2G/3G wirleless data */
+64	SMSG_CH_DATA5,		/* 2G/3G wirleless data */
+65	SMSG_CH_DIAG,		/* pipe for debug log/dump */                    // diag
+66	SMSG_CH_PM_CTRL, 	/* power management control */
+67	SMSG_CH_DUAL_SIM_PLUG,	/* dual sim plug channel */
+68	SMSG_CH_NR,		/* total channel number */
+69};
 }}}
 
 === msg 类型 ===
@@ -310,7 +316,21 @@ shell@scx35l64_ss_sharklt8:/d/sipc # ll
 
 
 ----
+== channel & onwer
+{{{
+channel 4/value 0、1是nvitemd相关channel 4/value 2是assert相关，CP找andrew.yang，AP找zhiwei.fu
+channel 4/value 8是refnotify，找zhongping.tan
+channel 5、21 是log/diag通道，找xiaoyin.cao
+channel 6/value 0-11是AT命令，CP侧找协议栈，AP找zhiwei.fu
+channel 6/value 12 是VT通道 ，CP找shaohua.xia
+channel 7、8、9、18、19、20是网络通道，找sally.he
+channel 10-17 是audio相关，找peter.huang
+channel 22是CP信令通道 ，未来将使用
+}}}
+
+----
 == 附件 ==
 [[local:files/multimedia_AudioHAL_ap_SIPC_introduction.ppt|multimedia_AudioHAL_ap_SIPC_introduction.ppt]]</BR>
 [[local:files/Spreadtrum_InterProcessor_Communication_Design.docx|Spreadtrum_InterProcessor_Communication_Design.docx]]</BR>
+
 
