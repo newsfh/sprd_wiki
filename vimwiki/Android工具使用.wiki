@@ -72,3 +72,9 @@ e.g.
 	screencap -p /data/screen.png
 }}}
 
+----
+=== getevent ===
+{{{
+获取input event列表：getevent命令， getevent -lt /dev/input/event1可看到event1里的相关信息
+}}}
+

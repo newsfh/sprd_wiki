@@ -1907,3 +1907,7 @@ Android的ps命令参数: -t -x -P -p -c [pid|name]
 java -jar build/target/product/security/signapk.jar build/target/product/security/release/platform.x509.pem build/target/product/security/release/platform.pk8 ~/FTAT_1.89_user.apk ~/FTAT_1.89_user_signed.apk
 }}}
 
+=== CA5 clk ===
+{{{
+CA5的clk只能通过CA5来看，但cp会记到全局变量mcu_clk_ctl里
+}}}

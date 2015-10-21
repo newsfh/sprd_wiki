@@ -24,6 +24,7 @@
 <ul>
 <li><a href="#toc_0.0.3.1">支持的频点</a>
 <li><a href="#toc_0.0.3.2">DFS频点</a>
+<li><a href="#toc_0.0.3.3">adb看频点</a>
 </ul>
 <li><a href="#toc_0.0.4">debug</a>
 <ul>
@@ -253,6 +254,20 @@ DDR3：192MHZ(非TShark)/200MHZ/384MHZ(非TShark)/400MHZ/500MHZ/533MHZ/600MHZ(Sh
 <pre>
 代码：chipram/arch/arm/cpu/sprd_dmc/umctl_28nm.c
 数组DDR_DFS_POINT，显示DFS支持的频点
+</pre>
+
+<h4 id="toc_0.0.3.3">adb看频点</h4>
+<pre>
+可以查看ddr_ctrl寄存器，0x30000100的值。
+ 
+0x0E0A0D09, 192M
+0x0F141A11, 384M
+0x0F141B12, 400M
+0x12192216, 500M
+0x141B2418, 533M
+0x141e291b, 600M
+0x16202B1D, 640M
+0x17222d1e, 667M
 </pre>
 
 <h3 id="toc_0.0.4">debug</h3>
