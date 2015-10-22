@@ -11,7 +11,13 @@
 <div class="toc">
 <ul>
 <li><a href="#toc_0.1">中断向量表</a>
-<li><a href="#toc_0.2">参考资料</a>
+<li><a href="#toc_0.2">GIC</a>
+<ul>
+<li><a href="#toc_0.2.1">基本架构图</a>
+<li><a href="#toc_0.2.2">调试技巧</a>
+<li><a href="#toc_0.2.3">参考资料</a>
+</ul>
+<li><a href="#toc_0.3">参考资料</a>
 </ul>
 </ul>
 </div>
@@ -97,9 +103,34 @@ FIQ
 </p>
 
 <hr />
-<h2 id="toc_0.2">参考资料</h2>
+<h2 id="toc_0.2">GIC</h2>
+<h3 id="toc_0.2.1">基本架构图</h3>
 <p>
-<a href="http://blog.csdn.net/DroidPhone/article/category/1118447">Linux中断子系统</a>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/gic.png" /></BR>
+</p>
+
+<h3 id="toc_0.2.2">调试技巧</h3>
+<pre>
+SPRD系统中
+0x12001000	是Distributor address
+0x12002000	是CPU interface address range
+
+lookat -l50 0x12001800，可以看到target寄存器的值，当前除了timer外，都是给cpu0的
+
+/proc/irq/&lt;irq&gt;节点，可以设置让哪个cpu响应
+echo 1 &gt; smp_affinity_list，可以让cpu1响应该中断
+</pre>
+
+<h3 id="toc_0.2.3">参考资料</h3>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/gic_architecture_specification.pdf">gic_architecture_specification.pdf</a><BR>
+</p>
+
+<hr />
+<h2 id="toc_0.3">参考资料</h2>
+<p>
+<a href="http://www.wowotech.net/sort/irq_subsystem">中断子系统</a><BR>
+<a href="http://blog.csdn.net/DroidPhone/article/category/1118447">Linux中断子系统</a><BR>
 </p>
 
 </body>

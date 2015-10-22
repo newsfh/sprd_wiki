@@ -14,5 +14,26 @@
 该向量表定义在kernel/arch/arm/kernel/entry-armv.S
 
 ----
+== GIC ==
+=== 基本架构图 ===
+{{local:images/gic.png}}</BR>
+
+=== 调试技巧 ===
+{{{
+SPRD系统中
+0x12001000	是Distributor address
+0x12002000	是CPU interface address range
+
+lookat -l50 0x12001800，可以看到target寄存器的值，当前除了timer外，都是给cpu0的
+
+/proc/irq/<irq>节点，可以设置让哪个cpu响应
+echo 1 > smp_affinity_list，可以让cpu1响应该中断
+}}}
+
+=== 参考资料 ===
+[[local:files/gic_architecture_specification.pdf|gic_architecture_specification.pdf]]<BR>
+
+----
 == 参考资料 ==
-[[http://blog.csdn.net/DroidPhone/article/category/1118447|Linux中断子系统]]
+[[http://www.wowotech.net/sort/irq_subsystem|中断子系统]]<BR>
+[[http://blog.csdn.net/DroidPhone/article/category/1118447|Linux中断子系统]]<BR>
