@@ -15,7 +15,8 @@
 <ul>
 <li><a href="#toc_0.2.1">基本架构图</a>
 <li><a href="#toc_0.2.2">调试技巧</a>
-<li><a href="#toc_0.2.3">参考资料</a>
+<li><a href="#toc_0.2.3">Code</a>
+<li><a href="#toc_0.2.4">参考资料</a>
 </ul>
 <li><a href="#toc_0.3">参考资料</a>
 </ul>
@@ -108,6 +109,36 @@ FIQ
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/gic.png" /></BR>
 </p>
+<pre>
+0~31是PPI和SGI中断，是给特定CPU的
+</pre>
+
+<ul>
+<li>
+Distributor
+<pre>
+中断enable或者disable的控制。
+控制将当前优先级最高的中断事件分发到一个或者一组CPU interface。
+优先级控制。
+interrupt属性设定。例如是level-sensitive还是edge-triggered
+interrupt group的设定
+</pre>
+
+</ul>
+
+<ul>
+<li>
+CPU interface
+<pre>
+enable或者disable CPU interface向连接的CPU assert中断事件。
+ackowledging中断。
+中断处理完毕的通知。
+设定priority mask。
+设定preemption的策略
+在多个中断事件同时到来的时候，选择一个优先级最高的通知processor
+</pre>
+
+</ul>
 
 <h3 id="toc_0.2.2">调试技巧</h3>
 <pre>
@@ -121,7 +152,15 @@ lookat -l50 0x12001800，可以看到target寄存器的值，当前除了timer�
 echo 1 &gt; smp_affinity_list，可以让cpu1响应该中断
 </pre>
 
-<h3 id="toc_0.2.3">参考资料</h3>
+<h3 id="toc_0.2.3">Code</h3>
+<pre>
+kernel/drivers/irqchip/irq-gic.c
+kernel/drivers/irqchip/irq-gic-common.c
+kernel/drivers/platform/sprd/common.c
+kernel/include/linux/irqchip/arm-gic.h
+</pre>
+
+<h3 id="toc_0.2.4">参考资料</h3>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/gic_architecture_specification.pdf">gic_architecture_specification.pdf</a><BR>
 </p>
