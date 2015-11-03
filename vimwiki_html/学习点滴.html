@@ -1935,5 +1935,20 @@ java -jar build/target/product/security/signapk.jar build/target/product/securit
 CA5的clk只能通过CA5来看，但cp会记到全局变量mcu_clk_ctl里
 </pre>
 
+<h3 id="toc_0.0.145">TW暗码</h3>
+<pre>
+USB端口选择：*#0808#
+</pre>
+
+<h3 id="toc_0.0.146">USB</h3>
+<pre>
+SPRD用gser，三星用acm
+/sys/class/android_usb/android0/functions：usb功能
+/sys/class/android_usb/android0/f_acm/instances：acm端口实例数
+sys.usb.config：功能列表（会被修改）
+sys.usb.state：功能列表
+persist.sys.usb.sport：acm端口数
+</pre>
+
 </body>
 </html>

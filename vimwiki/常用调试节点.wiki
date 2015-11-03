@@ -5,6 +5,10 @@
 ==== /proc/sys/kernel/printk ====
 ==== /proc/kmsg ====
 ==== /dev/kmsg ====
+==== /sys/module/printk/parameters/console_suspend ====
+{{{
+echo N > /sys/module/printk/parameters/console_suspend
+}}}
 
 ----
 === system ===

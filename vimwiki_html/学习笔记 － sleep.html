@@ -17,9 +17,18 @@
 </ul>
 <li><a href="#toc_0.2">代码解析</a>
 <ul>
-<li><a href="#toc_0.2.1">main_wake_lock</a>
-<li><a href="#toc_0.2.2">pm_message_wakelock</a>
-<li><a href="#toc_0.2.3">wake_unlock</a>
+<li><a href="#toc_0.2.1">wake lock</a>
+<ul>
+<li><a href="#toc_0.2.1.1">main_wake_lock</a>
+<li><a href="#toc_0.2.1.2">pm_message_wakelock</a>
+<li><a href="#toc_0.2.1.3">wake_unlock</a>
+</ul>
+<li><a href="#toc_0.2.2">深睡流程</a>
+<ul>
+<li><a href="#toc_0.2.2.1">调用栈</a>
+<li><a href="#toc_0.2.2.2">deep_sleep</a>
+<li><a href="#toc_0.2.2.3">汇编代码</a>
+</ul>
 </ul>
 <li><a href="#toc_0.3">调试相关</a>
 <ul>
@@ -49,7 +58,8 @@
 
 <hr />
 <h2 id="toc_0.2">代码解析</h2>
-<h3 id="toc_0.2.1">main_wake_lock</h3>
+<h3 id="toc_0.2.1">wake lock</h3>
+<h4 id="toc_0.2.1.1">main_wake_lock</h4>
 <pre>
 在wake_lock里，经常会看到"main"这个wake lock，这是内核的一个锁，给用户态用来请求进入suspend流程
 
@@ -123,7 +133,7 @@ sleep (0-&gt;3)代表从唤醒状态到请求睡眠状态
 
 </pre>
 
-<h3 id="toc_0.2.2">pm_message_wakelock</h3>
+<h4 id="toc_0.2.1.2">pm_message_wakelock</h4>
 <pre>
 这个wake lock是power manager在打印所有wake lock时用的锁，在打印前持有，打印完释放
 
@@ -144,7 +154,7 @@ kernel/drivers/platform/sprd/pm_debug_scx35.c
 833}
 </pre>
 
-<h3 id="toc_0.2.3">wake_unlock</h3>
+<h4 id="toc_0.2.1.3">wake_unlock</h4>
 <pre>
 565void wake_unlock(struct wake_lock *lock)
 566{
@@ -186,6 +196,209 @@ kernel/drivers/platform/sprd/pm_debug_scx35.c
 602	spin_unlock_irqrestore(&amp;list_lock, irqflags);
 603}
 </pre>
+
+<h3 id="toc_0.2.2">深睡流程</h3>
+<h4 id="toc_0.2.2.1">调用栈</h4>
+<pre>
+-000|sc_sleep_call
+-000|deep_sleep
+-001|sprd_cpu_deep_sleep
+-002|sprd_pm_deepsleep
+-002|sprd_pm_enter
+-003|suspend_enter
+-004|suspend_devices_and_enter
+-005|enter_state
+-005|pm_suspend
+-006|suspend
+-007|static_key_false
+-007|trace_workqueue_execute_end
+-007|process_one_work
+-008|worker_thread
+-009|kthread
+-010|ret_from_fork
+-011|ret_fast_syscall
+-012|ret_fast_syscall
+ ---|endless...
+</pre>
+
+<h4 id="toc_0.2.2.2">deep_sleep</h4>
+<pre>
+代码：kernel/drivers/platform/sprd/pm-scx35.c
+
+int deep_sleep(int from_idle)
+{
+    ...                                                                                                                  // 一系列关模块的动作
+    ret = sc_sleep_call(from_idle);                                                                                      // 调用汇编代码
+    ...                                                                                                                  //从睡眠中唤醒，ret代码是否真正深睡，1代表深睡，0代表没睡
+}
+
+static int sc_sleep_call(unsigned long flag)
+{
+    u32 ret = 0;
+    iram_standby_entry_ptr func_ptr;
+
+    func_ptr = (iram_standby_entry_ptr)(SLEEP_RESUME_CODE_PHYS + (u32)sp_pm_collapse - (u32)sc8830_standby_iram);        // 调用汇编代码sc8830_standby_iram，这段代码在iram中
+    ret = (func_ptr)(0, flag);
+
+    return ret;
+}
+</pre>
+
+<h4 id="toc_0.2.2.3">汇编代码</h4>
+<pre>
+代码：kernel/drivers/platform/sprd/standby-scx35.S
+这段代码被放在0x400处
+
+主要函数：
+sc8830_standby_iram
+sc8830_standby_exit_iram
+sp_pm_collapse
+sp_pm_collapse_exit
+
+正常流程：
+sp_pm_collapse  -&gt;  sc8830_standby_iram  -&gt;  中断  -&gt;  sc8830_standby_exit_iram(中断处理函数)  -&gt;  sp_pm_collapse_exit(恢复现场)
+sleep失败流程
+sp_pm_collapse  -&gt;  sc8830_standby_iram  -&gt;  按原调用返回
+</pre>
+<ul>
+<li>
+代码搬运到iram
+<pre>
+#define SPRD_RESET_VECTORS 0X00000000
+#define SLEEP_RESUME_CODE_PHYS  0X400
+#define SLEEP_CODE_SIZE 0x800
+#define SPRD_IRAM0_PHYS     0x0
+
+static int init_reset_vector(void)
+{
+    memcpy_toio(iram_start, sc8830_standby_iram, SLEEP_CODE_SIZE);
+}
+</pre>
+
+<li>
+sp_pm_collapse
+<pre>
+ENTRY(sp_pm_collapse)
+    ldr r0, =sp_saved_state /* address of sp_saved_state ptr */
+
+    v7_flush_dcache_all/v7_flush_icache_all                                     // 刷D/I cache
+
+    blx SLEEP_RESUME_CODE_PHYS /*jump to sc8830_standby_iram*/                  // 跳转到sc8830_standby_iram
+
+    ldr     r0, =sp_saved_state /* address of sp_saved_state ptr */
+    ldmfd   r0, {r4-r14}         /* restore registers */
+    mov     r0, #0                   /* return power collapse failed */         // 返回0，如果代码执行到这里，说明没有深睡
+    bx      lr
+ENDPROC(sp_pm_collapse)
+</pre>
+
+<li>
+sc8830_standby_iram
+<pre>
+ENTRY(sc8830_standby_iram)
+    str #REG_UART1_ENABLE_BIT, [REG_UART1_ENABLE_PHY]                           // 关UART1
+
+    str #0x1, [PUB_ACCESS_SET]                                                  // 关PUB
+check_pub_fsm_wfi0:                                                             // 查询PWR_STATUS2_DBG(0x402b00c4)的PUB是否已关
+check_pub_fsm_wfi:                                                              // 查询LPDDR2_PHY_STATUS是否已关
+
+    wfieq                                                                       // wfi
+
+check_pub_fsm_wake0:                                                            // 查询PWR_STATUS2_DBG(0x402b00c4)的PUB是否已开
+check_pub_fsm_wake:                                                             // 查询LPDDR2_PHY_STATUS是否已开
+    str #0x1, [=PUB_ACCESS_CLR]                                                 // 清PUB_ACCESS_CLR
+
+    str #JTAG_DAP_EN, [REG_AON_APB_EB0_PHY]                                     // 开JTAG
+    str #REG_UART1_ENABLE_BIT, [REG_UART1_ENABLE_PHY]                           // 开uart1
+
+    mov r0, #0
+    mov pc, lr
+#endif
+ENDPROC(sc8830_standby_iram)
+</pre>
+
+<li>
+sc8830_standby_exit_iram
+<pre>
+ENTRY(sc8830_standby_exit_iram)
+    bl uart1_en                                                                 // enable UART1
+    str #JTAG_DAP_EN, [REG_AON_APB_EB0_PHY]                                     // enable JTAG
+
+check_pub_fsm_wake0:                                                            // 查询PWR_STATUS2_DBG(0x402b00c4)的PUB是否已开
+check_pub_fsm_wake:                                                             // 查询LPDDR2_PHY_STATUS是否已开
+    str #0x1, [=PUB_ACCESS_CLR]                                                 // 清PUB_ACCESS_CLR
+
+loopp:
+    adr r0, str_deep                                                            // 打印"from deep"
+    bl  printascii_phy
+
+context_restore:
+    mov r0, #0x104 /*sp_pm_collapse_exit phy address pointer*/                  // 跳转到sp_pm_collapse_exit
+    ldr r0, [r0] /*sp_pm_collapse_exit phy address*/
+
+    mov pc, r0
+ENDPROC(sc8830_standby_exit_iram)
+</pre>
+
+<li>
+sp_pm_collapse_exit
+<pre>
+ENTRY(sp_pm_collapse_exit)
+    mov r0, #'Z'
+    bl printch
+    ldr     r1, =sp_saved_state
+    ldr     r2, =sp_pm_collapse_exit
+    adr     r3, sp_pm_collapse_exit
+    mov     r0, #1                                                              // 返回1，代表深睡成功
+    bx      lr
+ENDPROC(sp_pm_collapse_exit)
+</pre>
+
+<li>
+中断处理
+<pre>
+进入deep后，中断的处理被设置为0x0的地方，但这里的代码被设置成
+void set_reset_vector(void)
+{
+    int i = 0; 
+    printk("SAVED_VECTOR_SIZE 0x%x\n", SAVED_VECTOR_SIZE);
+    for (i = 0; i &lt; SAVED_VECTOR_SIZE; i++) 
+        sp_pm_reset_vector[i] = 0xe320f000; /* nop*/
+
+    sp_pm_reset_vector[SAVED_VECTOR_SIZE - 2] = 0xE51FF004; /* ldr pc, 4 */
+
+    sp_pm_reset_vector[SAVED_VECTOR_SIZE - 1] = (sc8830_standby_exit_iram -
+        sc8830_standby_iram + SLEEP_RESUME_CODE_PHYS); /* place v7_standby_iram here */
+}
+</pre>
+
+<li>
+中断向量表处的数据
+<pre>
+______addr/line|code_____|label____|mnemonic________________|comment
+   ZSR:00000000|E320F000            nop
+   ZSR:00000004|E320F000            nop
+   ZSR:00000008|E320F000            nop
+   ZSR:0000000C|E320F000            nop
+   ZSR:00000010|E320F000            nop
+   ZSR:00000014|E320F000            nop
+   ZSR:00000018|E320F000            nop
+   ZSR:0000001C|E320F000            nop
+   ZSR:00000020|E320F000            nop
+   ZSR:00000024|E320F000            nop
+   ZSR:00000028|E320F000            nop
+   ZSR:0000002C|E320F000            nop
+   ZSR:00000030|E320F000            nop
+...
+   ZSR:000000F0|E320F000            nop
+   ZSR:000000F4|E320F000            nop
+   ZSR:000000F8|E51FF004            ldr     pc,0xFC          ; pc,=0x568        // load地址
+   ZSR:000000FC|00000568            andeq   r0,r0,r8,ror #0x0A                  // sc8830_standby_exit_iram
+   ZSR:00000100|856CD1FC            strhib  r13,[r12,#-0x1FC]!                  // ptest
+   ZSR:00000104|804AD3FC            strdhi  r12,r13,[r10],#-0x3C                // sp_pm_collapse_exit
+</pre>
+
+</ul>
 
 <hr />
 <h2 id="toc_0.3">调试相关</h2>
@@ -460,17 +673,35 @@ active wake lock main
 </pre>
 
 <h3 id="toc_0.3.4">文件节点</h3>
+<ul>
+<li>
+debug_mask
 <pre>
 /sys/module/wakelock/parameters/debug_mask：
 对应文件kernel/kernel/power/wakelock.c里的debug_mask，echo 31 &gt; debug_mask后，可以打印更多的log
 </pre>
-<pre>
+
+<li>
 查看light sleep的状态
+<pre>
 130|shell@scx35l_sharkl_j1poplte:/sys/module/cpuidle_scx35/parameters # ll     
 -rw-r--r-- root     root         4096 2012-01-01 16:27 cpuidle_debug
 -rw-r--r-- root     root         4096 2012-01-01 16:24 idle_deep_en
 -rw-r--r-- system   system       4096 2012-01-01 16:24 light_sleep_en
 </pre>
+
+<li>
+周期打印状态寄存器
+<pre>
+默认30s会打印状态寄存器，可以通过文件节点修改
+/d/power/print_thread_interval
+
+相应代码：kernel/drivers/platform/sprd/pm_debug_scx35.c
+函数：print_thread
+参数：print_thread_interval
+</pre>
+
+</ul>
 
 <hr />
 <h2 id="toc_0.4">相关文件</h2>
