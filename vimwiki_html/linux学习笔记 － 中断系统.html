@@ -11,14 +11,20 @@
 <div class="toc">
 <ul>
 <li><a href="#toc_0.1">中断向量表</a>
-<li><a href="#toc_0.2">GIC</a>
+<li><a href="#toc_0.2">使用方法</a>
 <ul>
-<li><a href="#toc_0.2.1">基本架构图</a>
-<li><a href="#toc_0.2.2">调试技巧</a>
-<li><a href="#toc_0.2.3">Code</a>
-<li><a href="#toc_0.2.4">参考资料</a>
+<li><a href="#toc_0.2.1">注册中断</a>
+<li><a href="#toc_0.2.2">中断使能</a>
+<li><a href="#toc_0.2.3">中断处理调用栈</a>
 </ul>
-<li><a href="#toc_0.3">参考资料</a>
+<li><a href="#toc_0.3">GIC</a>
+<ul>
+<li><a href="#toc_0.3.1">基本架构图</a>
+<li><a href="#toc_0.3.2">调试技巧</a>
+<li><a href="#toc_0.3.3">Code</a>
+<li><a href="#toc_0.3.4">参考资料</a>
+</ul>
+<li><a href="#toc_0.4">参考资料</a>
 </ul>
 </ul>
 </div>
@@ -104,8 +110,44 @@ FIQ
 </p>
 
 <hr />
-<h2 id="toc_0.2">GIC</h2>
-<h3 id="toc_0.2.1">基本架构图</h3>
+<h2 id="toc_0.2">使用方法</h2>
+<h3 id="toc_0.2.1">注册中断</h3>
+<pre>
+int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags, const char *name, void *dev);
+
+1935         ret = request_irq(ht-&gt;irq_button, headset_button_irq_handler, irqflags | IRQF_NO_SUSPEND, "headset_button", ht);
+1936         if (ret) {
+1937                 PRINT_ERR("failed to request IRQ_%d(GPIO_%d)\n", ht-&gt;irq_button, pdata-&gt;gpio_button);
+1938                 goto failed_to_request_irq_headset_button;
+1939         }
+
+1510 static irqreturn_t headset_button_irq_handler(int irq, void *dev)
+1511 {
+             ......
+1548         return IRQ_HANDLED;
+1549 }       
+</pre>
+
+<h3 id="toc_0.2.2">中断使能</h3>
+<pre>
+void enable_irq(unsigned int irq);
+void disable_irq(unsigned int irq);
+</pre>
+
+<h3 id="toc_0.2.3">中断处理调用栈</h3>
+<pre>
+[&lt;c02dc804&gt;] (sci_keypad_isr+0x15c/0x540) from [&lt;c008a03c&gt;] (handle_irq_event_percpu+0x4c/0x1b0)
+[&lt;c008a03c&gt;] (handle_irq_event_percpu+0x4c/0x1b0) from [&lt;c008a1dc&gt;] (handle_irq_event+0x3c/0x5c)
+[&lt;c008a1dc&gt;] (handle_irq_event+0x3c/0x5c) from [&lt;c008cd50&gt;] (handle_fasteoi_irq+0xb8/0x100)
+[&lt;c008cd50&gt;] (handle_fasteoi_irq+0xb8/0x100) from [&lt;c0089a94&gt;] (generic_handle_irq+0x20/0x30)
+[&lt;c0089a94&gt;] (generic_handle_irq+0x20/0x30) from [&lt;c000fd5c&gt;] (handle_IRQ+0x64/0x8c)
+[&lt;c000fd5c&gt;] (handle_IRQ+0x64/0x8c) from [&lt;c0009344&gt;] (gic_handle_irq+0xbc/0x164)
+[&lt;c0009344&gt;] (gic_handle_irq+0xbc/0x164) from [&lt;c000f040&gt;] (__irq_svc+0x40/0x70)
+</pre>
+
+<hr />
+<h2 id="toc_0.3">GIC</h2>
+<h3 id="toc_0.3.1">基本架构图</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/gic.png" /></BR>
 </p>
@@ -140,19 +182,36 @@ ackowledging中断。
 
 </ul>
 
-<h3 id="toc_0.2.2">调试技巧</h3>
+<h3 id="toc_0.3.2">调试技巧</h3>
+<ul>
+<li>
+lookat看GIC寄存器
 <pre>
 SPRD系统中
 0x12001000	是Distributor address
 0x12002000	是CPU interface address range
 
-lookat -l50 0x12001800，可以看到target寄存器的值，当前除了timer外，都是给cpu0的
+lookat -l50 0x12001800
+	可以看到target寄存器的值，当前除了timer外，都是给cpu0的
+	每4位代表该中断发给哪个CPU
 
+lookat -l5 0x12001100
+	看中断使能位。里面的值需要与0x71400000/0x71500000/0x71600000/0x7170000的配置一致
+</pre>
+
+<li>
+文件节点看配置
+<pre>
 /proc/irq/&lt;irq&gt;节点，可以设置让哪个cpu响应
 echo 1 &gt; smp_affinity_list，可以让cpu1响应该中断
 </pre>
 
-<h3 id="toc_0.2.3">Code</h3>
+</ul>
+
+<h3 id="toc_0.3.3">Code</h3>
+<ul>
+<li>
+相关文件
 <pre>
 kernel/drivers/irqchip/irq-gic.c
 kernel/drivers/irqchip/irq-gic-common.c
@@ -160,13 +219,48 @@ kernel/drivers/platform/sprd/common.c
 kernel/include/linux/irqchip/arm-gic.h
 </pre>
 
-<h3 id="toc_0.2.4">参考资料</h3>
+<li>
+GIC 偏移
+<pre>
+#define GIC_CPU_CTRL                     0x00
+#define GIC_CPU_PRIMASK                  0x04
+#define GIC_CPU_BINPOINT                 0x08
+#define GIC_CPU_INTACK                   0x0c
+#define GIC_CPU_EOI                      0x10
+#define GIC_CPU_RUNNINGPRI               0x14
+#define GIC_CPU_HIGHPRI                  0x18
+#define GIC_CPU_ALIAS_BINPOINT           0x1c
+#define GIC_CPU_ACTIVEPRIO               0xd0
+#define GIC_CPU_IDENT                    0xfc
+
+#define GICC_IAR_INT_ID_MASK             0x3ff
+
+#define GIC_DIST_CTRL                    0x000
+#define GIC_DIST_CTR                     0x004
+#define GIC_DIST_IGROUP                  0x080
+#define GIC_DIST_ENABLE_SET              0x100
+#define GIC_DIST_ENABLE_CLEAR            0x180
+#define GIC_DIST_PENDING_SET             0x200
+#define GIC_DIST_PENDING_CLEAR           0x280
+#define GIC_DIST_ACTIVE_SET              0x300
+#define GIC_DIST_ACTIVE_CLEAR            0x380
+#define GIC_DIST_PRI                     0x400
+#define GIC_DIST_TARGET                  0x800
+#define GIC_DIST_CONFIG                  0xc00
+#define GIC_DIST_SOFTINT                 0xf00
+#define GIC_DIST_SGI_PENDING_CLEAR       0xf10
+#define GIC_DIST_SGI_PENDING_SET         0xf20
+</pre>
+
+</ul>
+
+<h3 id="toc_0.3.4">参考资料</h3>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/gic_architecture_specification.pdf">gic_architecture_specification.pdf</a><BR>
 </p>
 
 <hr />
-<h2 id="toc_0.3">参考资料</h2>
+<h2 id="toc_0.4">参考资料</h2>
 <p>
 <a href="http://www.wowotech.net/sort/irq_subsystem">中断子系统</a><BR>
 <a href="http://blog.csdn.net/DroidPhone/article/category/1118447">Linux中断子系统</a><BR>

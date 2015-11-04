@@ -14,6 +14,42 @@
 该向量表定义在kernel/arch/arm/kernel/entry-armv.S
 
 ----
+== 使用方法 ==
+=== 注册中断 ===
+{{{
+int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags, const char *name, void *dev);
+
+1935         ret = request_irq(ht->irq_button, headset_button_irq_handler, irqflags | IRQF_NO_SUSPEND, "headset_button", ht);
+1936         if (ret) {
+1937                 PRINT_ERR("failed to request IRQ_%d(GPIO_%d)\n", ht->irq_button, pdata->gpio_button);
+1938                 goto failed_to_request_irq_headset_button;
+1939         }
+
+1510 static irqreturn_t headset_button_irq_handler(int irq, void *dev)
+1511 {
+             ......
+1548         return IRQ_HANDLED;
+1549 }       
+}}}
+
+=== 中断使能 ===
+{{{
+void enable_irq(unsigned int irq);
+void disable_irq(unsigned int irq);
+}}}
+
+=== 中断处理调用栈 ===
+{{{
+[<c02dc804>] (sci_keypad_isr+0x15c/0x540) from [<c008a03c>] (handle_irq_event_percpu+0x4c/0x1b0)
+[<c008a03c>] (handle_irq_event_percpu+0x4c/0x1b0) from [<c008a1dc>] (handle_irq_event+0x3c/0x5c)
+[<c008a1dc>] (handle_irq_event+0x3c/0x5c) from [<c008cd50>] (handle_fasteoi_irq+0xb8/0x100)
+[<c008cd50>] (handle_fasteoi_irq+0xb8/0x100) from [<c0089a94>] (generic_handle_irq+0x20/0x30)
+[<c0089a94>] (generic_handle_irq+0x20/0x30) from [<c000fd5c>] (handle_IRQ+0x64/0x8c)
+[<c000fd5c>] (handle_IRQ+0x64/0x8c) from [<c0009344>] (gic_handle_irq+0xbc/0x164)
+[<c0009344>] (gic_handle_irq+0xbc/0x164) from [<c000f040>] (__irq_svc+0x40/0x70)
+}}}
+
+----
 == GIC ==
 === 基本架构图 ===
 {{local:images/gic.png}}</BR>
@@ -41,23 +77,63 @@ ackowledging中断。
 }}}
 
 === 调试技巧 ===
+* lookat看GIC寄存器
 {{{
 SPRD系统中
 0x12001000	是Distributor address
 0x12002000	是CPU interface address range
 
-lookat -l50 0x12001800，可以看到target寄存器的值，当前除了timer外，都是给cpu0的
+lookat -l50 0x12001800
+	可以看到target寄存器的值，当前除了timer外，都是给cpu0的
+	每4位代表该中断发给哪个CPU
 
+lookat -l5 0x12001100
+	看中断使能位。里面的值需要与0x71400000/0x71500000/0x71600000/0x7170000的配置一致
+}}}
+* 文件节点看配置
+{{{
 /proc/irq/<irq>节点，可以设置让哪个cpu响应
 echo 1 > smp_affinity_list，可以让cpu1响应该中断
 }}}
 
 === Code ===
+* 相关文件
 {{{
 kernel/drivers/irqchip/irq-gic.c
 kernel/drivers/irqchip/irq-gic-common.c
 kernel/drivers/platform/sprd/common.c
 kernel/include/linux/irqchip/arm-gic.h
+}}}
+* GIC 偏移
+{{{
+#define GIC_CPU_CTRL                     0x00
+#define GIC_CPU_PRIMASK                  0x04
+#define GIC_CPU_BINPOINT                 0x08
+#define GIC_CPU_INTACK                   0x0c
+#define GIC_CPU_EOI                      0x10
+#define GIC_CPU_RUNNINGPRI               0x14
+#define GIC_CPU_HIGHPRI                  0x18
+#define GIC_CPU_ALIAS_BINPOINT           0x1c
+#define GIC_CPU_ACTIVEPRIO               0xd0
+#define GIC_CPU_IDENT                    0xfc
+
+#define GICC_IAR_INT_ID_MASK             0x3ff
+
+#define GIC_DIST_CTRL                    0x000
+#define GIC_DIST_CTR                     0x004
+#define GIC_DIST_IGROUP                  0x080
+#define GIC_DIST_ENABLE_SET              0x100
+#define GIC_DIST_ENABLE_CLEAR            0x180
+#define GIC_DIST_PENDING_SET             0x200
+#define GIC_DIST_PENDING_CLEAR           0x280
+#define GIC_DIST_ACTIVE_SET              0x300
+#define GIC_DIST_ACTIVE_CLEAR            0x380
+#define GIC_DIST_PRI                     0x400
+#define GIC_DIST_TARGET                  0x800
+#define GIC_DIST_CONFIG                  0xc00
+#define GIC_DIST_SOFTINT                 0xf00
+#define GIC_DIST_SGI_PENDING_CLEAR       0xf10
+#define GIC_DIST_SGI_PENDING_SET         0xf20
 }}}
 
 === 参考资料 ===

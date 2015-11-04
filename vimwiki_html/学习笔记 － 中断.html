@@ -10,21 +10,16 @@
 <h1>目录</h1>
 <div class="toc">
 <ul>
-<li><a href="#toc_0.1">使用方法</a>
+<li><a href="#toc_0.1">代码解析</a>
 <ul>
-<li><a href="#toc_0.1.1">注册中断</a>
-<li><a href="#toc_0.1.2">中断使能</a>
+<li><a href="#toc_0.1.1">初始化</a>
 </ul>
-<li><a href="#toc_0.2">代码解析</a>
+<li><a href="#toc_0.2">底层寄存器</a>
 <ul>
-<li><a href="#toc_0.2.1">初始化</a>
-<li><a href="#toc_0.2.2">中断处理调用栈</a>
+<li><a href="#toc_0.2.1">中断号</a>
+<li><a href="#toc_0.2.2">中断控制寄存器</a>
 </ul>
-<li><a href="#toc_0.3">底层寄存器</a>
-<ul>
-<li><a href="#toc_0.3.1">中断号</a>
-<li><a href="#toc_0.3.2">中断控制寄存器</a>
-</ul>
+<li><a href="#toc_0.3">GIC与INTC的关系</a>
 <li><a href="#toc_0.4">调试相关</a>
 <li><a href="#toc_0.5">相关文件</a>
 <ul>
@@ -36,33 +31,8 @@
 </div>
 
 <hr />
-<h2 id="toc_0.1">使用方法</h2>
-<h3 id="toc_0.1.1">注册中断</h3>
-<pre>
-int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags, const char *name, void *dev);
-
-1935         ret = request_irq(ht-&gt;irq_button, headset_button_irq_handler, irqflags | IRQF_NO_SUSPEND, "headset_button", ht);
-1936         if (ret) {
-1937                 PRINT_ERR("failed to request IRQ_%d(GPIO_%d)\n", ht-&gt;irq_button, pdata-&gt;gpio_button);
-1938                 goto failed_to_request_irq_headset_button;
-1939         }
-
-1510 static irqreturn_t headset_button_irq_handler(int irq, void *dev)
-1511 {
-             ......
-1548         return IRQ_HANDLED;
-1549 }       
-</pre>
-
-<h3 id="toc_0.1.2">中断使能</h3>
-<pre>
-void enable_irq(unsigned int irq);
-void disable_irq(unsigned int irq);
-</pre>
-
-<hr />
-<h2 id="toc_0.2">代码解析</h2>
-<h3 id="toc_0.2.1">初始化</h3>
+<h2 id="toc_0.1">代码解析</h2>
+<h3 id="toc_0.1.1">初始化</h3>
 <ol>
 <li>
 总irq初始化
@@ -189,24 +159,13 @@ d-die中断
 
 </ol>
 
-<h3 id="toc_0.2.2">中断处理调用栈</h3>
-<pre>
-[&lt;c02dc804&gt;] (sci_keypad_isr+0x15c/0x540) from [&lt;c008a03c&gt;] (handle_irq_event_percpu+0x4c/0x1b0)
-[&lt;c008a03c&gt;] (handle_irq_event_percpu+0x4c/0x1b0) from [&lt;c008a1dc&gt;] (handle_irq_event+0x3c/0x5c)
-[&lt;c008a1dc&gt;] (handle_irq_event+0x3c/0x5c) from [&lt;c008cd50&gt;] (handle_fasteoi_irq+0xb8/0x100)
-[&lt;c008cd50&gt;] (handle_fasteoi_irq+0xb8/0x100) from [&lt;c0089a94&gt;] (generic_handle_irq+0x20/0x30)
-[&lt;c0089a94&gt;] (generic_handle_irq+0x20/0x30) from [&lt;c000fd5c&gt;] (handle_IRQ+0x64/0x8c)
-[&lt;c000fd5c&gt;] (handle_IRQ+0x64/0x8c) from [&lt;c0009344&gt;] (gic_handle_irq+0xbc/0x164)
-[&lt;c0009344&gt;] (gic_handle_irq+0xbc/0x164) from [&lt;c000f040&gt;] (__irq_svc+0x40/0x70)
-</pre>
-
 <hr />
-<h2 id="toc_0.3">底层寄存器</h2>
+<h2 id="toc_0.2">底层寄存器</h2>
 <p>
 见device spec的《MCU Interrupt Controller》这一章
 </p>
 
-<h3 id="toc_0.3.1">中断号</h3>
+<h3 id="toc_0.2.1">中断号</h3>
 <pre>
 1、一个中断号对应一个中断源，表格见《MCU Interrupt Controller》这一章
 2、上述表中的中断号，需加32才是cat /proc/interrupts打印出来的中断号。如3 int_req_uart1
@@ -214,7 +173,7 @@ d-die中断
  35:          4       GIC  serial
 </pre>
 
-<h3 id="toc_0.3.2">中断控制寄存器</h3>
+<h3 id="toc_0.2.2">中断控制寄存器</h3>
 <p>
 以下以TShark为例
 </p>
@@ -255,6 +214,18 @@ disable:(WO)
 
 soft:
 产生软件中断
+</pre>
+
+<hr />
+<h2 id="toc_0.3">GIC与INTC的关系</h2>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/interrupt_flow.png" />
+</p>
+<pre>
+模块的中断会接到INTC/AON_INT/GIC上
+其中arm core上响应的中断源都是从GIC上来的；
+AON_INT用来唤醒系统，如果这里有值，那系统是睡不下去的，MCU_PAUSE寄存器会设置不成功；
+INTC是历史遗留产物，给之前arm9等老芯片用，现在被GIC替代，但在平台上还是会被设值。
 </pre>
 
 <hr />

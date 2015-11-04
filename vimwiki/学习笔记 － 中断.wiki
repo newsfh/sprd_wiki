@@ -1,31 +1,6 @@
 %toc 目录
 
 ----
-== 使用方法 ==
-=== 注册中断 ===
-{{{
-int request_irq(unsigned int irq, irq_handler_t handler, unsigned long flags, const char *name, void *dev);
-
-1935         ret = request_irq(ht->irq_button, headset_button_irq_handler, irqflags | IRQF_NO_SUSPEND, "headset_button", ht);
-1936         if (ret) {
-1937                 PRINT_ERR("failed to request IRQ_%d(GPIO_%d)\n", ht->irq_button, pdata->gpio_button);
-1938                 goto failed_to_request_irq_headset_button;
-1939         }
-
-1510 static irqreturn_t headset_button_irq_handler(int irq, void *dev)
-1511 {
-             ......
-1548         return IRQ_HANDLED;
-1549 }       
-}}}
-
-=== 中断使能 ===
-{{{
-void enable_irq(unsigned int irq);
-void disable_irq(unsigned int irq);
-}}}
-
-----
 == 代码解析 ==
 === 初始化 ===
 # 总irq初始化
@@ -146,17 +121,6 @@ void disable_irq(unsigned int irq);
 
 }}}
 
-=== 中断处理调用栈 ===
-{{{
-[<c02dc804>] (sci_keypad_isr+0x15c/0x540) from [<c008a03c>] (handle_irq_event_percpu+0x4c/0x1b0)
-[<c008a03c>] (handle_irq_event_percpu+0x4c/0x1b0) from [<c008a1dc>] (handle_irq_event+0x3c/0x5c)
-[<c008a1dc>] (handle_irq_event+0x3c/0x5c) from [<c008cd50>] (handle_fasteoi_irq+0xb8/0x100)
-[<c008cd50>] (handle_fasteoi_irq+0xb8/0x100) from [<c0089a94>] (generic_handle_irq+0x20/0x30)
-[<c0089a94>] (generic_handle_irq+0x20/0x30) from [<c000fd5c>] (handle_IRQ+0x64/0x8c)
-[<c000fd5c>] (handle_IRQ+0x64/0x8c) from [<c0009344>] (gic_handle_irq+0xbc/0x164)
-[<c0009344>] (gic_handle_irq+0xbc/0x164) from [<c000f040>] (__irq_svc+0x40/0x70)
-}}}
-
 ----
 == 底层寄存器 ==
 见device spec的《MCU Interrupt Controller》这一章
@@ -196,6 +160,16 @@ disable:(WO)
 
 soft:
 产生软件中断
+}}}
+
+----
+== GIC与INTC的关系 ==
+{{local:images/interrupt_flow.png}}
+{{{
+模块的中断会接到INTC/AON_INT/GIC上
+其中arm core上响应的中断源都是从GIC上来的；
+AON_INT用来唤醒系统，如果这里有值，那系统是睡不下去的，MCU_PAUSE寄存器会设置不成功；
+INTC是历史遗留产物，给之前arm9等老芯片用，现在被GIC替代，但在平台上还是会被设值。
 }}}
 
 ----
