@@ -12,6 +12,7 @@
 <ul>
 <li><a href="#toc_0.0.1">加载Android hw so库</a>
 <li><a href="#toc_0.0.2">coredump</a>
+<li><a href="#toc_0.0.3">system.img解压和打包</a>
 </ul>
 </ul>
 </ul>
@@ -353,6 +354,68 @@ echo "/corefile/core-%e-%p-%t" &gt; core_pattern，可以将core文件统一生�
 
 原文地址：http://hi.baidu.com/donghaozheng/blog/item/b3f03a9b6abe16bac8eaf43d.html
 </pre>
+
+<hr />
+<h3 id="toc_0.0.3">system.img解压和打包</h3>
+<pre>
+Android中的system.img可能有是yaffs2或者ext的文件系统。
+</pre>
+<ul>
+<li>
+判断文件系统类型
+<pre>
+   file out/target/product/generic/system.img
+   如果输出是： out/target/product/generic/system.img: VMS Alpha executable， 则表明是 yaffs2 文件系统，
+   如果输出是： data 文件，则表明是 ext 文件系统
+</pre>
+
+<li>
+解压
+
+<ul>
+<li>
+yaffs2 文件系统：
+<pre>
+  工具：unyaffs（可以从 http://code.google.com/p/unyaffs/downloads/list 下载）
+  方法：1）创建一个目录把system.img文件拷贝到该目录下
+       2）运行unyaffs system.img &amp;&amp; rm system.img，就可以把system.img解压到新创建的目录下
+</pre>
+
+<li>
+ext 文件系统
+<pre>
+  说明：用simg2img工具把system.img转为为ext4文件格式，再mount到本地目录。
+  工具：out/host/linux-x86/bin/simg2img 
+  方法：1）simg2img system.img system.ext4.img
+       2）创建一个目录，例如 "data"
+       3）mount -t ext4 -o loop system.ext4.img data
+</pre>
+
+</ul>
+<li>
+压缩
+
+<ul>
+<li>
+yaff2 文件系统
+<pre>
+  工具： out/host/linux-x86/bin/mkyaffs2image
+  方法： out/host/linux-x86/bin/mkyaffs2image -f out/target/product/generic/system out/target/product/generic/system.img
+</pre>
+
+<li>
+ext4 文件系统
+<pre>
+  工具：out/host/linux-x86/bin/mkuserimg.sh
+  方法：mkuserimg.sh [-s] SRC_DIR OUTPUT_FILE EXT_VARIANT MOUNT_POINT SIZE
+       ./mkuserimg.sh -s /some/directory/with/files ./factoryfs_custom.img ext4 ./temp 512M
+</pre>
+
+</ul>
+</ul>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/make_system_tool.tar.gz">make_system_tool.tar.gz</a></BR>
+</p>
 
 </body>
 </html>
