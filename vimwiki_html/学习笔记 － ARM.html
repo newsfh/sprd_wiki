@@ -13,8 +13,9 @@
 <li><a href="#toc_0.0.1">指令</a>
 <ul>
 <li><a href="#toc_0.0.1.1">MRS/MSR</a>
-<li><a href="#toc_0.0.1.2">stdmfd,ldmfd,ldmia,ldmib</a>
-<li><a href="#toc_0.0.1.3">^ !</a>
+<li><a href="#toc_0.0.1.2">MCR/MRC</a>
+<li><a href="#toc_0.0.1.3">stdmfd,ldmfd,ldmia,ldmib</a>
+<li><a href="#toc_0.0.1.4">^ !</a>
 </ul>
 <li><a href="#toc_0.0.2">寄存器</a>
 <ul>
@@ -33,14 +34,19 @@
 <hr />
 <h3 id="toc_0.0.1">指令</h3>
 <h4 id="toc_0.0.1.1">MRS/MSR</h4>
-<pre>
+<ul>
+<li>
 MRS
-将状态寄存器的内容传送至通用寄存器。
+<pre>
+状态寄存器 =&gt; 通用寄存器
 MRS{&lt;cond&gt;}&lt;Rd&gt;, CPSR
 MRS{&lt;cond&gt;}&lt;Rd&gt;, SPSR
+</pre>
 
+<li>
 MSR
-将通用寄存器的内容传送至状态寄存器。
+<pre>
+通用寄存器 =&gt; 状态寄存器
 MSR{&lt;cond&gt;} CPSR_&lt;fields&gt;, #&lt;immediate&gt;
 MSR{&lt;cond&gt;} CPSR_&lt;fields&gt;, &lt;Rm&gt; 
 MSR{&lt;cond&gt;} SPSR_&lt;fields&gt;, #&lt;immediate&gt;
@@ -51,11 +57,33 @@ MSR{&lt;cond&gt;} SPSR_&lt;fields&gt;, &lt;Rm&gt;
  x: 指示bits[15 : 8]， 又名扩展位域
  c: 指示bits[7 : 0]，又名控制位
 </pre>
+
+</ul>
 <p>
 <a href="http://freesoftman.iteye.com/blog/1827249">汇编指令状态寄存器访问指令（MRS,MSR）</a><BR>
 </p>
 
-<h4 id="toc_0.0.1.2">stdmfd,ldmfd,ldmia,ldmib</h4>
+<h4 id="toc_0.0.1.2">MCR/MRC</h4>
+<ul>
+<li>
+MCR
+<pre>
+通用寄存器 =&gt; 协处理器
+MCR{&lt;cond&gt;} p15, 0, &lt;Rd&gt;, &lt;CRn&gt;, &lt;CRm&gt;{,&lt;opcode_2&gt;}
+MCR2 p15, 0, &lt;Rd&gt;, &lt;CRn&gt;, &lt;CRm&gt;{,&lt;opcode_2&gt;}
+</pre>
+
+<li>
+MRC
+<pre>
+协处理器 =&gt; 通用寄存器
+MRC{&lt;cond&gt;} p15, 0, &lt;Rd&gt;, &lt;CRn&gt;, &lt;CRm&gt;{,&lt;opcode_2&gt;}
+MRC2 p15, 0, &lt;Rd&gt;, &lt;CRn&gt;, &lt;CRm&gt;{,&lt;opcode_2&gt;}
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.3">stdmfd,ldmfd,ldmia,ldmib</h4>
 <pre>
 多寄存器寻址：LDMIA，LDMIB，STMIA，STMIB，LDMDA，LDMDB，STMDA，STMDB
 堆栈寻址：LDMFA，LDMFD，STMFA，STMFD，LDMEA，LDMED，STMEA，STMED
@@ -77,7 +105,7 @@ D开头的，寄存器列表的顺序是从右到左。
 <a href="http://www.bubuko.com/infodetail-729580.html">LDMIA、LDMIB、LDMDB、LDMDA、STMIA、LDMFD、LDMFA、LDMED、LDMEA等指令详解</a><BR>
 </p>
 
-<h4 id="toc_0.0.1.3">^ !</h4>
+<h4 id="toc_0.0.1.4">^ !</h4>
 <pre>
 '^'是一个后缀标志,不能在User模式和Sys系统模式下使用该标志.该标志有两个存在目的:
 1.对于LDM操作,同时恢复的寄存器中含有pc(r15)寄存器,那么指令执行的同时cpu自动将spsr拷贝到cpsr中
