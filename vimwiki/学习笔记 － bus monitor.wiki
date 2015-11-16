@@ -146,6 +146,9 @@ echo 0 > /sys/devices/sprd_bm.29/panic
 >>>>>>>  没有开关设置
 }}}
 
+=== 修改busmonitor.c，监控DDR VALUE ===
+[[local:files/busmonitor.tar.gz|busmonitor.tar.gz]]</BR>
+
 ----
 === 附件 ===
 [[local:files/AMBA&BusMonitor.docx|AMBA&BusMonitor.docx]]</BR>

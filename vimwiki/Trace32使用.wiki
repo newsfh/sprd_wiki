@@ -99,6 +99,123 @@ data.image 0xdd700000 480. 800. /RGB32
 }}}
 
 ----
+== Trace32脚本 ==
+=== 语法 ===
+* 变量
+{{{
+变量以“&”开头
+
+1、本地变量申明：
+ LOCAL &a &b &c         //关健字为LOCAL,变量以“&”开头
+
+2、全局变量申明：
+ GLOBAL &State &Level   //关健字为GLOBAL,变量以“&”开头
+}}}
+* 控制语句
+ * if-else
+{{{
+ IF "a"=="a"
+ (
+  PRINT "true"
+ )
+ ELSE IF "a"=="b"
+ (
+  PRINT "false"
+ )
+ ELSE
+ (
+  PRINT "这里不会运行(test)"
+ )
+ 解释一下，Trace32里面没有then关健字，多行语句请使用括号"()"括起来。
+}}}
+ * while和RePeaT
+{{{
+ &true=0!=1
+ &count=1
+ WHILE &true
+ (
+  DO mem_test
+  PRINT "MEMTEST " &count
+  &count=&count+1
+ )
+ ENDDO
+ 
+ -------------
+ RePeaT [<count>]
+  <block>
+ [WHILE [<condition>]]
+ or
+ RePeaT <count> <command>
+}}}
+ * GOTO
+{{{
+ GOTO endloop//关健字为GOTO，endloop为标号，如：
+  endloop:
+   print "这里为GOTO执行地"
+ GOTO 102.//102.为行号
+}}}
+* 函数
+{{{
+ GOSUB subr1 0x100 10. "abc"                    // 调用子函数，关健字GOSUB, subr1为子函数标号，后面为调用的参数0x100 10. "abc"
+ subr1:                                         // 这里是子函数，以变量名加冒号，标号形式。
+  ENTRY &address &len &string                   // 参数用entry来声明
+  Data.Set &address++(&len-1) &string
+  RETURN                                        // return还可以返回值
+}}}
+* 关键字
+ * print
+{{{
+打印
+}}}
+ * ENTER
+{{{
+ enter &x
+ print "x=&x"
+}}}
+ * INKEY
+{{{
+ INKEY 
+ INKEY &key
+ IF &key==0x0d
+  print "正确的输入"
+ else
+  print "错误的字符"
+}}}
+ * DO
+{{{
+执行其它脚本文件
+DO <filename> [<parlist>]
+}}}
+ * enddo
+{{{
+退出脚本执行程序
+}}}
+* 功能调用
+{{{
+更多的功能函数，可以打开trace32->help->contents->index->functions only
+}}}
+ * data.set
+{{{
+设置内存值
+DATA.SET eahb:0x30040028 %LE %LONG 0x0
+}}}
+ * data.long
+{{{
+从DDR中取long长度的值
+&d=data.long(eahb:0x80000000)
+}}}
+ * v.value
+{{{
+取出表达式里的值
+&d=v.value(init.task.next)
+}}}
+ * v.string
+{{{
+取出表达式里的字符
+v.string(task_ptr->comm)
+}}}
+
+----
 == 附件 ==
 [[local:files/foreach_process.cmm|foreach_process.cmm]]</BR>
 [[local:files/foreach_thread.cmm|foreach_thread.cmm]]</BR>

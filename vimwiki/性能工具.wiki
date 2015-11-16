@@ -66,6 +66,10 @@ cat trace
 
 ----
 === strace ===
+{{{
+用于跟踪系统调用
+strace -f -o /data/slog.txt slog
+}}}
 ==== 资料 ====
 [[http://www.cnblogs.com/ggjucheng/archive/2012/01/08/2316692.html|Linux strace命令]]<BR>
 

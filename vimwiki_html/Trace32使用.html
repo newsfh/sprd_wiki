@@ -19,7 +19,11 @@
 <li><a href="#toc_0.4.2">Trace32快捷命令</a>
 <li><a href="#toc_0.4.3">查看framebuffer内容</a>
 </ul>
-<li><a href="#toc_0.5">附件</a>
+<li><a href="#toc_0.5">Trace32脚本</a>
+<ul>
+<li><a href="#toc_0.5.1">语法</a>
+</ul>
+<li><a href="#toc_0.6">附件</a>
 </ul>
 </ul>
 </div>
@@ -315,7 +319,166 @@ data.image 0xdd700000 480. 800. /RGB32
 </pre>
 
 <hr />
-<h2 id="toc_0.5">附件</h2>
+<h2 id="toc_0.5">Trace32脚本</h2>
+<h3 id="toc_0.5.1">语法</h3>
+<ul>
+<li>
+变量
+<pre>
+变量以“&amp;”开头
+
+1、本地变量申明：
+ LOCAL &amp;a &amp;b &amp;c         //关健字为LOCAL,变量以“&amp;”开头
+
+2、全局变量申明：
+ GLOBAL &amp;State &amp;Level   //关健字为GLOBAL,变量以“&amp;”开头
+</pre>
+
+<li>
+控制语句
+
+<ul>
+<li>
+if-else
+<pre>
+ IF "a"=="a"
+ (
+  PRINT "true"
+ )
+ ELSE IF "a"=="b"
+ (
+  PRINT "false"
+ )
+ ELSE
+ (
+  PRINT "这里不会运行(test)"
+ )
+ 解释一下，Trace32里面没有then关健字，多行语句请使用括号"()"括起来。
+</pre>
+
+<li>
+while和RePeaT
+<pre>
+ &amp;true=0!=1
+ &amp;count=1
+ WHILE &amp;true
+ (
+  DO mem_test
+  PRINT "MEMTEST " &amp;count
+  &amp;count=&amp;count+1
+ )
+ ENDDO
+ 
+ -------------
+ RePeaT [&lt;count&gt;]
+  &lt;block&gt;
+ [WHILE [&lt;condition&gt;]]
+ or
+ RePeaT &lt;count&gt; &lt;command&gt;
+</pre>
+
+<li>
+GOTO
+<pre>
+ GOTO endloop//关健字为GOTO，endloop为标号，如：
+  endloop:
+   print "这里为GOTO执行地"
+ GOTO 102.//102.为行号
+</pre>
+
+</ul>
+<li>
+函数
+<pre>
+ GOSUB subr1 0x100 10. "abc"                    // 调用子函数，关健字GOSUB, subr1为子函数标号，后面为调用的参数0x100 10. "abc"
+ subr1:                                         // 这里是子函数，以变量名加冒号，标号形式。
+  ENTRY &amp;address &amp;len &amp;string                   // 参数用entry来声明
+  Data.Set &amp;address++(&amp;len-1) &amp;string
+  RETURN                                        // return还可以返回值
+</pre>
+
+<li>
+关键字
+
+<ul>
+<li>
+print
+<pre>
+打印
+</pre>
+
+<li>
+ENTER
+<pre>
+ enter &amp;x
+ print "x=&amp;x"
+</pre>
+
+<li>
+INKEY
+<pre>
+ INKEY 
+ INKEY &amp;key
+ IF &amp;key==0x0d
+  print "正确的输入"
+ else
+  print "错误的字符"
+</pre>
+
+<li>
+DO
+<pre>
+执行其它脚本文件
+DO &lt;filename&gt; [&lt;parlist&gt;]
+</pre>
+
+<li>
+enddo
+<pre>
+退出脚本执行程序
+</pre>
+
+</ul>
+<li>
+功能调用
+<pre>
+更多的功能函数，可以打开trace32-&gt;help-&gt;contents-&gt;index-&gt;functions only
+</pre>
+
+<ul>
+<li>
+data.set
+<pre>
+设置内存值
+DATA.SET eahb:0x30040028 %LE %LONG 0x0
+</pre>
+
+<li>
+data.long
+<pre>
+从DDR中取long长度的值
+&amp;d=data.long(eahb:0x80000000)
+</pre>
+
+<li>
+v.value
+<pre>
+取出表达式里的值
+&amp;d=v.value(init.task.next)
+</pre>
+
+<li>
+v.string
+<pre>
+取出表达式里的字符
+v.string(task_ptr-&gt;comm)
+</pre>
+
+</ul>
+</ul>
+
+<hr />
+<h2 id="toc_0.6">附件</h2>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/foreach_process.cmm">foreach_process.cmm</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/foreach_thread.cmm">foreach_thread.cmm</a></BR>

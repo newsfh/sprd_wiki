@@ -1021,6 +1021,9 @@ kernel/include/uapi/asm-generic/errno-base.h
 35#define	EPIPE		32	/* Broken pipe */
 36#define	EDOM		33	/* Math argument out of domain of func */
 37#define	ERANGE		34	/* Math result not representable */
+
+对于上层，用errno可看错误码
+用strerror(errno)可以把错误码转换成字符串
 }}}
 
 ----
@@ -1925,4 +1928,16 @@ SPRD用gser，三星用acm
 sys.usb.config：功能列表（会被修改）
 sys.usb.state：功能列表
 persist.sys.usb.sport：acm端口数
+}}}
+
+=== SharkL PUB不掉电 ===
+{{{
+将arm7.bin的0x40h—0x44h处: 改为00 00 00 00，原值是：70 75 62 64
+}}}
+
+=== wifi密码 ===
+{{{
+SPRD_visitor
+帐号：samsung01
+密码：sam..123
 }}}

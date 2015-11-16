@@ -33,24 +33,29 @@
 <li><a href="#toc_0.6.4">init log</a>
 <li><a href="#toc_0.6.5">dump info in tick</a>
 </ul>
-<li><a href="#toc_0.7">trace32使用技巧</a>
+<li><a href="#toc_0.7">调试小技巧</a>
 <ul>
-<li><a href="#toc_0.7.1">看a-die寄存器</a>
-<li><a href="#toc_0.7.2">通过task推调用栈</a>
-<li><a href="#toc_0.7.3">通过FP推调用栈</a>
-<li><a href="#toc_0.7.4">通过thread_info的cpu_context看task栈</a>
-<li><a href="#toc_0.7.5">枚举task脚本</a>
+<li><a href="#toc_0.7.1">kernel读物理内存</a>
+<li><a href="#toc_0.7.2">被唤醒后一开始加bus monitor</a>
 </ul>
-<li><a href="#toc_0.8">adb命令</a>
+<li><a href="#toc_0.8">trace32使用技巧</a>
 <ul>
-<li><a href="#toc_0.8.1">dumpsys</a>
-<li><a href="#toc_0.8.2">procrank</a>
-<li><a href="#toc_0.8.3">dumpstate</a>
-<li><a href="#toc_0.8.4">debuggerd</a>
-<li><a href="#toc_0.8.5">strace</a>
-<li><a href="#toc_0.8.6">list process maps</a>
+<li><a href="#toc_0.8.1">看a-die寄存器</a>
+<li><a href="#toc_0.8.2">通过task推调用栈</a>
+<li><a href="#toc_0.8.3">通过FP推调用栈</a>
+<li><a href="#toc_0.8.4">通过thread_info的cpu_context看task栈</a>
+<li><a href="#toc_0.8.5">枚举task脚本</a>
 </ul>
-<li><a href="#toc_0.9">附件</a>
+<li><a href="#toc_0.9">adb命令</a>
+<ul>
+<li><a href="#toc_0.9.1">dumpsys</a>
+<li><a href="#toc_0.9.2">procrank</a>
+<li><a href="#toc_0.9.3">dumpstate</a>
+<li><a href="#toc_0.9.4">debuggerd</a>
+<li><a href="#toc_0.9.5">strace</a>
+<li><a href="#toc_0.9.6">list process maps</a>
+</ul>
+<li><a href="#toc_0.10">附件</a>
 </ul>
 </ul>
 </div>
@@ -232,6 +237,7 @@ index bd98381..de0066b 100644
 
 </ol>
 
+<hr />
 <h2 id="toc_0.3">读寄存器函数</h2>
 <h3 id="toc_0.3.1">a-die</h3>
 <pre>
@@ -469,8 +475,99 @@ index fa8b921..81e7a15 100755
 </p>
 
 <hr />
-<h2 id="toc_0.7">trace32使用技巧</h2>
-<h3 id="toc_0.7.1">看a-die寄存器</h3>
+<h2 id="toc_0.7">调试小技巧</h2>
+<h3 id="toc_0.7.1">kernel读物理内存</h3>
+<pre>
+void travel_ddr()
+{
+    ulong add, val;
+    int i = 0;
+
+    for (add = 0xd0000c54; add &lt; 0xdfffffff; add += 0x1000) {
+        sci_read_pa(add, &amp;val);
+        if (val == 0x790) {
+            printk("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ add:0x%08x\n", add);
+            i++;
+        }   
+    }   
+
+    if (i != 0) {
+        printk("~~~~~~~~~ count = %d\n", i); 
+    }   
+}
+</pre>
+
+<h3 id="toc_0.7.2">被唤醒后一开始加bus monitor</h3>
+<pre>
+ENTRY(add_busmon)
+/*enable busmon*/
+    ldr r0, =0x30020004
+    ldr r1, =0x3ff0000
+    str r1, [r0]
+
+/* enable busmon module */
+    mov r0, r2
+    ldr r1, =0x00001
+    str r1, [r0]
+
+/* mon r&amp;w */
+    add r0, r2, #0x4
+    ldr r1, =0x00000
+    str r1, [r0]
+
+/* min add */
+    add r0, r2, #0x8
+    ldr r1, =0x80000c54
+    str r1, [r0]
+
+/* max add */
+    add r0, r2, #0xc
+    ldr r1, =0xdffffc54
+    str r1, [r0]
+
+/* add mask */
+    add r0, r2, #0x10
+    ldr r1, =0xfffff000
+    str r1, [r0]
+
+/* min data */
+    add r0, r2, #0x14
+    ldr r1, =0xffffffff
+    str r1, [r0]
+
+    add r0, r2, #0x18
+    ldr r1, =0x00000000
+    str r1, [r0]
+
+/* max data */
+    add r0, r2, #0x1c
+    ldr r1, =0xfffffffe
+    str r1, [r0]
+
+    add r0, r2, #0x20
+    ldr r1, =0x00000000
+    str r1, [r0]
+
+/* data mask */
+    add r0, r2, #0x24
+    ldr r1, =0x00000000
+    str r1, [r0]
+
+    add r0, r2, #0x28
+    ldr r1, =0x00000000
+    str r1, [r0]
+
+    mov pc, lr
+ENDPROC(add_busmon)
+
+...
+    ldr r2, =0x30040000
+    bl add_busmon
+</pre>
+
+<hr />
+<h2 id="toc_0.8">trace32使用技巧</h2>
+<h3 id="toc_0.8.1">看a-die寄存器</h3>
 <pre>
 通过修改0x40030024这个寄存器，再看0x40030028的返回值
 如要看0x40038100寄存器，则修改0x40030024的值为0x40038100，在0x40030028会返回01000004的值
@@ -478,18 +575,18 @@ index fa8b921..81e7a15 100755
 写a-die寄存器的话，直接往地址写就可以了
 </pre>
 
-<h3 id="toc_0.7.2">通过task推调用栈</h3>
+<h3 id="toc_0.8.2">通过task推调用栈</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/stack.png" /></BR>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/dump_callstack_from_sp.PNG" />
 </p>
 
-<h3 id="toc_0.7.3">通过FP推调用栈</h3>
+<h3 id="toc_0.8.3">通过FP推调用栈</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/dump_callstack_from_fp.PNG" />
 </p>
 
-<h3 id="toc_0.7.4">通过thread_info的cpu_context看task栈</h3>
+<h3 id="toc_0.8.4">通过thread_info的cpu_context看task栈</h3>
 <pre>
 sl  -&gt;  R14
 fp  -&gt;  R11
@@ -499,15 +596,15 @@ pc  -&gt;  pc
 或者通过v.f /task &lt;task_ptr&gt;来看
 </pre>
 
-<h3 id="toc_0.7.5">枚举task脚本</h3>
+<h3 id="toc_0.8.5">枚举task脚本</h3>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/foreach_process.cmm">foreach_process.cmm</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/foreach_thread.cmm">foreach_thread.cmm</a></BR>
 </p>
 
 <hr />
-<h2 id="toc_0.8">adb命令</h2>
-<h3 id="toc_0.8.1">dumpsys</h3>
+<h2 id="toc_0.9">adb命令</h2>
+<h3 id="toc_0.9.1">dumpsys</h3>
 <pre>
 打印当前服务的信息，可以用下面的命令查看哪些服务可以dump
 1、dumpsys | grep DUMP
@@ -517,7 +614,7 @@ pc  -&gt;  pc
 dumpsys meminfo PID        显示进程的内存使用情况
 </pre>
 
-<h3 id="toc_0.8.2">procrank</h3>
+<h3 id="toc_0.9.2">procrank</h3>
 <pre>
 显示所有进程的内存使用情况
 VSS - Virtual Set Size 虚拟耗用内存（包含共享库占用的内存）
@@ -526,24 +623,24 @@ PSS - Proportional Set Size 实际使用的物理内存（比例分配共享库�
 USS - Unique Set Size 进程独自占用的物理内存（不包含共享库占用的内存）
 </pre>
 
-<h3 id="toc_0.8.3">dumpstate</h3>
+<h3 id="toc_0.9.3">dumpstate</h3>
 
-<h3 id="toc_0.8.4">debuggerd</h3>
+<h3 id="toc_0.9.4">debuggerd</h3>
 <pre>
 打印某进程内所有线程的调用栈
 debuggerd -b PID
 </pre>
 
-<h3 id="toc_0.8.5">strace</h3>
+<h3 id="toc_0.9.5">strace</h3>
 
-<h3 id="toc_0.8.6">list process maps</h3>
+<h3 id="toc_0.9.6">list process maps</h3>
 <pre>
 cd /proc
 cat ./*/maps
 </pre>
 
 <hr />
-<h2 id="toc_0.9">附件</h2>
+<h2 id="toc_0.10">附件</h2>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/TShark_check.cmm">TShark_check.cmm</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/gen_trace_reg.sh">gen_trace_reg.sh</a></BR>

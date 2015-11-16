@@ -167,6 +167,7 @@ index bd98381..de0066b 100644
         msgbuf[0] = 0;
 }}}
 
+----
 == 读寄存器函数 ==
 === a-die ===
 {{{
@@ -390,6 +391,97 @@ index fa8b921..81e7a15 100755
  }
 }}}
 [[local:files/pm_tick_debug.patch|pm_tick_debug.patch]]
+
+----
+== 调试小技巧 ==
+=== kernel读物理内存 ===
+{{{
+void travel_ddr()
+{
+    ulong add, val;
+    int i = 0;
+
+    for (add = 0xd0000c54; add < 0xdfffffff; add += 0x1000) {
+        sci_read_pa(add, &val);
+        if (val == 0x790) {
+            printk("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ add:0x%08x\n", add);
+            i++;
+        }   
+    }   
+
+    if (i != 0) {
+        printk("~~~~~~~~~ count = %d\n", i); 
+    }   
+}
+}}}
+
+=== 被唤醒后一开始加bus monitor ===
+{{{
+ENTRY(add_busmon)
+/*enable busmon*/
+    ldr r0, =0x30020004
+    ldr r1, =0x3ff0000
+    str r1, [r0]
+
+/* enable busmon module */
+    mov r0, r2
+    ldr r1, =0x00001
+    str r1, [r0]
+
+/* mon r&w */
+    add r0, r2, #0x4
+    ldr r1, =0x00000
+    str r1, [r0]
+
+/* min add */
+    add r0, r2, #0x8
+    ldr r1, =0x80000c54
+    str r1, [r0]
+
+/* max add */
+    add r0, r2, #0xc
+    ldr r1, =0xdffffc54
+    str r1, [r0]
+
+/* add mask */
+    add r0, r2, #0x10
+    ldr r1, =0xfffff000
+    str r1, [r0]
+
+/* min data */
+    add r0, r2, #0x14
+    ldr r1, =0xffffffff
+    str r1, [r0]
+
+    add r0, r2, #0x18
+    ldr r1, =0x00000000
+    str r1, [r0]
+
+/* max data */
+    add r0, r2, #0x1c
+    ldr r1, =0xfffffffe
+    str r1, [r0]
+
+    add r0, r2, #0x20
+    ldr r1, =0x00000000
+    str r1, [r0]
+
+/* data mask */
+    add r0, r2, #0x24
+    ldr r1, =0x00000000
+    str r1, [r0]
+
+    add r0, r2, #0x28
+    ldr r1, =0x00000000
+    str r1, [r0]
+
+    mov pc, lr
+ENDPROC(add_busmon)
+
+...
+    ldr r2, =0x30040000
+    bl add_busmon
+}}}
 
 ----
 == trace32使用技巧 ==
