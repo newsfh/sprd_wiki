@@ -217,8 +217,12 @@ v.string(task_ptr->comm)
 
 ----
 == 附件 ==
+[[local:files/t32_training_practice.pdf|t32_training_practice.pdf]]</BR>
 [[local:files/foreach_process.cmm|foreach_process.cmm]]</BR>
 [[local:files/foreach_thread.cmm|foreach_thread.cmm]]</BR>
 [[local:files/addr_page.cmm|addr_page.cmm]]</BR>
 [[local:files/is_mem_freed.cmm|is_mem_freed.cmm]]</BR>
+
+== 资料 ==
+[[http://www.lauterbach.com/frames.html?home.html|lauterbach主页]]<BR>
 
