@@ -25,6 +25,10 @@
 <ul>
 <li><a href="#toc_0.0.4.1">资料</a>
 </ul>
+<li><a href="#toc_0.0.5">systrace</a>
+<ul>
+<li><a href="#toc_0.0.5.1">资料</a>
+</ul>
 </ul>
 </ul>
 </ul>
@@ -121,6 +125,70 @@ strace -f -o /data/slog.txt slog
 <h4 id="toc_0.0.4.1">资料</h4>
 <p>
 <a href="http://www.cnblogs.com/ggjucheng/archive/2012/01/08/2316692.html">Linux strace命令</a><BR>
+</p>
+
+<hr />
+<h3 id="toc_0.0.5">systrace</h3>
+<ul>
+<li>
+简介
+<pre>
+收集Android关键子系统（如surfaceflinger、WindowManagerService等Framework部分关键模块、服务，View系统等）的运行信息。
+包括跟踪系统的I/O操作、内核工作队列、CPU负载以及Android各个子系统的运行状况等。
+</pre>
+
+<li>
+使用
+<pre>
+工具位置：
+Android5.1的工具在external/chromium-trace里
+命令格式：
+python systrace.py --time=10 -o mynewtrace.html sched gfx view wm
+常用参数：
+-t time：要监测的时间
+-o file：输出文件路径
+-l tags：监控的tags，包括以下几类
+	gfx - Graphics
+	input - Input
+	view - View
+	webview - WebView
+	wm - Window Manager
+	am - Activity Manager
+	audio - Audio
+	video - Video
+	camera - Camera
+	hal - Hardware Modules
+	res - Resource Loading
+	dalvik - Dalvik VM
+	rs - RenderScript
+	sched - CPU Scheduling
+	freq - CPU Frequency
+	membus - Memory Bus Utilization
+	idle - CPU Idle
+	disk - Disk input and output
+	load - CPU Load
+	sync - Synchronization Manager
+	workq - Kernel Workqueues
+</pre>
+
+<li>
+分析
+<pre>
+打开chrome浏览器，输入chrome://tracing，把生成的trace.html拖进去即可
+其中一些快捷键：
+w：放大
+s：缩小
+a：左移
+d：右移
+LeftArrow：前一个事件
+RightArrow：后一个事件
+/：搜索
+</pre>
+
+</ul>
+<h4 id="toc_0.0.5.1">资料</h4>
+<p>
+ <a href="http://developer.android.com/tools/help/systrace.html">systrace</a><BR>
 </p>
 
 </body>
