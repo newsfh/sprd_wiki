@@ -125,7 +125,7 @@ echo N > /sys/module/printk/parameters/console_suspend
 adb root
 adb remount
 adb shell
-cd sys/modules/mali/paramters
+cd sys/module/mali/paramters
 cat gpufreq_table 查看GPU支持的所有频率
 echo GPU频率 > gpufreq_min_limit；echo GPU频率 > gpufreq_max_limit
 }}}
@@ -134,7 +134,7 @@ echo GPU频率 > gpufreq_min_limit；echo GPU频率 > gpufreq_max_limit
 adb root
 adb remount
 adb shell
-cd sys/modules/mali_kbase/paramters
+cd sys/module/mali_kbase/paramters
 cat gpu_freq_list 查看GPU支持的所有频率
 echo GPU频率 > gpu_freq_min_limit；echo GPU频率 > gpu_freq_max_limit
 }}}
@@ -146,6 +146,48 @@ adb shell
 cd /sys/devices/60000000.gpu/devfreq/60000000.gpu
 cat available_frequencies 查看GPU支持的所有频率
 echo GPU频率 > min_freq；echo GPU频率 > max_freq
+}}}
+* Android4.4 查看当前频率
+{{{
+adb root
+adb remount
+adb shell
+cd sys/module/mali/paramters
+cat gpu_cur_freq 查看GPU支持的频率
+}}}
+* Android5.1 tshark/sharkl查看当前频率
+{{{
+adb root
+adb remount
+adb shell
+cd sys/module/mali/paramters
+cat gpu_freq_cur 查看GPU支持的频率
+}}}
+* Android5.1 t8查看当前频率
+{{{
+adb root
+adb remount
+adb shell
+cd sys/module/mali_kbase/paramters
+cat gpu_freq_cur 查看GPU支持的频率
+}}}
+* Android5.1 tshark/sharkl debug参数
+{{{
+gpu_boost_level
+gpu_boost_sf_level
+gpu_freq_cur
+gpu_freq_list
+gpu_freq_max_limit
+gpu_freq_min_limit
+mali_debug_level
+}}}
+* Android5.1 tshark/sharkl 查看GPU loading
+{{{
+adb root
+adb remount
+adb shell
+cd d/mali0
+cat utilization_gp/utilization_gp_pp/utilization_pp 查看GPU当前的负载
 }}}
 
 ----
