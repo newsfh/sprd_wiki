@@ -75,3 +75,13 @@ $ arm-linux-gnueabi-addr2line -e vmlinux c0294320
 /home/huafang/android_samsung/kernel/drivers/video/backlight/sprd_pwm_bl.c:212
 }}}
 
+----
+=== objdump ===
+{{{
+arm-eabi-objdump -D -b binary -m arm xxx.bin > xxx.asm
+-D 反编译所有代码
+-m 主机类型, arm
+-b 文件格式, binary
+对于ELF格式的文件只要一个-D参数即可
+}}}
+

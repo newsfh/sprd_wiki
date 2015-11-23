@@ -13,6 +13,7 @@
 <li><a href="#toc_0.0.1">make</a>
 <li><a href="#toc_0.0.2">gcc</a>
 <li><a href="#toc_0.0.3">add2line</a>
+<li><a href="#toc_0.0.4">objdump</a>
 </ul>
 </ul>
 </ul>
@@ -91,6 +92,16 @@ gcc -O2 source_file.c
 <pre>
 $ arm-linux-gnueabi-addr2line -e vmlinux c0294320
 /home/huafang/android_samsung/kernel/drivers/video/backlight/sprd_pwm_bl.c:212
+</pre>
+
+<hr />
+<h3 id="toc_0.0.4">objdump</h3>
+<pre>
+arm-eabi-objdump -D -b binary -m arm xxx.bin &gt; xxx.asm
+-D 反编译所有代码
+-m 主机类型, arm
+-b 文件格式, binary
+对于ELF格式的文件只要一个-D参数即可
 </pre>
 
 </body>

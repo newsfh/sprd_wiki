@@ -9,3 +9,7 @@ tid_base_stuff
 === trace ===
 [[http://itlab.idcquan.com/linux/kernel/821106.html|Linux内核跟踪之trace框架分析]]<BR>
 
+=== zImage的生成和加载 ===
+[[http://blog.csdn.net/challen537/article/details/36010165|zImage的生成和加载]]<BR>
+[[http://bbs.pediy.com/showthread.php?p=1389472&mode=linear|boot.img逆向分析]]<BR>
+
