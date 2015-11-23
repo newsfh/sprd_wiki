@@ -947,3 +947,10 @@ function read_cpmem() {
 {{{
 tr -d '\r'
 }}}
+
+----
+=== script ===
+==== 脚本与C语言的比较 ====
+{{local:images/shell_comparison.PNG}}<BR>
+[[local:files/shell与C语言比较.xlsx|shell与C语言比较.xlsx]]</BR>
+
