@@ -21,7 +21,13 @@
 <li><a href="#toc_0.0.2.3.2">property</a>
 </ul>
 </ul>
-<li><a href="#toc_0.0.3">附件</a>
+<li><a href="#toc_0.0.3">编译</a>
+<ul>
+<li><a href="#toc_0.0.3.1">dts &lt;-&gt; dtb</a>
+<li><a href="#toc_0.0.3.2">dtb -&gt; dt.img</a>
+<li><a href="#toc_0.0.3.3">dt.img -&gt; dtb</a>
+</ul>
+<li><a href="#toc_0.0.4">附件</a>
 </ul>
 </ul>
 </ul>
@@ -118,7 +124,108 @@ struct device_node *of_allnodes;
 </pre>
 
 <hr />
-<h3 id="toc_0.0.3">附件</h3>
+<h3 id="toc_0.0.3">编译</h3>
+<h4 id="toc_0.0.3.1">dts &lt;-&gt; dtb</h4>
+<pre>
+通过dtc工具可以将dts/dtb相互转换
+
+工具路径：
+out/target/product/scx35l_sharkls_j1mini/obj/KERNEL/scripts/dtc/dtc
+
+命令格式：
+	dtc [options] &lt;input file&gt;
+  Options:
+	-I &lt;input format&gt;
+		Input formats are:
+			dts - device tree source text
+			dtb - device tree blob
+			fs - /proc/device-tree style directory
+	-O &lt;output format&gt;
+		Output formats are:
+			dts - device tree source text
+			dtb - device tree blob
+			asm - assembler source
+	-o &lt;output file&gt;
+
+示例：
+dtc -I dtb -O dts sprd-scx35l_sharkls_j3lte.dtb
+
+代码路径：
+kernel/scripts/dtc/
+</pre>
+
+<h4 id="toc_0.0.3.2">dtb -&gt; dt.img</h4>
+<pre>
+通过dtbTool可以将dtb转换成dt.img
+
+工具路径：
+out/host/linux-x86/bin/dtbTool
+
+代码路径：
+vendor/sprd/open-source/tools/dt/dtbtool/dtbtool.c
+</pre>
+
+<h4 id="toc_0.0.3.3">dt.img -&gt; dtb</h4>
+<pre>
+暂时没有现成工具可以用，但它的格式比较简单，自己写个脚本parse_dtimg.pl
+
+工具使用：
+parse_dtimg.pl dt.img
+
+dt.img格式：
+Format:
+                                size
+  x      +------------------+
+  |      | MAGIC ("QCDT")   |   4B
+  |      +------------------+
+header   | VERSION          |   uint32 (initial version 1)
+  |      +------------------+
+  |      | num of DTBs      |   uint32 (number of DTB entries)
+  x      +------------------+
+  |      | platform id #1   |   uint32 (e.g. ID for MSM8974)
+  |      +------------------+
+  |      | variant id #1    |   uint32 (e.g. ID for CDP, MTP)
+device   +------------------+
+ #1      | soc rev #1       |   uint32 (e.g. MSM8974 v2)
+entry    +------------------+
+  |      | offset #1        |   uint32 (byte offset from start/before MAGIC
+  |      +------------------+           to DTB entry)
+  |      | size #1          |   uint32 (size in bytes of DTB blob)
+  x      +------------------+
+  .              .
+  .              .  (repeat)
+  .              .
+  x      +------------------+
+  |      | platform id #Z   |   uint32 (e.g. ID for MSM8974)
+  |      +------------------+
+ device  | variant id #Z    |   uint32 (e.g. ID for CDP, MTP)
+ #Z      +------------------+
+ entry   | soc rev #Z       |   uint32 (e.g. MSM8974 v2)
+ (last)  +------------------+
+  |      | offset #Z        |   uint32 (byte offset from start/before MAGIC
+  x      +------------------+           to DTB entry)
+         | 0 ("zero")       |   uint32 (end of list delimiter)
+         +------------------+           to DTB entry)
+         | padding          |   variable length for next DTB to start on
+         +------------------+           page boundary
+         | DTB #1           |   variable (start is page aligned)
+         |                  |
+         |                  |
+         +------------------+
+         | padding          |   variable length for next DTB to start on
+         +------------------+           page boundary
+                 .
+                 .
+                 .
+         +------------------+
+         | DTB #Z (last)    |   variable (start is page aligned)
+         |                  |
+         |                  |
+         +------------------+
+</pre>
+
+<hr />
+<h3 id="toc_0.0.4">附件</h3>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/printk_device_tree.patch">printk_device_tree.patch</a>
 </p>
