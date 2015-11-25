@@ -22,3 +22,13 @@ DFS请求：
 4）arm7返回成功
 	printk("dfs_request, dfs(%d) succeeded!\n",freq);
 }}}
+
+* 编译时间
+ * kernel
+{{{
+kernel build
+}}}
+ * system.img
+{{{
+ro.build.date=Fri Nov 13 05:32:43 CST 2015
+}}}
