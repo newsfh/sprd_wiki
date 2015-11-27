@@ -346,7 +346,6 @@ Shell编程中，使用变量无需事先声明，同时变量名的命名须遵
    变量名=值
 
 要取用一个变量的值，只需在变量名前面加一个$：
-
    #!/bin/sh
    #对变量赋值：
    a="hello world"
@@ -355,11 +354,9 @@ Shell编程中，使用变量无需事先声明，同时变量名的命名须遵
    echo "A is:" $a
 
 挑个自己喜欢的编辑器，输入上述内容，并保存为文件first，然后执行 chmod +x first 使其可执行，最后输入 ./first 执行该脚本。其输出结果如下：
-
    A is: hello world
 
 有时候变量名可能会和其它文字混淆，比如：
-
    num=2
    echo "this is the $numnd"
 
@@ -428,7 +425,6 @@ awk: 用来提取文本文件中的字段。缺省的字段分割符是空格，
 上述命令可以查找过去24小时（-mtime –2则表示过去48小时）内修改过的文件。如果你想将上述命令查找到的所有文件打包，则可以使用如下脚本：
 
    #!/bin/sh
-
    # The ticks are backticks (`) not normal quotes ('):
    tar -zcvf lastmod.tar.gz `find . -mtime -1 -type f -print`
 
@@ -437,7 +433,6 @@ awk: 用来提取文本文件中的字段。缺省的字段分割符是空格，
 2.1. if 语句
 
 "if"表达式如果条件为真，则执行then后的部分：
-
 
    1    if ....; then
    2      ....
@@ -451,14 +446,10 @@ awk: 用来提取文本文件中的字段。缺省的字段分割符是空格，
 
    [ -f "somefile" ] ：判断是否是一个文件
    [ -x "/bin/ls" ] ：判断/bin/ls是否存在并有可执行权限
-
    [ -n "$var" ] ：判断$var变量是否有值       -n STRING       the length of STRING is nonzero
    [ "$a" = "$b" ] ：判断$a和$b是否相等
-
    [ -e filename ] ：判断一个文件是存在
-
    [ ! -e filename ] ：判断一个文件不存在
-
 
 [ -a FILE ]  如果 FILE 存在则为真。  
 [ -b FILE ]  如果 FILE 存在且是一个块特殊文件则为真。  
@@ -527,8 +518,6 @@ UNIX Shell 里面比较字符写法：
 
 这里的 &amp;&amp; 就是一个快捷操作符，如果左边的表达式为真则执行右边的语句，你也可以把它看作逻辑运算里的与操作。
 上述脚本表示如果/etc/shadow文件存在，则打印”This computer uses shadow passwords”。同样shell编程中还可以用或操作(||)，例如：
-&lt; type="text/javascript"&gt; document.write('Toggle line numbers&lt;//a&gt;'); Toggle line numbers
-
    1    #!/bin/sh
    2 
    3    mailfolder=/var/spool/mail/james
@@ -556,8 +545,6 @@ case表达式可以用来匹配一个给定的字符串，而不是数字（可�
    last modified: Mon Aug 27 23:09:18 2001, os: Unix
 
 我们利用这点写了一个名为smartzip的脚本，该脚本可以自动解压bzip2, gzip和zip 类型的压缩文件：
-&lt; type="text/javascript"&gt; document.write('Toggle line numbers&lt;//a&gt;'); Toggle line numbers
-
    1    #!/bin/sh
    2 
    3    ftype=`file "$1"`
@@ -570,11 +557,9 @@ case表达式可以用来匹配一个给定的字符串，而不是数字（可�
   10       bunzip2 "$1" ;;
   11    *) error "File $1 can not be uncompressed with smartzip";;
   12    esac
-ERROR: EOF in multi-line statement
  
 
 你可能注意到上面使用了一个特殊变量$1，该变量包含有传递给该脚本的第一个参数值。也就是说，当我们运行：
-
    smartzip articles.zip
 
 $1 就是字符串 articles.zip。
@@ -697,8 +682,6 @@ for循环会查看一个字符串列表（字符串用空格分隔），并将�
 当要将几行文字传递给一个命令时，here documents一种不错的方法。对每个脚本写一段帮助性的文字是很有用的，此时如果使用here documents就不必用echo函数一行行输出。
 Here document以 &lt;&lt; 开头，后面接上一个字符串，这个字符串还必须出现在here document的末尾。
 下面是一个例子，在该例子中，我们对多个文件进行重命名，并且使用here documents打印帮助：
-
-
    1 #!/bin/sh
    2 
    3 # we have less than 3 arguments. Print the help text:
@@ -811,16 +794,12 @@ Here document以 &lt;&lt; 开头，后面接上一个字符串，这个字符串
   22 echo "opt_f is $opt_f"
   23 echo "opt_l is $opt_l"
   24 echo "first arg is $1"
-  25 echo "2nd arg is $2"
-ERROR: EOF in multi-line statement
- 
+  25 echo "2nd arg is $2" 
 
 你可以这样运行该脚本：
-
    cmdparser -l hello -f -- -somefile1 somefile2
 
 返回结果如下：
-
    opt_f is 1
    opt_l is hello
    first arg is -somefile1
@@ -933,11 +912,9 @@ ERROR: EOF in multi-line statement
   85 
   86 echo "binary $binnumorig is decimal $sum"
   87 #
-ERROR: EOF in multi-line statement
  
 
 该脚本使用的算法是利用十进制和二进制数权值 (1,2,4,8,16,..)，比如二进制"10"可以这样转换成十进制：
-
    0 * 1 + 1 * 2 = 2
 
 为了得到单个的二进制数我们是用了lastchar 函数。该函数使用wc –c计算字符个数，然后使用cut命令取出末尾一个字符。Chop函数的功能则是移除最后一个字符。
@@ -1028,11 +1005,6 @@ shell还有一个不执行脚本只检查语法的模式，命令如下：
    sh -n your_script
 
 这个命令会返回所有语法错误。
-
-我们希望你现在已经可以开始编写自己的shell脚本了，尽情享受这份乐趣吧！ :)
-
-
-
 </pre>
 
 <h4 id="toc_0.0.2.2">各种括号的作用</h4>
@@ -1141,42 +1113,43 @@ case
 <h4 id="toc_0.0.2.3">数组</h4>
 <pre>
 http://www.cnblogs.com/chengmo/archive/2010/09/30/1839632.html
+http://blog.sina.com.cn/s/blog_8808cae20102vhfv.html
+
+0.数组声明
+declare -a myarray
+local -a myarray
 
 1.数组定义
+一对括号表示是数组，数组元素用“空格”符号分割开。
 [chengmo@centos5 ~]$ a=(1 2 3 4 5)
 [chengmo@centos5 ~]$ echo $a
 1
 
-一对括号表示是数组，数组元素用“空格”符号分割开。
-
 2.数组读取与赋值
 2.1得到长度：
+用${#数组名[@或*]} 可以得到数组长度
 [chengmo@centos5 ~]$ echo ${#a[@]}
 5
 
-用${#数组名[@或*]} 可以得到数组长度
-
 2.2读取：
+用${数组名[下标]} 下标是从0开始  下标是：*或者@ 得到整个数组内容
 [chengmo@centos5 ~]$ echo ${a[2]} 
 3
 [chengmo@centos5 ~]$ echo ${a[*]} 
 1 2 3 4 5   
 
-用${数组名[下标]} 下标是从0开始  下标是：*或者@ 得到整个数组内容
-
 2.3赋值:
+直接通过 数组名[下标] 就可以对其进行引用赋值，如果下标不存在，自动添加新一个数组元素
 [chengmo@centos5 ~]$ a[1]=100
 [chengmo@centos5 ~]$ echo ${a[*]} 
 1 100 3 4 5
-
 
 [chengmo@centos5 ~]$ a[5]=100     
 [chengmo@centos5 ~]$ echo ${a[*]}
 1 100 3 4 5 100
 
-直接通过 数组名[下标] 就可以对其进行引用赋值，如果下标不存在，自动添加新一个数组元素
-
 2.4删除:
+直接通过：unset 数组[下标] 可以清除相应的元素，不带下标，清除整个数据。
 [chengmo@centos5 ~]$ a=(1 2 3 4 5)
 [chengmo@centos5 ~]$ unset a
 [chengmo@centos5 ~]$ echo ${a[*]}
@@ -1187,11 +1160,9 @@ http://www.cnblogs.com/chengmo/archive/2010/09/30/1839632.html
 [chengmo@centos5 ~]$ echo ${#a[*]}
 4
 
-直接通过：unset 数组[下标] 可以清除相应的元素，不带下标，清除整个数据。
-
- 
 3.特殊使用
 3.1分片:
+直接通过 ${数组名[@或*]:起始位置:长度} 切片原先数组，返回是字符串，中间用“空格”分开，因此如果加上”()”，将得到切片数组，上面例子：c 就是一个新数据。
 [chengmo@centos5 ~]$ a=(1 2 3 4 5)
 [chengmo@centos5 ~]$ echo ${a[@]:0:3}
 1 2 3
@@ -1204,9 +1175,8 @@ http://www.cnblogs.com/chengmo/archive/2010/09/30/1839632.html
 [chengmo@centos5 ~]$ echo ${c[*]} 
 2 3 4 5
 
-直接通过 ${数组名[@或*]:起始位置:长度} 切片原先数组，返回是字符串，中间用“空格”分开，因此如果加上”()”，将得到切片数组，上面例子：c 就是一个新数据。
-
 3.2替换:
+调用方法是：${数组名[@或*]/查找字符/替换字符} 该操作不会改变原先数组内容，如果需要修改，可以看上面例子，重新定义数据。
 [chengmo@centos5 ~]$ a=(1 2 3 4 5)    
 [chengmo@centos5 ~]$ echo ${a[@]/3/100}
 1 2 100 4 5
@@ -1216,7 +1186,20 @@ http://www.cnblogs.com/chengmo/archive/2010/09/30/1839632.html
 [chengmo@centos5 ~]$ echo ${a[@]}     
 1 2 100 4 5
 
-调用方法是：${数组名[@或*]/查找字符/替换字符} 该操作不会改变原先数组内容，如果需要修改，可以看上面例子，重新定义数据。
+4.追加
+4.1
+hobbies=("${activities[@]" diving})
+4.2
+hobbies[${#hobbies[@]}]=rowing
+4.3
+airsports=( flying gliding parachuting )
+activities+=("${airsports[@]}")
+
+5.遍历
+for data in ${array[@]};
+do  
+    echo ${data}  
+done  
 </pre>
 
 

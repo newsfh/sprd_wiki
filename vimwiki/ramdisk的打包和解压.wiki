@@ -1,3 +1,5 @@
+{{local:images/android_decode_image.PNG}}
+
 {{{
 1. 解压ramdisk
 通过file命令可以查看ramdisk.img文件的类型：
