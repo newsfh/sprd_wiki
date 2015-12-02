@@ -12,10 +12,22 @@
 <ul>
 <li><a href="#toc_0.0.1">perl</a>
 <ul>
-<li><a href="#toc_0.0.1.1">perl中十进制和16进制的转换</a>
-<li><a href="#toc_0.0.1.2">Perl函数pack/unpack解释</a>
-<li><a href="#toc_0.0.1.3">读二进制文件内容</a>
-<li><a href="#toc_0.0.1.4">调用外部命令</a>
+<li><a href="#toc_0.0.1.1">字符串操作</a>
+<li><a href="#toc_0.0.1.2">比较操作符</a>
+<li><a href="#toc_0.0.1.3">数组列表</a>
+<li><a href="#toc_0.0.1.4">哈希</a>
+<li><a href="#toc_0.0.1.5">输入</a>
+<li><a href="#toc_0.0.1.6">输出</a>
+<li><a href="#toc_0.0.1.7">控制语句</a>
+<li><a href="#toc_0.0.1.8">其他操作函数</a>
+<li><a href="#toc_0.0.1.9">函数</a>
+<li><a href="#toc_0.0.1.10">文件</a>
+<li><a href="#toc_0.0.1.11">系统固定变量</a>
+<li><a href="#toc_0.0.1.12">常用模式</a>
+<li><a href="#toc_0.0.1.13">perl中十进制和16进制的转换</a>
+<li><a href="#toc_0.0.1.14">Perl函数pack/unpack解释</a>
+<li><a href="#toc_0.0.1.15">读二进制文件内容</a>
+<li><a href="#toc_0.0.1.16">调用外部命令</a>
 </ul>
 <li><a href="#toc_0.0.2">shell</a>
 <ul>
@@ -38,7 +50,683 @@
 
 <hr />
 <h3 id="toc_0.0.1">perl</h3>
-<h4 id="toc_0.0.1.1">perl中十进制和16进制的转换</h4>
+<h4 id="toc_0.0.1.1">字符串操作</h4>
+<ul>
+<li>
+字符串拼接操作符(.)
+<pre>
+"hello"."world" =&gt; "helloworld"
+</pre>
+
+<li>
+字符串重复操作符(x)
+<pre>
+"fred"x3 =&gt; "fredfredfred"
+</pre>
+
+<li>
+字符串追加操作符(.=)
+<pre>
+$str.="world";
+</pre>
+
+<li>
+字符串搜索索引(index)
+<pre>
+$where = index("hello world!", "wor");
+</pre>
+
+<li>
+子串(substr)
+<pre>
+$part = substr("hello world!", 6, 5);   =&gt; $part="world";
+如果想要到字符尾部，可以忽略第三个参数
+子串起始位置如果为负数，表示从结尾处开始倒数
+
+替换子串：
+$string="hello world";
+substr($string, 0, 5, "goodbye");
+</pre>
+
+<li>
+格式化数据(sprintf)
+<pre>
+$string = sprintf "%d:%d", 1, 2;
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.2">比较操作符</h4>
+<table>
+<tr>
+<td>
+<strong>比较</strong>
+</td>
+<td>
+<strong>数值</strong>
+</td>
+<td>
+<strong>字符串</strong>
+</td>
+</tr>
+<tr>
+<td>
+相等
+</td>
+<td>
+==
+</td>
+<td>
+eq
+</td>
+</tr>
+<tr>
+<td>
+不等
+</td>
+<td>
+!=
+</td>
+<td>
+ne
+</td>
+</tr>
+<tr>
+<td>
+小于
+</td>
+<td>
+&lt;
+</td>
+<td>
+lt
+</td>
+</tr>
+<tr>
+<td colspan="2">
+大于
+</td>
+<td>
+gt
+</td>
+</tr>
+<tr>
+<td>
+小于等于
+</td>
+<td>
+&lt;=
+</td>
+<td>
+le
+</td>
+</tr>
+<tr>
+<td>
+大于等于
+</td>
+<td>
+&gt;=
+</td>
+<td>
+ge
+</td>
+</tr>
+</table>
+
+<h4 id="toc_0.0.1.3">数组列表</h4>
+<ul>
+<li>
+定义
+<pre>
+用@表示
+</pre>
+
+<li>
+赋值
+<pre>
+$fred[0]="hello";
+$fred[1]="world";
+或
+@fred=("hello", "world");
+</pre>
+
+<li>
+个数
+<pre>
+$#fred
+</pre>
+
+<li>
+索引
+<pre>
+从0开始计数
+如果想从尾端往前，可以用负数，如-1表示最后一个
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.4">哈希</h4>
+<ul>
+<li>
+定义
+<pre>
+用%表示
+%some_hash = ("foo", 35, "bar", 122.2, 2.3, "hello");
+%some_hash = ("foo" =&gt; 35, "bar" =&gt; 122.2, 2.3 =&gt; "hello");
+
+哈希的键和值是任意的标量，但键总是会被转换成字符串
+</pre>
+
+<li>
+访问
+<pre>
+和数组访问类似，只不过下标用花括号
+$family_name{"fred"} = "hello";
+</pre>
+
+<li>
+keys/values
+<pre>
+%some_hash = ("foo" =&gt; 35, "bar" =&gt; 122.2, 2.3 =&gt; "hello");
+@k = keys %some_hash
+@v = values %some_hash
+哈希的顺序是不定的，但返回的键和值肯定是配对的
+</pre>
+
+<li>
+遍历
+<pre>
+while ( ($key, $value) = each %some_hash) {
+    print "$key =&gt; $value\n";
+}
+</pre>
+
+<li>
+删除
+<pre>
+delete $some_hash{"foo"};
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.5">输入</h4>
+<ul>
+<li>
+钻石操作符&lt;&gt;
+<pre>
+$line = &lt;STDIN&gt;;	// 等用户输入一行数据
+
+while (&lt;&gt;) {		// 用户输入一行，存放到$_
+    chomp;
+    print "$_";
+}
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.6">输出</h4>
+<ul>
+<li>
+print
+
+<li>
+printf
+<pre>
+如果要输出恰当的数值形式，可以用%g，它会自动选择正确的数值类型
+</pre>
+
+<li>
+say
+<pre>
+跟print是一样的，只不过自动加上换行
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.7">控制语句</h4>
+<ul>
+<li>
+if-elsif-else
+
+<li>
+unless
+
+<li>
+while
+
+<li>
+until
+
+<li>
+foreach
+<pre>
+foreach $rock (qw/hello world/) {
+}
+</pre>
+
+<li>
+for
+
+<li>
+last
+<pre>
+类似于c语言的break
+</pre>
+
+<li>
+next
+<pre>
+类似于c语言的continue
+</pre>
+
+<li>
+redo
+<pre>
+返回到循环的顶端，不经过条件测试
+</pre>
+
+<li>
+标签
+<pre>
+LINE: while (&lt;&gt;) {
+    foreach (split) {
+        last LINE if /__END__/;
+    }
+}
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.8">其他操作函数</h4>
+<ul>
+<li>
+chomp
+<pre>
+去除行末的换行符。
+如果字符串有2个以上的换行符，只能删除一个。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+push/pop
+<pre>
+push(@array, 0);	// 压入最右
+$val=pop(@array);	// 最右值被弹出
+</pre>
+
+</ul>
+
+<ul>
+<li>
+shift/unshift
+<pre>
+$m=shift(@array);	// 最左值被弹出
+unshift(@array, 4);	// 压入最左
+</pre>
+
+</ul>
+
+<ul>
+<li>
+reverse
+<pre>
+@barney=reverse(@fred);	// 取反
+</pre>
+
+</ul>
+
+<ul>
+<li>
+sort
+<pre>
+@sorted = sort(@rock);
+</pre>
+
+</ul>
+
+<ul>
+<li>
+defined
+<pre>
+判断字符串是否是undef而不是空字符串
+</pre>
+
+</ul>
+
+<ul>
+<li>
+..
+<pre>
+范围操作符，只能向上计数
+</pre>
+
+</ul>
+
+<ul>
+<li>
+split
+<pre>
+@fileds = split /:/, "abc:def:g:h";
+split默认的分隔符是空格
+</pre>
+
+</ul>
+
+<ul>
+<li>
+join
+<pre>
+$x = join ":", 4, 5, 6, 8;	=&gt; $x="4:5:6:8"
+</pre>
+
+</ul>
+
+<ul>
+<li>
+三目操作符 ?:
+
+</ul>
+
+<ul>
+<li>
+逻辑操作符
+<pre>
+&amp;&amp; || // and or
+</pre>
+
+</ul>
+
+<ul>
+<li>
+位操作符
+<pre>
+&amp; | ^ &lt;&lt; &gt;&gt; ~
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.9">函数</h4>
+<ul>
+<li>
+定义函数
+<pre>
+关键字sub
+sub marine {
+    $n += 1;
+}
+</pre>
+
+</ul>
+
+<ul>
+<li>
+调用函数
+<pre>
+调用的函数名前加&amp;，如，&amp;marine 1
+如果将参数放在括号内，可以省去&amp;，如marine(1);
+</pre>
+
+</ul>
+
+<ul>
+<li>
+参数
+<pre>
+参数列表名@_
+第一个参数$_[0]，依此类推
+</pre>
+
+</ul>
+
+<ul>
+<li>
+持久性私有变量
+<pre>
+state，类似于c语言的static
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.10">文件</h4>
+<ul>
+<li>
+打开
+<pre>
+open CONFIG, "dino";
+open CONFIG, "&gt;dino";	==	open CONFIG, "&gt;", "dino";
+</pre>
+
+<li>
+关闭
+<pre>
+close CONFIG;
+</pre>
+
+<li>
+输入到文件
+<pre>
+print CONFIG "$key=$val\n";
+</pre>
+
+<li>
+改变默认输出句柄
+<pre>
+select CONFIG;
+print "$key=$val\n";
+</pre>
+
+<li>
+测试文件
+<pre>
+if -e $filename		// 测试文件是否存在
+if -M CONFIG &gt; 28;	// 测试文件是否在过去28天都没变动过
+</pre>
+
+</ul>
+<table>
+<tr>
+<td>
+<strong>文件测试操作符</strong>
+</td>
+<td>
+<strong>意义</strong>
+</td>
+</tr>
+<tr>
+<td>
+-r/-w/-x/-o
+</td>
+<td>
+文件或目录对目前用户是可读的，可写的，可执行的，拥有的
+</td>
+</tr>
+<tr>
+<td>
+-R/-W/-X/-O
+</td>
+<td>
+对实际用户可读，可写，可执行，拥有
+</td>
+</tr>
+<tr>
+<td>
+-e
+</td>
+<td>
+存在
+</td>
+</tr>
+<tr>
+<td>
+-z
+</td>
+<td>
+文件存在且没内容
+</td>
+</tr>
+<tr>
+<td>
+-s
+</td>
+<td>
+存在且有内容
+</td>
+</tr>
+<tr>
+<td>
+-f
+</td>
+<td>
+普通文件
+</td>
+</tr>
+<tr>
+<td>
+-d
+</td>
+<td>
+目录
+</td>
+</tr>
+<tr>
+<td>
+-l
+</td>
+<td>
+符号链接
+</td>
+</tr>
+<tr>
+<td>
+-S
+</td>
+<td>
+socket文件
+</td>
+</tr>
+<tr>
+<td>
+-p
+</td>
+<td>
+命名管道
+</td>
+</tr>
+<tr>
+<td>
+-b
+</td>
+<td>
+块设备
+</td>
+</tr>
+<tr>
+<td>
+-c
+</td>
+<td>
+字符设备
+</td>
+</tr>
+<tr>
+<td>
+-T
+</td>
+<td>
+文本文件
+</td>
+</tr>
+<tr>
+<td>
+-B
+</td>
+<td>
+二进制文件
+</td>
+</tr>
+<tr>
+<td>
+-M
+</td>
+<td>
+最后一次修改至今的天数
+</td>
+</tr>
+<tr>
+<td>
+-A
+</td>
+<td>
+最后一次访问至今的天数
+</td>
+</tr>
+</table>
+
+<ul>
+<li>
+文件名通配
+<pre>
+@pm_files = glob "*.pm";
+@all_files = &lt;*&gt;;	==&gt; @all_files = glob "*";
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.11">系统固定变量</h4>
+<ul>
+<li>
+$_
+
+<li>
+@_ / $_[0]
+<pre>
+函数的参数
+</pre>
+
+<li>
+$1
+<pre>
+捕捉变量，匹配到字符串，括号内被捕捉到的字符串
+</pre>
+
+<li>
+\(&amp;, \)`, $'
+<pre>
+$&amp;: 匹配的字符串
+$`: 匹配字符串之前的字串
+$': 匹配字符串之后的字串
+"$`"."$&amp;"."$'"就是整个字串
+</pre>
+
+<li>
+$ARGV
+<pre>
+程序参数，索引从0开始
+</pre>
+
+<li>
+$!
+<pre>
+系统出错信息
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.12">常用模式</h4>
+<ul>
+<li>
+删除空白
+<pre>
+s/^\s+//;	删除开头的空格
+s/\s+$//;	删除结尾的空格
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.1.13">perl中十进制和16进制的转换</h4>
 <pre>
 十进制转换成十六进制用sprintf():
 my $one=255;
@@ -49,7 +737,7 @@ my $two="ff";
 my $one=hex($two);
 </pre>
 
-<h4 id="toc_0.0.1.2">Perl函数pack/unpack解释</h4>
+<h4 id="toc_0.0.1.14">Perl函数pack/unpack解释</h4>
 <p>
  <a href="http://blog.csdn.net/eroswang/article/details/2032564">http://blog.csdn.net/eroswang/article/details/2032564</a>
 </p>
@@ -287,7 +975,7 @@ X
 </tr>
 </table>
 
-<h4 id="toc_0.0.1.3">读二进制文件内容</h4>
+<h4 id="toc_0.0.1.15">读二进制文件内容</h4>
 <pre>
 $dtimg=$ARGV[0];
 open(FP1, $dtimg) || die "cannot open file $!";
@@ -304,7 +992,7 @@ read(FP1, $buffer, 4);
 $pac_size = unpack("H8", reverse($buffer));			// 读取整型，数据用reverse颠倒下
 </pre>
 
-<h4 id="toc_0.0.1.4">调用外部命令</h4>
+<h4 id="toc_0.0.1.16">调用外部命令</h4>
 <pre>
 1. system("command");
 使用该命令将开启一个子进程执行引号中的命令，父进程将等待子进程结束并继续执行下面的代码。
