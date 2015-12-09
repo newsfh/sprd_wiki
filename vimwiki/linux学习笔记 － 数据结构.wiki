@@ -1,0 +1,5816 @@
+%toc 目录
+{{{
+原文路径： http://www.cnblogs.com/LittleHann/p/3865490.html
+}}}
+----
+=== 进程相关数据结构 ===
+==== CURRENT宏 ====
+{{{
+我们知道，在windows中使用PCB(进程控制块)来对进程的运行状态进行描述，对应的，在linux中使用task_struct结构体存储相关的进程信息
+task_struct在linux/sched.h文件里定义(在使用current宏的时候一定要引入这个头文件)
+值得注意的是，在linux内核编程中常用的current宏可以非常简单地获取到指向task_struct的指针，这个宏和体系结构有关，大多数情况下，我们都是x86体系结构的，所以在arch/x86目录下，其他体系结构的类推
+目前主流的体系结构有x86、ARM、MIPS架构，在继续学习之前，我们先来简单了解一下什么是体系结构
+在计算世界中，"体系结构"一词被用来描述一个抽象的机器，而不是一个具体的机器实现。一般而言，一个CPU的体系结构有一个指令集加上一些寄存器而组成。"指令集"与"体系结构"这两个术语是同义词  
+X86、MIPS、ARM三种cpu的体系结构和特点
+
+1. X86 
+X86采用了CISC指令集。在CISC指令集的各种指令中，大约有20%的指令会被反复使用，占整个程序代码的80%。而余下的80%的指令却不经常使用，在程序设计中只占20%。 
+    1.1 总线接口部件BIU 
+     总线接口部件由以下几部分组成
+        1) 4个16位段寄存器(DS、ES、SS、CS)
+        2) 一个16位指令指针寄存器(IP)
+        3) 20位物理地址加法器
+        4) 6字节指令队列(8088为4字节)
+        5) 总线控制电路组成，负责与存储器及I/O端口的数据传送   
+    1.2 执行部件EU 
+    执行部件由以下几部分组成，其任务就是从指令队列流中取出指令，然后分析和执行指令，还负责计算操作数的16位偏移地址
+        1) ALU
+        2) 寄存器阵列(AX、BX、CX、DX、SI、DI、BP、SP)
+        3) 标志寄存器(PSW)等几个部分组成
+    1.3 寄存器的结构 
+        1) 数据寄存器AX、BX、CX、DX均为16位的寄存器，它们中的每一个又可分为高字节H和低字节L。即AH、BH、CH、DH及AL、BL、CL、DL可作为单独的8位寄存器使用。不论16位寄存器还是8位寄存器，它们均可寄存操作数及
+运算的中间结果。有少数指令指定某个寄存器专用，例如，串操作指令指定CX专门用作记录串中元素个数的计数器。  
+        2) 段寄存器组：CS、DS、SS、ES。8086/8088的20位物理地址在CPU内部要由两部分相加形成的
+            2.1) 指明其偏移地址
+            SP、BP、SI、DI标识20位物理地址的低16位，用于指明其偏移地址
+            2.2) 指明20位物理地址的高16位，故称作段寄存器，4个存储器使用专一，不能互换
+                2.2.1) CS: CS识别当前代码段
+                2.2.2) DS: DS识别当前数据段
+                2.2.3) SS: SS识别当前堆栈段
+                2.2.4) ES: ES识别当前附加段
+            一般情况下，DS和ES都须用户在程序中设置初值
+        3) 控制寄存器组
+            3.1) IP
+            指令指针IP用以指明当前要执行指令的偏移地址(段地址由CS提供)
+            3.2) FLAG
+            标志寄存器FLAG有16位，用了其中的九位，分两组:
+                3.2.1) 状态标志: 用以记录状态信息，由6位组成，包括CF、AF、OF、SF、PF和ZF，它反映前一次涉及ALU操作的结果，对用户它"只读不写"
+                3.2.2) 控制标志: 用以记录控制信息由3位组成，包括方向标志DF，中断允许标志IF及陷阱标志TF，中断允许标志IF及陷阱标志TF，可通过指令设置
+
+2. MIPS:  
+    1) 所有指令都是32位编码； 
+　　 2) 有些指令有26位供目标地址编码；有些则只有16位。因此要想加载任何一个32位值，就得用两个加载指令。16位的目标地址意味着，指令的跳转或子函数的位置必须在64K以内(上下32K)
+    3) 所有的动作原理上要求必须在1个时钟周期内完成，一个动作一个阶段
+    4) 有32个通用寄存器，每个寄存器32位(对32位机)或64位(对64位机)
+    5) 对于MIPS体系结构来说，本身没有任何帮助运算判断的标志寄存器，要实现相应的功能时，是通过测试两个寄存器是否相等来完成 
+    6) 所有的运算都是基于32位的，没有对字节和对半字的运算(MIPS里，字定义为32位，半字定义为16位) 
+    7) 没有单独的栈指令，所有对栈的操作都是统一的内存访问方式。因为push和pop指令实际上是一个复合操作，包含对内存的写入和对栈指针的移动； 
+    8) 由于MIPS固定指令长度，所以造成其编译后的二进制文件和内存占用空间比x86的要大，(x86平均指令长度只有3个字节多一点，而MIPS是4个字节)
+    9) 寻址方式：只有一种内存寻址方式。就是基地址加一个16位的地址偏移
+    10) 内存中的数据访问必须严格对齐(至少4字节对齐) 
+    11) 跳转指令只有26位目标地址，再加上2位的对齐位，可寻址28位的空间，即256M
+    12) 条件分支指令只有16位跳转地址，加上2位的对齐位，共18位寻址空间，即256K 
+    13) MIPS默认不把子函数的返回地址(就是调用函数的受害指令地址)存放到栈中，而是存放到$31寄存器中；这对那些叶子函数有利。如果遇到嵌套的函数的话，有另外的机制处理； 
+　　 14) 高度的流水线： ＊MIPS指令的五级流水线：(每条指令都包含五个执行阶段)
+        14.1) 第一阶段：从指令缓冲区中取指令。占一个时钟周期 
+        14.2) 第二阶段：从指令中的源寄存器域(可能有两个)的值(为一个数字，指定$0~$31中的某一个)所代表的寄存器中读出数据。占半个时钟周期
+        14.3) 第三阶段：在一个时钟周期内做一次算术或逻辑运算。占一个时钟周期 
+        14.4) 第四阶段：指令从数据缓冲中读取内存变量的阶段。从平均来讲，大约有3／4的指令在这个阶段没做什么事情，但它是指令有序性的保证。占一个时钟周期
+        14.5) 第五阶段：存储计算结果到缓冲或内存的阶段。占半个时钟周期 
+    所以一条指令要占用四个时钟周期
+
+3. ARM 
+ARM处理器是一个32位元精简指令集(RISC)处理器架构，其广泛地使用在许多嵌入式系统设计   
+    1) RISC(Reduced Instruction Set Computer，精简指令集计算机) 
+      RISC体系结构应具有如下特点： 
+        1.1) 采用固定长度的指令格式，指令归整、简单、基本寻址方式有2~3种
+        1.2) 使用单周期指令，便于流水线操作执行。 
+        1.3) 大量使用寄存器，数据处理指令只对寄存器进行操作，只有加载/ 存储指令可以访问存储器，以提高指令的执行效率
+    2) ARM体系结构还采用了一些特别的技术，在保证高性能的前提下尽量缩小芯片的面积，并降低功耗 
+        2.1) 所有的指令都可根据前面的执行结果决定是否被执行，从而提高指令的执行效率
+        2.2) 可用加载/存储指令批量传输数据，以提高数据的传输效率。  
+    3) 寄存器结构 
+    ARM处理器共有37个寄存器，被分为若干个组(BANK)，这些寄存器包括
+        3.1) 31个通用寄存器，包括程序计数器(PC指针)，均为32位的寄存器
+        3.2) 6个状态寄存器，用以标识CPU的工作状态及程序的运行状态，均为32位 
+    4) 指令结构 
+    ARM微处理器的在较新的体系结构中支持两种指令集：ARM指令集和Thumb指令集。其中，ARM指令为32位的长度，Thumb指令为16位长度。Thumb指令集为ARM指令集的功能子集，但与等价的ARM代码相比较，可节省30%~40%以上的
+存储空间，同时具备32位代码的所有优点。
+
+我们接下来来看看内核代码中是如何实现current这个宏定义的
+
+#ifndef __ASSEMBLY__
+    struct task_struct;
+
+    //用于在编译时候声明一个perCPU变量该变量被放在一个特殊的段中，原型为DECLARE_PER_CPU(type,name)，主要作用是为处理器创建一个type类型，名为name的变量
+    DECLARE_PER_CPU(struct task_struct *, current_task);
+
+    static __always_inline struct task_struct *get_current(void)
+    {
+        return percpu_read_stable(current_task);
+    }
+
+    #define current get_current()
+    #endif /* __ASSEMBLY__ */
+#endif /* _ASM_X86_CURRENT_H */
+
+继续跟踪percpu_read_stable()这个函数
+
+\linux-2.6.32.63\arch\x86\include\asm\percpu.h
+
+#define percpu_read_stable(var)    percpu_from_op("mov", per_cpu__##var, "p" (&per_cpu__##var))
+继续跟进percpu_from_op()这个函数
+
+/*
+percpu_from_op宏中根据不同的sizeof(var)选择不同的分支，执行不同的流程，因为这里是x86体系，所以sizeof(current_task)的值为4
+在每个分支中使用了一条的內联汇编代码，其中__percpu_arg(1)为%%fs:%P1(X86)或者%%gs:%P1（X86_64），将上述代码整理后current获取代码如下：
+1. x86: asm(movl "%%fs:%P1","%0" : "=r" (pfo_ret__) :"p" (&(var)) 
+2. x86_64: asm(movl "%%gs:%P1","%0" : "=r" (pfo_ret__) :"p" (&(var)) 
+*/
+#define percpu_from_op(op, var, constraint)        \
+({                            \
+    typeof(var) ret__;                \
+    switch (sizeof(var)) {                \
+    case 1:                        \
+        asm(op "b "__percpu_arg(1)",%0"        \
+            : "=q" (ret__)            \
+            : constraint);            \
+        break;                    \
+    case 2:                        \
+        asm(op "w "__percpu_arg(1)",%0"        \
+            : "=r" (ret__)            \
+            : constraint);            \
+        break;                    \
+    case 4:                        \
+        asm(op "l "__percpu_arg(1)",%0"        \
+            : "=r" (ret__)            \
+            : constraint);            \
+        break;                    \
+    case 8:                        \
+        asm(op "q "__percpu_arg(1)",%0"        \
+            : "=r" (ret__)            \
+            : constraint);            \
+        break;                    \
+    default: __bad_percpu_size();            \
+    }                        \
+    ret__;                        \
+})
+
+将fs(或者gs)段中P1偏移处的值传送给pfo_ret__变量
+
+继续跟进per_cpu__kernel_stack的定义
+linux-2.6.32.63\arch\x86\kernel\cpu\common.c
+
+/*
+The following four percpu variables are hot.  Align current_task to
+cacheline size such that all four fall in the same cacheline.
+*/
+DEFINE_PER_CPU(struct task_struct *, current_task) ____cacheline_aligned = &init_task;
+EXPORT_PER_CPU_SYMBOL(current_task);
+
+DEFINE_PER_CPU(unsigned long, kernel_stack) = (unsigned long)&init_thread_union - KERNEL_STACK_OFFSET + THREAD_SIZE;
+EXPORT_PER_CPU_SYMBOL(kernel_stack);
+
+DEFINE_PER_CPU(char *, irq_stack_ptr) = init_per_cpu_var(irq_stack_union.irq_stack) + IRQ_STACK_SIZE - 64;
+DEFINE_PER_CPU(unsigned int, irq_count) = -1;
+
+继续进程内核栈初始化的关键代码： DEFINE_PER_CPU(unsigned long, kernel_stack) = (unsigned long)&init_thread_union - KERNEL_STACK_OFFSET + THREAD_SIZE;
+
+//linux-2.6.32.63\arch\x86\kernel\init_task.c
+/*
+ * Initial task structure.
+ *
+ * All other task structs will be allocated on slabs in fork.c
+ */
+struct task_struct init_task = INIT_TASK(init_task);
+EXPORT_SYMBOL(init_task);
+
+/*
+ * Initial thread structure.
+ *
+ * We need to make sure that this is THREAD_SIZE aligned due to the
+ * way process stacks are handled. This is done by having a special
+ * "init_task" linker map entry..
+ */
+union thread_union init_thread_union __init_task_data =
+{ 
+    INIT_THREAD_INFO(init_task) 
+};
+
+\linux-2.6.32.63\include\linux\init_task.h
+
+/*
+ *  INIT_TASK is used to set up the first task table, touch at
+ * your own risk!. Base=0, limit=0x1fffff (=2MB)
+ */
+#define INIT_TASK(tsk)    \
+{                                    \
+    .state        = 0,                        \
+    .stack        = &init_thread_info,                \
+    .usage        = ATOMIC_INIT(2),                \
+    .flags        = PF_KTHREAD,                    \
+    .lock_depth    = -1,                        \
+    .prio        = MAX_PRIO-20,                    \
+    .static_prio    = MAX_PRIO-20,                    \
+    .normal_prio    = MAX_PRIO-20,                    \
+    .policy        = SCHED_NORMAL,                    \
+    .cpus_allowed    = CPU_MASK_ALL,                    \
+    .mm        = NULL,                        \
+    .active_mm    = &init_mm,                    \
+    .se        = {                        \
+        .group_node     = LIST_HEAD_INIT(tsk.se.group_node),    \
+    },                                \
+    .rt        = {                        \
+        .run_list    = LIST_HEAD_INIT(tsk.rt.run_list),    \
+        .time_slice    = HZ,                     \
+        .nr_cpus_allowed = NR_CPUS,                \
+    },                                \
+    .tasks        = LIST_HEAD_INIT(tsk.tasks),            \
+    .pushable_tasks = PLIST_NODE_INIT(tsk.pushable_tasks, MAX_PRIO), \
+    .ptraced    = LIST_HEAD_INIT(tsk.ptraced),            \
+    .ptrace_entry    = LIST_HEAD_INIT(tsk.ptrace_entry),        \
+    .real_parent    = &tsk,                        \
+    .parent        = &tsk,                        \
+    .children    = LIST_HEAD_INIT(tsk.children),            \
+    .sibling    = LIST_HEAD_INIT(tsk.sibling),            \
+    .group_leader    = &tsk,                        \
+    .real_cred    = &init_cred,                    \
+    .cred        = &init_cred,                    \
+    .cred_guard_mutex =                        \
+         __MUTEX_INITIALIZER(tsk.cred_guard_mutex),        \
+    .comm        = "swapper",                    \
+    .thread        = INIT_THREAD,                    \
+    .fs        = &init_fs,                    \
+    .files        = &init_files,                    \
+    .signal        = &init_signals,                \
+    .sighand    = &init_sighand,                \
+    .nsproxy    = &init_nsproxy,                \
+    .pending    = {                        \
+        .list = LIST_HEAD_INIT(tsk.pending.list),        \
+        .signal = {{0}}},                    \
+    .blocked    = {{0}},                    \
+    .alloc_lock    = __SPIN_LOCK_UNLOCKED(tsk.alloc_lock),        \
+    .journal_info    = NULL,                        \
+    .cpu_timers    = INIT_CPU_TIMERS(tsk.cpu_timers),        \
+    .fs_excl    = ATOMIC_INIT(0),                \
+    .pi_lock    = __SPIN_LOCK_UNLOCKED(tsk.pi_lock),        \
+    .timer_slack_ns = 50000, /* 50 usec default slack */        \
+    .pids = {                            \
+        [PIDTYPE_PID]  = INIT_PID_LINK(PIDTYPE_PID),        \
+        [PIDTYPE_PGID] = INIT_PID_LINK(PIDTYPE_PGID),        \
+        [PIDTYPE_SID]  = INIT_PID_LINK(PIDTYPE_SID),        \
+    },                                \
+    .dirties = INIT_PROP_LOCAL_SINGLE(dirties),            \
+    INIT_IDS                            \
+    INIT_PERF_EVENTS(tsk)                        \
+    INIT_TRACE_IRQFLAGS                        \
+    INIT_LOCKDEP                            \
+    INIT_FTRACE_GRAPH                        \
+    INIT_TRACE_RECURSION                        \
+    INIT_TASK_RCU_PREEMPT(tsk)                    \
+}
+
+我们继续跟进和进程信息密切相关的数据结构
+\linux-2.6.32.63\include\linux\sched.h
+
+/*
+THREAD_SIZE在32位平台上一般定义为4K，所以stack的大小其实就是4KB，这就是初始任务在核心里所拥有的所有空间，除去thread_info和KERNEL_STACK_OFFSET占用的空间后，就是任务在核心里实际拥有堆栈的大小。
+KERNEL_STACK_OFFSET定义为5*8，由于是unsigned long，所以堆栈底部以上还有5*8*4B=200B的空间用来存放程序运行时相关的环境参数
+*/
+union thread_union 
+{
+    struct thread_info thread_info;
+    unsigned long stack[THREAD_SIZE/sizeof(long)];
+};
+
+学习到这里，我们需要总结一下
+
+1. 在linux中，整个内核栈是所有进程公用的，每个进程会像切蛋糕一样从中切去一份指定大小的内存区域
+2. 每个进程都在当前内核栈中分配一段内存区域: thread_union，这段内核栈内存被分为两个部分:
+    1) 低地址部分保存的: thread_info 
+    2) 剩余的高地址部分保存的: 当前进程的内核栈内核栈stack
+3. struct thread_info thread_info;当中就保存着当前进程的信息，所以我们可以从本质上理解，current宏其实并不神秘，它就是在做一个内存栈上的取地址操作
+Relevant Link:
+
+http://www.pagefault.info/?p=36
+http://www.cnblogs.com/justinzhang/archive/2011/07/18/2109923.html
+仅仅只需检查内核栈指针的值，而根本无需存取内存，内核就可以导出task_struct结构的地址，可以把它看作全局变量来用
+}}}
+
+==== struct task_struct ====
+{{{
+struct task_struct 
+{
+    /* 
+    1. state: 进程执行时，它会根据具体情况改变状态。进程状态是进程调度和对换的依据。Linux中的进程主要有如下状态:
+        1) TASK_RUNNING: 可运行
+        处于这种状态的进程，只有两种状态:
+            1.1) 正在运行
+            正在运行的进程就是当前进程(由current所指向的进程)
+            1.2) 正准备运行
+            准备运行的进程只要得到CPU就可以立即投入运行，CPU是这些进程唯一等待的系统资源，系统中有一个运行队列(run_queue)，用来容纳所有处于可运行状态的进程，调度程序执行时，从中选择一个进程投入运行 
+
+        2) TASK_INTERRUPTIBLE: 可中断的等待状态，是针对等待某事件或其他资源的睡眠进程设置的，在内核发送信号给该进程表明事件已经发生时，进程状态变为TASK_RUNNING，它只要调度器选中该进程即可恢复执行 
+        
+        3) TASK_UNINTERRUPTIBLE: 不可中断的等待状态
+        处于该状态的进程正在等待某个事件(event)或某个资源，它肯定位于系统中的某个等待队列(wait_queue)中，处于不可中断等待态的进程是因为硬件环境不能满足而等待，例如等待特定的系统资源，它任何情况下都不能被打断，只能用特定的方式来唤醒它，例如唤醒函数wake_up()等 
+　　　　　它们不能由外部信号唤醒，只能由内核亲自唤醒        
+
+        4) TASK_ZOMBIE: 僵死
+        进程虽然已经终止，但由于某种原因，父进程还没有执行wait()系统调用，终止进程的信息也还没有回收。顾名思义，处于该状态的进程就是死进程，这种进程实际上是系统中的垃圾，必须进行相应处理以释放其占用的资源。
+
+        5) TASK_STOPPED: 暂停
+        此时的进程暂时停止运行来接受某种特殊处理。通常当进程接收到SIGSTOP、SIGTSTP、SIGTTIN或 SIGTTOU信号后就处于这种状态。例如，正接受调试的进程就处于这种状态
+　　　　
+　　　　6) TASK_TRACED
+　　　　　从本质上来说，这属于TASK_STOPPED状态，用于从停止的进程中，将当前被调试的进程与常规的进程区分开来
+　　　　　　
+　　　　7) TASK_DEAD
+　　　　　父进程wait系统调用发出后，当子进程退出时，父进程负责回收子进程的全部资源，子进程进入TASK_DEAD状态
+
+        8) TASK_SWAPPING: 换入/换出
+    */
+    volatile long state;
+    
+    /*
+    2. stack
+    进程内核栈，进程通过alloc_thread_info函数分配它的内核栈，通过free_thread_info函数释放所分配的内核栈
+    */     
+    void *stack;
+    
+    /*
+    3. usage
+    进程描述符使用计数，被置为2时，表示进程描述符正在被使用而且其相应的进程处于活动状态
+    */
+    atomic_t usage;
+
+    /*
+    4. flags
+    flags是进程当前的状态标志(注意和运行状态区分)
+        1) #define PF_ALIGNWARN    0x00000001: 显示内存地址未对齐警告
+        2) #define PF_PTRACED    0x00000010: 标识是否是否调用了ptrace
+        3) #define PF_TRACESYS    0x00000020: 跟踪系统调用
+        4) #define PF_FORKNOEXEC 0x00000040: 已经完成fork，但还没有调用exec
+        5) #define PF_SUPERPRIV    0x00000100: 使用超级用户(root)权限
+        6) #define PF_DUMPCORE    0x00000200: dumped core  
+        7) #define PF_SIGNALED    0x00000400: 此进程由于其他进程发送相关信号而被杀死 
+        8) #define PF_STARTING    0x00000002: 当前进程正在被创建
+        9) #define PF_EXITING    0x00000004: 当前进程正在关闭
+        10) #define PF_USEDFPU    0x00100000: Process used the FPU this quantum(SMP only)  
+        #define PF_DTRACE    0x00200000: delayed trace (used on m68k)  
+    */
+    unsigned int flags;     
+
+    /*
+    5. ptrace
+    ptrace系统调用，成员ptrace被设置为0时表示不需要被跟踪，它的可能取值如下： 
+    linux-2.6.38.8/include/linux/ptrace.h  
+        1) #define PT_PTRACED    0x00000001
+        2) #define PT_DTRACE    0x00000002: delayed trace (used on m68k, i386) 
+        3) #define PT_TRACESYSGOOD    0x00000004
+        4) #define PT_PTRACE_CAP    0x00000008: ptracer can follow suid-exec 
+        5) #define PT_TRACE_FORK    0x00000010
+        6) #define PT_TRACE_VFORK    0x00000020
+        7) #define PT_TRACE_CLONE    0x00000040
+        8) #define PT_TRACE_EXEC    0x00000080
+        9) #define PT_TRACE_VFORK_DONE    0x00000100
+        10) #define PT_TRACE_EXIT    0x00000200
+    */
+    unsigned int ptrace;
+    unsigned long ptrace_message;
+    siginfo_t *last_siginfo; 
+
+    /*
+    6. lock_depth
+    用于表示获取大内核锁的次数，如果进程未获得过锁，则置为-1
+    */
+    int lock_depth;         
+
+    /*
+    7. oncpu
+    在SMP上帮助实现无加锁的进程切换(unlocked context switches)
+    */
+#ifdef CONFIG_SMP
+#ifdef __ARCH_WANT_UNLOCKED_CTXSW
+    int oncpu;
+#endif
+#endif
+
+    /*
+    8. 进程调度
+        1) prio: 调度器考虑的优先级保存在prio，由于在某些情况下内核需要暂时提高进程的优先级，因此需要第三个成员来表示(除了static_prio、normal_prio之外)，由于这些改变不是持久的，因此静态(static_prio)和普通(normal_prio)优先级不受影响
+        2) static_prio: 用于保存进程的"静态优先级"，静态优先级是进程"启动"时分配的优先级，它可以用nice、sched_setscheduler系统调用修改，否则在进程运行期间会一直保持恒定
+        3) normal_prio: 表示基于进程的"静态优先级"和"调度策略"计算出的优先级，因此，即使普通进程和实时进程具有相同的静态优先级(static_prio)，其普通优先级(normal_prio)也是不同的。进程分支时(fork)，新创建的子进程会集成普通优先级   
+    */
+    int prio, static_prio, normal_prio;
+    /*
+        4) rt_priority: 表示实时进程的优先级，需要明白的是，"实时进程优先级"和"普通进程优先级"有两个独立的范畴，实时进程即使是最低优先级也高于普通进程，最低的实时优先级为0，最高的优先级为99，值越大，表明优先级越高
+    */
+    unsigned int rt_priority;
+    /*
+        5) sched_class: 该进程所属的调度类，目前内核中有实现以下四种： 
+            5.1) static const struct sched_class fair_sched_class;
+            5.2) static const struct sched_class rt_sched_class;
+            5.3) static const struct sched_class idle_sched_class;
+            5.4) static const struct sched_class stop_sched_class;        
+    */
+    const struct sched_class *sched_class;
+    /*
+        6) se: 用于普通进程的调用实体 
+　　调度器不限于调度进程，还可以处理更大的实体，这可以实现"组调度"，可用的CPU时间可以首先在一般的进程组(例如所有进程可以按所有者分组)之间分配，接下来分配的时间在组内再次分配
+　　这种一般性要求调度器不直接操作进程，而是处理"可调度实体"，一个实体有sched_entity的一个实例标识
+　　在最简单的情况下，调度在各个进程上执行，由于调度器设计为处理可调度的实体，在调度器看来各个进程也必须也像这样的实体，因此se在task_struct中内嵌了一个sched_entity实例，调度器可据此操作各个task_struct
+    */
+    struct sched_entity se;
+    /*
+        7) rt: 用于实时进程的调用实体 
+    */
+    struct sched_rt_entity rt;
+
+#ifdef CONFIG_PREEMPT_NOTIFIERS 
+    /*
+    9. preempt_notifier
+    preempt_notifiers结构体链表 
+    */
+    struct hlist_head preempt_notifiers;
+#endif
+ 
+     /*
+     10. fpu_counter
+     FPU使用计数 
+     */
+    unsigned char fpu_counter;
+
+#ifdef CONFIG_BLK_DEV_IO_TRACE
+    /*
+    11. btrace_seq
+    blktrace是一个针对Linux内核中块设备I/O层的跟踪工具
+    */
+    unsigned int btrace_seq;
+#endif
+
+    /*
+    12. policy
+    policy表示进程的调度策略，目前主要有以下五种：
+        1) #define SCHED_NORMAL        0: 用于普通进程，它们通过完全公平调度器来处理
+        2) #define SCHED_FIFO        1: 先来先服务调度，由实时调度类处理
+        3) #define SCHED_RR            2: 时间片轮转调度，由实时调度类处理
+        4) #define SCHED_BATCH        3: 用于非交互、CPU使用密集的批处理进程，通过完全公平调度器来处理，调度决策对此类进程给与"冷处理"，它们绝不会抢占CFS调度器处理的另一个进程，因此不会干扰交互式进程，如果不打算用nice降低进程的静态优先级，同时又不希望该进程影响系统的交互性，最适合用该调度策略
+        5) #define SCHED_IDLE        5: 可用于次要的进程，其相对权重总是最小的，也通过完全公平调度器来处理。要注意的是，SCHED_IDLE不负责调度空闲进程，空闲进程由内核提供单独的机制来处理
+    只有root用户能通过sched_setscheduler()系统调用来改变调度策略 
+    */
+    unsigned int policy;
+
+    /*
+    13. cpus_allowed
+    cpus_allowed是一个位域，在多处理器系统上使用，用于控制进程可以在哪里处理器上运行
+    */
+    cpumask_t cpus_allowed;
+
+    /*
+    14. RCU同步原语 
+    */
+#ifdef CONFIG_TREE_PREEMPT_RCU
+    int rcu_read_lock_nesting;
+    char rcu_read_unlock_special;
+    struct rcu_node *rcu_blocked_node;
+    struct list_head rcu_node_entry;
+#endif /* #ifdef CONFIG_TREE_PREEMPT_RCU */
+
+#if defined(CONFIG_SCHEDSTATS) || defined(CONFIG_TASK_DELAY_ACCT)
+    /*
+    15. sched_info
+    用于调度器统计进程的运行信息
+    */
+    struct sched_info sched_info;
+#endif
+
+    /*
+    16. tasks
+    通过list_head将当前进程的task_struct串联进内核的进程列表中，构建；linux进程链表
+    */
+    struct list_head tasks;
+
+    /*
+    17. pushable_tasks
+    limit pushing to one attempt 
+    */
+    struct plist_node pushable_tasks;
+
+    /*
+    18. 进程地址空间 
+        1) mm: 指向进程所拥有的内存描述符 
+        2) active_mm: active_mm指向进程运行时所使用的内存描述符
+    对于普通进程而言，这两个指针变量的值相同。但是，内核线程不拥有任何内存描述符，所以它们的mm成员总是为NULL。当内核线程得以运行时，它的active_mm成员被初始化为前一个运行进程的active_mm值
+    */
+    struct mm_struct *mm, *active_mm;
+
+    /*
+    19. exit_state
+    进程退出状态码
+    */
+    int exit_state;
+
+    /*
+    20. 判断标志
+        1) exit_code
+        exit_code用于设置进程的终止代号，这个值要么是_exit()或exit_group()系统调用参数(正常终止)，要么是由内核提供的一个错误代号(异常终止)
+        2) exit_signal
+        exit_signal被置为-1时表示是某个线程组中的一员。只有当线程组的最后一个成员终止时，才会产生一个信号，以通知线程组的领头进程的父进程
+    */
+    int exit_code, exit_signal; 
+    /*
+        3) pdeath_signal
+        pdeath_signal用于判断父进程终止时发送信号
+    */
+    int pdeath_signal;   
+    /*
+        4)  personality用于处理不同的ABI，它的可能取值如下： 
+            enum 
+            {
+                PER_LINUX =        0x0000,
+                PER_LINUX_32BIT =    0x0000 | ADDR_LIMIT_32BIT,
+                PER_LINUX_FDPIC =    0x0000 | FDPIC_FUNCPTRS,
+                PER_SVR4 =        0x0001 | STICKY_TIMEOUTS | MMAP_PAGE_ZERO,
+                PER_SVR3 =        0x0002 | STICKY_TIMEOUTS | SHORT_INODE,
+                PER_SCOSVR3 =        0x0003 | STICKY_TIMEOUTS |
+                                 WHOLE_SECONDS | SHORT_INODE,
+                PER_OSR5 =        0x0003 | STICKY_TIMEOUTS | WHOLE_SECONDS,
+                PER_WYSEV386 =        0x0004 | STICKY_TIMEOUTS | SHORT_INODE,
+                PER_ISCR4 =        0x0005 | STICKY_TIMEOUTS,
+                PER_BSD =        0x0006,
+                PER_SUNOS =        0x0006 | STICKY_TIMEOUTS,
+                PER_XENIX =        0x0007 | STICKY_TIMEOUTS | SHORT_INODE,
+                PER_LINUX32 =        0x0008,
+                PER_LINUX32_3GB =    0x0008 | ADDR_LIMIT_3GB,
+                PER_IRIX32 =        0x0009 | STICKY_TIMEOUTS, 
+                PER_IRIXN32 =        0x000a | STICKY_TIMEOUTS, 
+                PER_IRIX64 =        0x000b | STICKY_TIMEOUTS, 
+                PER_RISCOS =        0x000c,
+                PER_SOLARIS =        0x000d | STICKY_TIMEOUTS,
+                PER_UW7 =        0x000e | STICKY_TIMEOUTS | MMAP_PAGE_ZERO,
+                PER_OSF4 =        0x000f,              
+                PER_HPUX =        0x0010,
+                PER_MASK =        0x00ff,
+            };
+    */
+    unsigned int personality;
+    /*
+        5) did_exec
+        did_exec用于记录进程代码是否被execve()函数所执行
+    */
+    unsigned did_exec:1;
+    /*
+        6) in_execve
+        in_execve用于通知LSM是否被do_execve()函数所调用
+    */
+    unsigned in_execve:1;     
+    /*
+        7) in_iowait
+        in_iowait用于判断是否进行iowait计数
+    */
+    unsigned in_iowait:1;
+
+    /*
+        8) sched_reset_on_fork
+        sched_reset_on_fork用于判断是否恢复默认的优先级或调度策略
+    */
+    unsigned sched_reset_on_fork:1;
+
+    /*
+    21. 进程标识符(PID)
+    在CONFIG_BASE_SMALL配置为0的情况下，PID的取值范围是0到32767，即系统中的进程数最大为32768个
+    #define PID_MAX_DEFAULT (CONFIG_BASE_SMALL ? 0x1000 : 0x8000)  
+    在Linux系统中，一个线程组中的所有线程使用和该线程组的领头线程(该组中的第一个轻量级进程)相同的PID，并被存放在tgid成员中。只有线程组的领头线程的pid成员才会被设置为与tgid相同的值。注意，getpid()系统调用
+返回的是当前进程的tgid值而不是pid值。
+    */
+    pid_t pid;
+    pid_t tgid;
+
+#ifdef CONFIG_CC_STACKPROTECTOR 
+    /*
+    22. stack_canary
+    防止内核堆栈溢出，在GCC编译内核时，需要加上-fstack-protector选项
+    */
+    unsigned long stack_canary;
+#endif
+ 
+     /*
+     23. 表示进程亲属关系的成员 
+         1) real_parent: 指向其父进程，如果创建它的父进程不再存在，则指向PID为1的init进程
+         2) parent: 指向其父进程，当它终止时，必须向它的父进程发送信号。它的值通常与real_parent相同 
+     */
+    struct task_struct *real_parent;  
+    struct task_struct *parent;   
+    /*
+        3) children: 表示链表的头部，链表中的所有元素都是它的子进程(子进程链表)
+        4) sibling: 用于把当前进程插入到兄弟链表中(连接到父进程的子进程链表(兄弟链表))
+        5) group_leader: 指向其所在进程组的领头进程
+    */
+    struct list_head children;     
+    struct list_head sibling;     
+    struct task_struct *group_leader;     
+     
+    struct list_head ptraced;
+    struct list_head ptrace_entry; 
+    struct bts_context *bts;
+
+    /*
+    24. pids
+    PID散列表和链表  
+    */
+    struct pid_link pids[PIDTYPE_MAX];
+    /*
+    25. thread_group
+    线程组中所有进程的链表
+    */
+    struct list_head thread_group;
+
+    /*
+    26. do_fork函数 
+        1) vfork_done
+        在执行do_fork()时，如果给定特别标志，则vfork_done会指向一个特殊地址
+        2) set_child_tid、clear_child_tid
+        如果copy_process函数的clone_flags参数的值被置为CLONE_CHILD_SETTID或CLONE_CHILD_CLEARTID，则会把child_tidptr参数的值分别复制到set_child_tid和clear_child_tid成员。这些标志说明必须改变子
+进程用户态地址空间的child_tidptr所指向的变量的值。
+    */
+    struct completion *vfork_done;         
+    int __user *set_child_tid;         
+    int __user *clear_child_tid;         
+
+    /*
+    27. 记录进程的I/O计数(时间)
+        1) utime
+        用于记录进程在"用户态"下所经过的节拍数(定时器)
+        2) stime
+        用于记录进程在"内核态"下所经过的节拍数(定时器)
+        3) utimescaled
+        用于记录进程在"用户态"的运行时间，但它们以处理器的频率为刻度
+        4) stimescaled
+        用于记录进程在"内核态"的运行时间，但它们以处理器的频率为刻度
+    */
+    cputime_t utime, stime, utimescaled, stimescaled;
+    /*
+        5) gtime
+        以节拍计数的虚拟机运行时间(guest time)
+    */
+    cputime_t gtime;
+    /*
+        6) prev_utime、prev_stime是先前的运行时间
+    */
+    cputime_t prev_utime, prev_stime; 
+    /*
+        7) nvcsw
+        自愿(voluntary)上下文切换计数
+        8) nivcsw
+        非自愿(involuntary)上下文切换计数
+    */
+    unsigned long nvcsw, nivcsw; 
+    /*
+        9) start_time
+        进程创建时间
+        10) real_start_time
+        进程睡眠时间，还包含了进程睡眠时间，常用于/proc/pid/stat，
+    */
+    struct timespec start_time;          
+    struct timespec real_start_time;
+    /*
+        11) cputime_expires
+        用来统计进程或进程组被跟踪的处理器时间，其中的三个成员对应着cpu_timers[3]的三个链表
+    */
+    struct task_cputime cputime_expires;
+    struct list_head cpu_timers[3];
+    #ifdef CONFIG_DETECT_HUNG_TASK 
+    /*
+        12) last_switch_count
+        nvcsw和nivcsw的总和
+    */
+    unsigned long last_switch_count;
+    #endif
+    struct task_io_accounting ioac;
+#if defined(CONFIG_TASK_XACCT)
+    u64 acct_rss_mem1;     
+    u64 acct_vm_mem1;     
+    cputime_t acct_timexpd;     
+#endif
+
+    /*
+    28. 缺页统计 
+    */     
+    unsigned long min_flt, maj_flt; 
+
+    /*
+    29. 进程权能 
+    */
+    const struct cred *real_cred;     
+    const struct cred *cred;     
+    struct mutex cred_guard_mutex;     
+    struct cred *replacement_session_keyring;  
+
+    /*
+    30. comm[TASK_COMM_LEN]
+    相应的程序名 
+    */
+    char comm[TASK_COMM_LEN]; 
+
+    /*
+    31. 文件 
+        1) fs
+        用来表示进程与文件系统的联系，包括当前目录和根目录
+        2) files
+        表示进程当前打开的文件
+    */
+    int link_count, total_link_count; 
+    struct fs_struct *fs; 
+    struct files_struct *files;
+
+#ifdef CONFIG_SYSVIPC 
+    /*
+    32. sysvsem
+    进程通信(SYSVIPC)
+    */
+    struct sysv_sem sysvsem;
+#endif
+
+    /*
+    33. 处理器特有数据
+    */
+    struct thread_struct thread;  
+
+    /*
+    34. nsproxy
+    命名空间 
+    */
+    struct nsproxy *nsproxy; 
+
+    /*
+    35. 信号处理 
+        1) signal: 指向进程的信号描述符
+        2) sighand: 指向进程的信号处理程序描述符
+    */
+    struct signal_struct *signal;
+    struct sighand_struct *sighand;
+    /*
+        3) blocked: 表示被阻塞信号的掩码
+        4) real_blocked: 表示临时掩码
+    */
+    sigset_t blocked, real_blocked;
+    sigset_t saved_sigmask;     
+    /*
+        5) pending: 存放私有挂起信号的数据结构
+    */
+    struct sigpending pending;
+    /*
+        6) sas_ss_sp: 信号处理程序备用堆栈的地址
+        7) sas_ss_size: 表示堆栈的大小
+    */
+    unsigned long sas_ss_sp;
+    size_t sas_ss_size;
+    /*
+        8) notifier
+        设备驱动程序常用notifier指向的函数来阻塞进程的某些信号
+        9) otifier_data
+        指的是notifier所指向的函数可能使用的数据。
+        10) otifier_mask
+        标识这些信号的位掩码
+    */
+    int (*notifier)(void *priv);
+    void *notifier_data;
+    sigset_t *notifier_mask;
+
+    /*
+    36. 进程审计 
+    */
+    struct audit_context *audit_context; 
+#ifdef CONFIG_AUDITSYSCALL
+    uid_t loginuid;
+    unsigned int sessionid;
+#endif
+
+    /*
+    37. secure computing 
+    */
+    seccomp_t seccomp;
+     
+     /*
+     38. 用于copy_process函数使用CLONE_PARENT标记时 
+     */
+       u32 parent_exec_id;
+       u32 self_exec_id;
+ 
+     /*
+     39. alloc_lock
+     用于保护资源分配或释放的自旋锁 
+     */
+    spinlock_t alloc_lock;
+
+    /*
+    40. 中断 
+    */
+#ifdef CONFIG_GENERIC_HARDIRQS 
+    struct irqaction *irqaction;
+#endif
+#ifdef CONFIG_TRACE_IRQFLAGS
+    unsigned int irq_events;
+    int hardirqs_enabled;
+    unsigned long hardirq_enable_ip;
+    unsigned int hardirq_enable_event;
+    unsigned long hardirq_disable_ip;
+    unsigned int hardirq_disable_event;
+    int softirqs_enabled;
+    unsigned long softirq_disable_ip;
+    unsigned int softirq_disable_event;
+    unsigned long softirq_enable_ip;
+    unsigned int softirq_enable_event;
+    int hardirq_context;
+    int softirq_context;
+#endif
+     
+     /*
+     41. pi_lock
+     task_rq_lock函数所使用的锁 
+     */
+    spinlock_t pi_lock;
+
+#ifdef CONFIG_RT_MUTEXES 
+    /*
+    42. 基于PI协议的等待互斥锁，其中PI指的是priority inheritance/9优先级继承)
+    */
+    struct plist_head pi_waiters; 
+    struct rt_mutex_waiter *pi_blocked_on;
+#endif
+
+#ifdef CONFIG_DEBUG_MUTEXES 
+    /*
+    43. blocked_on
+    死锁检测
+    */
+    struct mutex_waiter *blocked_on;
+#endif
+
+/*
+    44. lockdep，
+*/
+#ifdef CONFIG_LOCKDEP
+# define MAX_LOCK_DEPTH 48UL
+    u64 curr_chain_key;
+    int lockdep_depth;
+    unsigned int lockdep_recursion;
+    struct held_lock held_locks[MAX_LOCK_DEPTH];
+    gfp_t lockdep_reclaim_gfp;
+#endif
+ 
+     /*
+     45. journal_info
+     JFS文件系统
+     */
+    void *journal_info;
+     
+     /*
+     46. 块设备链表
+     */
+    struct bio *bio_list, **bio_tail; 
+
+    /*
+    47. reclaim_state
+    内存回收
+    */
+    struct reclaim_state *reclaim_state;
+
+    /*
+    48. backing_dev_info
+    存放块设备I/O数据流量信息
+    */
+    struct backing_dev_info *backing_dev_info;
+
+    /*
+    49. io_context
+    I/O调度器所使用的信息 
+    */
+    struct io_context *io_context;
+
+    /*
+    50. CPUSET功能 
+    */
+#ifdef CONFIG_CPUSETS
+    nodemask_t mems_allowed;     
+    int cpuset_mem_spread_rotor;
+#endif
+
+    /*
+    51. Control Groups 
+    */
+#ifdef CONFIG_CGROUPS 
+    struct css_set *cgroups; 
+    struct list_head cg_list;
+#endif
+
+    /*
+    52. robust_list
+    futex同步机制 
+    */
+#ifdef CONFIG_FUTEX
+    struct robust_list_head __user *robust_list;
+#ifdef CONFIG_COMPAT
+    struct compat_robust_list_head __user *compat_robust_list;
+#endif
+    struct list_head pi_state_list;
+    struct futex_pi_state *pi_state_cache;
+#endif 
+#ifdef CONFIG_PERF_EVENTS
+    struct perf_event_context *perf_event_ctxp;
+    struct mutex perf_event_mutex;
+    struct list_head perf_event_list;
+#endif
+
+    /*
+    53. 非一致内存访问(NUMA  Non-Uniform Memory Access)
+    */
+#ifdef CONFIG_NUMA
+    struct mempolicy *mempolicy;    /* Protected by alloc_lock */
+    short il_next;
+#endif
+
+    /*
+    54. fs_excl
+    文件系统互斥资源
+    */
+    atomic_t fs_excl;
+
+    /*
+    55. rcu
+    RCU链表 
+    */     
+    struct rcu_head rcu;
+
+    /*
+    56. splice_pipe
+    管道
+    */
+    struct pipe_inode_info *splice_pipe;
+
+    /*
+    57. delays
+    延迟计数
+    */
+#ifdef    CONFIG_TASK_DELAY_ACCT
+    struct task_delay_info *delays;
+#endif
+
+    /*
+    58. make_it_fail
+    fault injection
+    */
+#ifdef CONFIG_FAULT_INJECTION
+    int make_it_fail;
+#endif
+
+    /*
+    59. dirties
+    FLoating proportions 
+    */
+    struct prop_local_single dirties;
+
+    /*
+    60. Infrastructure for displayinglatency 
+    */
+#ifdef CONFIG_LATENCYTOP
+    int latency_record_count;
+    struct latency_record latency_record[LT_SAVECOUNT];
+#endif
+     
+    /*
+    61. time slack values，常用于poll和select函数 
+    */
+    unsigned long timer_slack_ns;
+    unsigned long default_timer_slack_ns;
+
+    /*
+    62. scm_work_list
+    socket控制消息(control message)
+    */
+    struct list_head    *scm_work_list;
+
+    /*
+    63. ftrace跟踪器
+    */
+#ifdef CONFIG_FUNCTION_GRAPH_TRACER 
+    int curr_ret_stack; 
+    struct ftrace_ret_stack    *ret_stack; 
+    unsigned long long ftrace_timestamp;  
+    atomic_t trace_overrun; 
+    atomic_t tracing_graph_pause;
+#endif
+#ifdef CONFIG_TRACING 
+    unsigned long trace; 
+    unsigned long trace_recursion;
+#endif  
+};
+
+Relevant Link:
+
+http://oss.org.cn/kernel-book/ch04/4.3.htm
+http://www.eecs.harvard.edu/~margo/cs161/videos/sched.h.html
+http://memorymyann.iteye.com/blog/235363
+http://blog.csdn.net/hongchangfirst/article/details/7075026
+http://oss.org.cn/kernel-book/ch04/4.4.2.htm
+http://blog.csdn.net/npy_lp/article/details/7335187
+http://blog.csdn.net/npy_lp/article/details/7292563
+}}}
+
+==== struct cred ====
+{{{
+\linux-2.6.32.63\include\linux\cred.h
+
+//保存了当前进程的相关权限信息
+struct cred 
+{
+    atomic_t    usage;
+#ifdef CONFIG_DEBUG_CREDENTIALS
+    atomic_t    subscribers;    /* number of processes subscribed */
+    void        *put_addr;
+    unsigned    magic;
+#define CRED_MAGIC    0x43736564
+#define CRED_MAGIC_DEAD    0x44656144
+#endif
+    uid_t        uid;        /* real UID of the task */
+    gid_t        gid;        /* real GID of the task */
+    uid_t        suid;        /* saved UID of the task */
+    gid_t        sgid;        /* saved GID of the task */
+    uid_t        euid;        /* effective UID of the task */
+    gid_t        egid;        /* effective GID of the task */
+    uid_t        fsuid;        /* UID for VFS ops */
+    gid_t        fsgid;        /* GID for VFS ops */
+    unsigned    securebits;    /* SUID-less security management */
+    kernel_cap_t    cap_inheritable; /* caps our children can inherit */
+    kernel_cap_t    cap_permitted;    /* caps we're permitted */
+    kernel_cap_t    cap_effective;    /* caps we can actually use */
+    kernel_cap_t    cap_bset;    /* capability bounding set */
+#ifdef CONFIG_KEYS
+    unsigned char    jit_keyring;    /* default keyring to attach requested
+                     * keys to */
+    struct key    *thread_keyring; /* keyring private to this thread */
+    struct key    *request_key_auth; /* assumed request_key authority */
+    struct thread_group_cred *tgcred; /* thread-group shared credentials */
+#endif
+#ifdef CONFIG_SECURITY
+    void        *security;    /* subjective LSM security */
+#endif
+    struct user_struct *user;    /* real user ID subscription */
+    struct group_info *group_info;    /* supplementary groups for euid/fsgid */
+    struct rcu_head    rcu;        /* RCU deletion hook */
+};
+}}}
+
+==== struct pid_link ====
+{{{
+/* PID/PID hash table linkage. */
+struct pid_link pids[PIDTYPE_MAX];
+/include/linux/pid.h
+
+enum pid_type
+{
+    PIDTYPE_PID,
+    PIDTYPE_PGID,
+    PIDTYPE_SID,
+    PIDTYPE_MAX
+};
+
+struct definition
+
+struct pid_link
+{
+    struct hlist_node node;
+    struct pid *pid;
+};
+/include/linux/types.h
+
+struct hlist_node 
+{
+    struct hlist_node *next, **pprev;
+};
+}}}
+
+==== struct pid ====
+{{{
+struct pid
+{
+    //1. 指向该数据结构的引用次数
+    atomic_t count;
+
+    /*
+    2. 该pid在pid_namespace中处于第几层
+        1) 当level=0时
+        表示是global namespace，即最高层 
+    */
+    unsigned int level;
+    
+    /* lists of tasks that use this pid */
+    //3. tasks[i]指向的是一个哈希表。譬如说tasks[PIDTYPE_PID]指向的是PID的哈希表
+    struct hlist_head tasks[PIDTYPE_MAX];
+
+    //4. 
+    struct rcu_head rcu;
+
+    /*
+    5. numbers[1]域指向的是upid结构体
+    numbers数组的本意是想表示不同的pid_namespace，一个PID可以属于不同的namespace
+        1) umbers[0]表示global namespace
+        2) numbers[i]表示第i层namespace
+        3) i越大所在层级越低
+    目前该数组只有一个元素， 即global namespace。所以namepace的概念虽然引入了pid，但是并未真正使用，在未来的版本可能会用到
+    */
+    struct upid numbers[1];
+};
+
+Relevant Link:
+http://blog.csdn.net/zhanglei4214/article/details/6765913
+}}}
+
+==== struct signal_struct ====
+{{{
+/*
+NOTE! "signal_struct" does not have it's own locking, because a shared signal_struct always implies a shared sighand_struct, so locking sighand_struct is always a proper superset of the locking of signal_struct.
+*/
+struct signal_struct 
+{
+    atomic_t        count;
+    atomic_t        live;
+
+    /* for wait4() */
+    wait_queue_head_t    wait_chldexit;    
+
+    /* current thread group signal load-balancing target: */
+    struct task_struct    *curr_target;
+
+    /* shared signal handling: */
+    struct sigpending    shared_pending;
+
+    /* thread group exit support */
+    int            group_exit_code;
+
+    /* 
+    overloaded:
+    notify group_exit_task when ->count is equal to notify_count，everyone except group_exit_task is stopped during signal delivery of fatal signals, group_exit_task processes the signal.
+    */
+    int            notify_count;
+    struct task_struct    *group_exit_task;
+
+    /* thread group stop support, overloads group_exit_code too */
+    int            group_stop_count;
+    unsigned int        flags; /* see SIGNAL_* flags below */
+
+    /* POSIX.1b Interval Timers */
+    struct list_head posix_timers;
+
+    /* ITIMER_REAL timer for the process */
+    struct hrtimer real_timer;
+    struct pid *leader_pid;
+    ktime_t it_real_incr;
+
+    /*
+    ITIMER_PROF and ITIMER_VIRTUAL timers for the process, we use CPUCLOCK_PROF and CPUCLOCK_VIRT for indexing array as these values are defined to 0 and 1 respectively
+    */
+    struct cpu_itimer it[2];
+
+    /*
+    Thread group totals for process CPU timers. See thread_group_cputimer(), et al, for details.
+    */
+    struct thread_group_cputimer cputimer;
+
+    /* Earliest-expiration cache. */
+    struct task_cputime cputime_expires;
+
+    struct list_head cpu_timers[3];
+
+    struct pid *tty_old_pgrp;
+
+    /* boolean value for session group leader */
+    int leader;
+
+    struct tty_struct *tty; /* NULL if no tty */
+
+    /*
+    Cumulative resource counters for dead threads in the group, and for reaped dead child processes forked by this group.
+    Live threads maintain their own counters and add to these in __exit_signal, except for the group leader.
+    */
+    cputime_t utime, stime, cutime, cstime;
+    cputime_t gtime;
+    cputime_t cgtime;
+#ifndef CONFIG_VIRT_CPU_ACCOUNTING
+    cputime_t prev_utime, prev_stime;
+#endif
+    unsigned long nvcsw, nivcsw, cnvcsw, cnivcsw;
+    unsigned long min_flt, maj_flt, cmin_flt, cmaj_flt;
+    unsigned long inblock, oublock, cinblock, coublock;
+    unsigned long maxrss, cmaxrss;
+    struct task_io_accounting ioac;
+
+    /*
+    Cumulative ns of schedule CPU time fo dead threads in the group, not including a zombie group leader, (This only differs from jiffies_to_ns(utime + stime) if sched_clock uses something other than jiffies.)
+    */
+    unsigned long long sum_sched_runtime;
+
+    /*
+    We don't bother to synchronize most readers of this at all, because there is no reader checking a limit that actually needs to get both rlim_cur and rlim_max atomically, 
+    and either one alone is a single word that can safely be read normally.
+    getrlimit/setrlimit use task_lock(current->group_leader) to protect this instead of the siglock, because they really have no need to disable irqs.
+    struct rlimit 
+    {
+        rlim_t rlim_cur;     //Soft limit(软限制): 进程当前的资源限制
+        rlim_t rlim_max;    //Hard limit(硬限制): 该限制的最大容许值(ceiling for rlim_cur)    
+    };
+    rlim是一个数组，其中每一项保存了一种类型的资源限制，RLIM_NLIMITS表示资源限制类型的类型数量
+    要说明的是，hard limit只针对非特权进程，也就是进程的有效用户ID(effective user ID)不是0的进程
+    */
+    struct rlimit rlim[RLIM_NLIMITS];
+
+#ifdef CONFIG_BSD_PROCESS_ACCT
+    struct pacct_struct pacct;    /* per-process accounting information */
+#endif
+#ifdef CONFIG_TASKSTATS
+    struct taskstats *stats;
+#endif
+#ifdef CONFIG_AUDIT
+    unsigned audit_tty;
+    struct tty_audit_buf *tty_audit_buf;
+#endif
+
+    int oom_adj;    /* OOM kill score adjustment (bit shift) */
+};
+
+Relevant Link:
+http://blog.csdn.net/walkingman321/article/details/6167435
+}}}
+
+==== struct rlimit ====
+{{{
+\linux-2.6.32.63\include\linux\resource.h
+
+struct rlimit 
+{
+    //Soft limit(软限制): 进程当前的资源限制
+    unsigned long    rlim_cur;
+
+    //Hard limit(硬限制): 该限制的最大容许值(ceiling for rlim_cur)    
+    unsigned long    rlim_max;
+};
+
+Linux提供资源限制(resources limit rlimit)机制，对进程使用系统资源施加限制，该机制利用了task_struct中的rlim数组
+rlim数组中的位置标识了受限制资源的类型，这也是内核需要定义预处理器常数，将资源与位置关联起来的原因，以下是所有的常数及其含义
+
+1. RLIMIT_CPU: CPU time in ms
+CPU时间的最大量值(秒)，当超过此软限制时向该进程发送SIGXCPU信号
+
+2. RLIMIT_FSIZE: Maximum file size
+可以创建的文件的最大字节长度，当超过此软限制时向进程发送SIGXFSZ
+
+3. RLIMIT_DATA: Maximum size of the data segment
+数据段的最大字节长度
+
+4. RLIMIT_STACK: Maximum stack size
+栈的最大长度
+
+5. RLIMIT_CORE: Maximum core file size
+设定最大的core文件，当值为0时将禁止core文件非0时将设定产生的最大core文件大小为设定的值
+
+6. RLIMIT_RSS: Maximum resident set size
+最大驻内存集字节长度(RSS)如果物理存储器供不应求则内核将从进程处取回超过RSS的部份
+
+7. RLIMIT_NPROC: Maximum number of processes
+每个实际用户ID所拥有的最大子进程数，更改此限制将影响到sysconf函数在参数_SC_CHILD_MAX中返回的值
+
+8. RLIMIT_NOFILE: aximum number of open files
+每个进程能够打开的最多文件数。更改此限制将影响到sysconf函数在参数_SC_CHILD_MAX中的返回值
+
+9. RLIMIT_MEMLOCK: Maximum locked-in-memory address space
+The maximum number of bytes of virtual memory that may be locked into RAM using mlock() and mlockall().
+不可换出页的最大数目
+
+10. RLIMIT_AS: Maximum address space size in bytes
+The maximum size of the process virtual memory (address space) in bytes. This limit affects calls to brk(2), mmap(2) and mremap(2), which fail with the error ENOMEM upon exceeding this limit. Also automatic stack expansion will fail (and generate a SIGSEGV that kills the process when no alternate stack has been made available). Since the value is a long, on machines with a 32-bit long either this limit is at most 2 GiB, or this resource is unlimited.
+进程占用的虚拟地址空间的最大尺寸
+
+11. RLIMIT_LOCKS: Maximum file locks held
+文件锁的最大数目
+
+12. RLIMIT_SIGPENDING: Maximum number of pending signals
+待决信号的最大数目
+
+13. RLIMIT_MSGQUEUE: Maximum bytes in POSIX mqueues
+消息队列的最大数目
+
+14. RLIMIT_NICE: Maximum nice prio allowed to raise to
+非实时进程的优先级(nice level)
+
+15. RLIMIT_RTPRIO: Maximum realtime priority
+最大的实时优先级
+
+因为涉及内核的各个不同部分，内核必须确认子系统遵守了相应限制。需要注意的是，如果某一类资源没有使用限制(这是几乎所有资源的默认设置)，则将rlim_max设置为RLIM_INFINITY，例外情况包括下列
+
+1. 打开文件的数目(RLIMIT_NOFILE): 默认限制在1024
+2. 每用户的最大进程数(RLIMIT_NPROC): 定义为max_threads / 2，max_threads是一个全局变量，指定了在把 1/8 可用内存用于管理线程信息的情况下，可以创建的进程数目。在计算时，提前给定了20个线程的最小可能内存用量
+init进程在Linux中是一个特殊的进程，init的进程限制在系统启动时就生效了
+\linux-2.6.32.63\include\asm-generic\resource.h
+
+/*
+ * boot-time rlimit defaults for the init task:
+ */
+#define INIT_RLIMITS                            \
+{                                    \
+    [RLIMIT_CPU]        = {  RLIM_INFINITY,  RLIM_INFINITY },    \
+    [RLIMIT_FSIZE]        = {  RLIM_INFINITY,  RLIM_INFINITY },    \
+    [RLIMIT_DATA]        = {  RLIM_INFINITY,  RLIM_INFINITY },    \
+    [RLIMIT_STACK]        = {       _STK_LIM,   _STK_LIM_MAX },    \
+    [RLIMIT_CORE]        = {              0,  RLIM_INFINITY },    \
+    [RLIMIT_RSS]        = {  RLIM_INFINITY,  RLIM_INFINITY },    \
+    [RLIMIT_NPROC]        = {              0,              0 },    \
+    [RLIMIT_NOFILE]        = {       INR_OPEN,       INR_OPEN },    \
+    [RLIMIT_MEMLOCK]    = {    MLOCK_LIMIT,    MLOCK_LIMIT },    \
+    [RLIMIT_AS]        = {  RLIM_INFINITY,  RLIM_INFINITY },    \
+    [RLIMIT_LOCKS]        = {  RLIM_INFINITY,  RLIM_INFINITY },    \
+    [RLIMIT_SIGPENDING]    = {         0,           0 },    \
+    [RLIMIT_MSGQUEUE]    = {   MQ_BYTES_MAX,   MQ_BYTES_MAX },    \
+    [RLIMIT_NICE]        = { 0, 0 },                \
+    [RLIMIT_RTPRIO]        = { 0, 0 },                \
+    [RLIMIT_RTTIME]        = {  RLIM_INFINITY,  RLIM_INFINITY },    \
+}
+
+在proc文件系统中，对每个进程都包含了对应的一个文件，可以查看当前的rlimit值
+cat /proc/self/limits
+}}}
+
+=== 内核中的队列/链表对象 ===
+{{{
+在内核中存在4种不同类型的列表数据结构:
+ 1. singly-linked lists
+2. singly-linked tail queues
+3. doubly-linked lists
+4. doubly-linked tail queues
+linux内核中的链表有如下特点
+
+1. 尽可能的代码重用，化大堆的链表设计为单个链表
+
+2. 在后面的学习中我们会发现，内核中大部分都是"双向循环链表"，因为"双向循环链表"的效率是最高的，找头节点，尾节点，直接前驱，直接后继时间复杂度都是O(1) ，而使用单链表，单向循环链表或其他形式的链表是不能完成的。
+
+3. 如果需要构造某类对象的特定列表，则在其结构中定义一个类型为"list_head"指针的成员
+linux-2.6.32.63\include\linux\list.h
+struct list_head 
+{
+    struct list_head *next, *prev;
+};
+通过这个成员将这类对象连接起来，形成所需列表，并通过通用链表函数对其进行操作(list_head内嵌在原始结构中就像一个钩子，将原始对象串起来)
+在这种架构设计下，内核开发人员只需编写通用链表函数，即可构造和操作不同对象的列表，而无需为每类对象的每种列表编写专用函数，实现了代码的重用。 
+
+4. 如果想对某种类型创建链表，就把一个list_head类型的变量嵌入到该类型中，用list_head中的成员和相对应的处理函数来对链表进行遍历 
+}}}
+{{local:images/linux_struct_list.jpg}}
+{{{
+现在我们知道内核中链表的基本元素数据结构、也知道它们的设计原则以及组成原理，接下来的问题是在内核是怎么初始化并使用这些数据结构的呢？那些我们熟知的一个个链表都是怎么形成的呢？
+
+linux内核为这些链表数据结构配套了相应的"操作宏"、以及内嵌函数
+
+linux-2.6.32.63\include\linux\list.h
+
+1. 链表初始化
+    1.1 LIST_HEAD_INIT
+    #define LIST_HEAD_INIT(name) { &(name), &(name) }
+    LIST_HEAD_INIT这个宏的作用是初始化当前链表节点，即将头指针和尾指针都指向自己
+
+    1.2 LIST_HEAD
+    #define LIST_HEAD(name) struct list_head name = LIST_HEAD_INIT(name)
+    从代码可以看出，LIST_HEAD这个宏的作用是定义了一个双向链表的头，并调用LIST_HEAD_INIT进行"链表头初始化"，将头指针和尾指针都指向自己，因此可以得知在Linux中用头指针的next是否指向自己来判断链表是否为空
+
+    1.3 INIT_LIST_HEAD(struct list_head *list)
+    除了LIST_HEAD宏在编译时静态初始化，还可以使用内嵌函数INIT_LIST_HEAD(struct list_head *list)在运行时进行初始化
+    static inline void INIT_LIST_HEAD(struct list_head *list)
+    {
+        list->next = list;
+        list->prev = list;
+    }
+    无论是采用哪种方式，新生成的链表头的指针next,prev都初始化为指向自己
+2. 判断一个链表是不是为空链表
+    2.1 list_empty(const struct list_head *head) 
+    static inline int list_empty(const struct list_head *head)
+    {
+        return head->next == head;
+    }
+
+    2.2 list_empty_careful(const struct list_head *head)
+    和list_empty()的差别在于:
+    函数使用的检测方法是判断表头的前一个结点和后一个结点是否为其本身，如果同时满足则返回0，否则返回值为1。
+    这主要是为了应付另一个cpu正在处理同一个链表而造成next、prev不一致的情况。但代码注释也承认，这一安全保障能力有限：除非其他cpu的链表操作只有list_del_init()，否则仍然不能保证安全，也就是说，还是需要加锁保护
+    static inline int list_empty_careful(const struct list_head *head)
+    {
+        struct list_head *next = head->next;
+        return (next == head) && (next == head->prev);
+    }
+
+3. 链表的插入操作
+    3.1 list_add(struct list_head *new, struct list_head *head)
+    在head和head->next之间加入一个新的节点。即表头插入法(即先插入的后输出，可以用来实现一个栈)
+    static inline void list_add(struct list_head *new, struct list_head *head)
+    {
+        __list_add(new, head, head->next);
+    }
+
+    3.2 list_add_tail(struct list_head *new, struct list_head *head)
+    在head->prev(双向循环链表的最后一个结点)和head之间添加一个新的结点。即表尾插入法(先插入的先输出，可以用来实现一个队列)
+    static inline void list_add_tail(struct list_head *new, struct list_head *head)
+    {
+        __list_add(new, head->prev, head);
+    }
+
+    #ifndef CONFIG_DEBUG_LIST
+    static inline void __list_add(struct list_head *new, struct list_head *prev, struct list_head *next)
+    {
+        next->prev = new;
+        new->next = next;
+        new->prev = prev;
+        prev->next = new;
+    }
+    #else
+    extern void __list_add(struct list_head *new, struct list_head *prev, struct list_head *next);
+    #endif
+
+4. 链表的删除
+    4.1 list_del(struct list_head *entry)
+    #ifndef CONFIG_DEBUG_LIST
+    static inline void list_del(struct list_head *entry)
+    {
+        /*
+        __list_del(entry->prev, entry->next)表示将entry的前一个和后一个之间建立关联(即架空中间的元素)
+        */
+        __list_del(entry->prev, entry->next);
+        /*
+        list_del()函数将删除后的prev、next指针分别被设为LIST_POSITION2和LIST_POSITION1两个特殊值，这样设置是为了保证不在链表中的节点项不可访问。对LIST_POSITION1和LIST_POSITION2的访问都将引起
+"页故障"
+        */
+        entry->next = LIST_POISON1;
+        entry->prev = LIST_POISON2;
+    }
+    #else
+    extern void list_del(struct list_head *entry);
+    #endif
+
+    4.2 list_del_init(struct list_head *entry)
+    /*
+    list_del_init这个函数首先将entry从双向链表中删除之后，并且将entry初始化为一个空链表。
+    要注意区分和理解的是:
+    list_del(entry)和list_del_init(entry)唯一不同的是对entry的处理，前者是将entry设置为不可用，后者是将其设置为一个空的链表的开始。
+    */
+    static inline void list_del_init(struct list_head *entry)
+    {
+        __list_del(entry->prev, entry->next);
+        INIT_LIST_HEAD(entry);
+    }
+
+5. 链表节点的替换
+结点的替换是将old的结点替换成new
+    5.1 list_replace(struct list_head *old, struct list_head *new)
+    list_repleace()函数只是改变new和old的指针关系，然而old指针并没有释放
+    static inline void list_replace(struct list_head *old, struct list_head *new)
+    {
+        new->next = old->next;
+        new->next->prev = new;
+        new->prev = old->prev;
+        new->prev->next = new;
+    }
+    
+    5.2 list_replace_init(struct list_head *old, struct list_head *new)
+    static inline void list_replace_init(struct list_head *old, struct list_head *new)
+    {
+        list_replace(old, new);
+        INIT_LIST_HEAD(old);
+    }
+
+6. 分割链表
+    6.1 list_cut_position(struct list_head *list, struct list_head *head, struct list_head *entry)
+    函数将head(不包括head结点)到entry结点之间的所有结点截取下来添加到list链表中。该函数完成后就产生了两个链表head和list
+    static inline void list_cut_position(struct list_head *list, struct list_head *head, struct list_head *entry)
+    {
+        if (list_empty(head))
+            return;
+        if (list_is_singular(head) &&
+            (head->next != entry && head != entry))
+            return;
+        if (entry == head)
+            INIT_LIST_HEAD(list);
+        else
+            __list_cut_position(list, head, entry);
+    }
+
+    static inline void __list_cut_position(struct list_head *list, struct list_head *head, struct list_head *entry)
+    {
+        struct list_head *new_first = entry->next;
+        list->next = head->next;
+        list->next->prev = list;
+        list->prev = entry;
+        entry->next = list;
+        head->next = new_first;
+        new_first->prev = head;
+    }
+
+7. 内核链表的遍历操作(重点)
+    7.1 list_entry
+    Linux链表中仅保存了数据项结构中list_head成员变量的地址，可以通过list_entry宏通过list_head成员访问到作为它的所有者的的起始基地址(思考结构体的成员偏移量的概念，只有知道了结构体基地址才能通过offset得到
+成员地址，之后才能继续遍历)
+    这里的ptr是一个链表的头结点，这个宏就是取的这个链表"头结点(注意不是第一个元素哦，是头结点，要得到第一个元素还得继续往下走一个)"所指结构体的首地址
+    #define list_entry(ptr, type, member) container_of(ptr, type, member)
+    
+    7.2 list_first_entry
+    这里的ptr是一个链表的头结点，这个宏就是取的这个链表"第一元素"所指结构体的首地址
+    #define list_first_entry(ptr, type, member) list_entry((ptr)->next, type, member)
+
+    7.3 list_for_each(pos, head)
+    得到了链表的第一个元素的基地址之后，才可以开始元素的遍历
+    #define list_for_each(pos, head) \
+    /*
+    prefetch()的功能是预取内存的内容，也就是程序告诉CPU哪些内容可能马上用到，CPU预先其取出内存操作数，然后将其送入高速缓存，用于优化，是的执行速度更快
+    */
+    for (pos = (head)->next; prefetch(pos->next), pos != (head); \
+            pos = pos->next)
+
+    7.4 __list_for_each(pos, head)
+    __list_for_each没有采用pretetch来进行预取
+    #define __list_for_each(pos, head) \
+    for (pos = (head)->next; pos != (head); pos = pos->next)
+
+    7.5 list_for_each_prev(pos, head)
+    实现方法与list_for_each相同，不同的是用head的前趋结点进行遍历。实现链表的逆向遍历
+    #define list_for_each_prev(pos, head) \
+    for (pos = (head)->prev; prefetch(pos->prev), pos != (head); \
+            pos = pos->prev)
+
+    7.6 list_for_each_entry(pos, head, member)
+    用链表外的结构体地址来进行遍历，而不用链表的地址进行遍历
+    #define list_for_each_entry(pos, head, member)                \
+    for (pos = list_entry((head)->next, typeof(*pos), member);    \
+         prefetch(pos->member.next), &pos->member != (head);     \
+         pos = list_entry(pos->member.next, typeof(*pos), member))
+}}}
+
+==== 内核LKM模块的链表 ====
+{{{
+我们知道，在命令行输入: lsmod可以得到当前系统加载的lKM内核模块，我们来学习一下这个功能通过内核代码要怎么实现
+mod_ls.c:
+
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/version.h>
+#include <linux/list.h>
+ 
+MODULE_LICENSE("Dual BSD/GPL");
+ 
+struct module *m = &__this_module;
+ 
+static void list_module_test(void)
+{
+        struct module *mod;
+        list_for_each_entry(mod, m->list.prev, list)
+                printk ("%s\n", mod->name);
+ 
+}
+static int list_module_init (void)
+{
+        list_module_test();
+        return 0;
+}
+ 
+static void list_module_exit (void)
+{
+        printk ("unload listmodule.ko\n");
+}
+ 
+module_init(list_module_init);
+module_exit(list_module_exit);
+
+Makefile
+#
+# Variables needed to build the kernel module
+#
+name      = mod_ls
+
+obj-m += $(name).o
+
+all: build
+
+.PHONY: build install clean
+
+build:
+    make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules CONFIG_DEBUG_SECTION_MISMATCH=y
+
+install: build
+    -mkdir -p /lib/modules/`uname -r`/kernel/arch/x86/kernel/
+    cp $(name).ko /lib/modules/`uname -r`/kernel/arch/x86/kernel/
+    depmod /lib/modules/`uname -r`/kernel/arch/x86/kernel/$(name).ko
+
+clean:
+    [ -d /lib/modules/$(shell uname -r)/build ] && \
+    make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+
+编译并加载运行，使用dmesg tail命令可以看到我们的内核代码使用list_for_each_entry将当前系统内核中的"LKM内核模块双链表"给遍历出来了
+}}}
+
+==== 进程链表 ====
+{{{
+trave_process.c
+
+#include <linux/module.h> 
+#include <linux/init.h> 
+#include <linux/list.h> 
+#include <linux/sched.h> 
+#include <linux/time.h> 
+#include <linux/fs.h> 
+#include <asm/uaccess.h> 
+#include <linux/mm.h> 
+
+
+MODULE_AUTHOR( "Along" ) ; 
+MODULE_LICENSE( "GPL" ) ; 
+
+struct task_struct * task = NULL , * p = NULL ; 
+struct list_head * pos = NULL ; 
+struct timeval start, end; 
+int count = 0; 
+
+/*function_use表示使用哪一种方法测试，
+ * 0：三个方法同时使用,
+ * 1:list_for_each,
+ * 2:list_for_each_entry,
+ * 3:for_each_process
+ */ 
+int function_use = 0; 
+char * method; 
+char * filename= "testlog" ; 
+
+void print_message( void ) ; 
+void writefile( char * filename, char * data ) ; 
+void traversal_list_for_each( void ) ; 
+void traversal_list_for_each_entry( void ) ; 
+void traversal_for_each_process( void ) ; 
+
+static int init_module_list( void ) 
+{ 
+    switch ( function_use) { 
+        case 1: 
+            traversal_list_for_each( ) ; 
+            break ; 
+        case 2: 
+            traversal_list_for_each_entry( ) ; 
+            break ; 
+        case 3: 
+            traversal_for_each_process( ) ; 
+            break ; 
+        default : 
+            traversal_list_for_each( ) ; 
+            traversal_list_for_each_entry( ) ; 
+            traversal_for_each_process( ) ; 
+            break ; 
+    } 
+    return 0; 
+} 
+static void exit_module_list( void ) 
+{ 
+    printk( KERN_ALERT "GOOD BYE!!/n" ) ; 
+} 
+
+module_init( init_module_list ) ; 
+module_exit( exit_module_list ) ; 
+module_param( function_use, int , S_IRUGO) ; 
+
+void print_message( void ) 
+{ 
+    char * str1 = "the method is: " ; 
+    char * str2 = "系统当前共 " ; 
+    char * str3 = " 个进程/n" ; 
+    char * str4 = "开始时间: " ; 
+    char * str5 = "/n结束时间: " ; 
+    char * str6 = "/n时间间隔: " ; 
+    char * str7 = "." ; 
+    char * str8 = "ms" ; 
+    char data[ 1024] ; 
+    char tmp[ 50] ; 
+    int cost; 
+
+    printk( "系统当前共 %d 个进程!!/n" , count ) ; 
+    printk( "the method is : %s/n" , method) ; 
+    printk( "开始时间:%10i.%06i/n" , ( int ) start. tv_sec, ( int ) start. tv_usec) ; 
+    printk( "结束时间:%10i.%06i/n" , ( int ) end. tv_sec, ( int ) end. tv_usec) ; 
+    printk( "时间间隔:%10i/n" , ( int ) end. tv_usec- ( int ) start. tv_usec) ; 
+
+    memset ( data, 0, sizeof ( data) ) ; 
+    memset ( tmp, 0, sizeof ( tmp) ) ; 
+
+    strcat ( data, str1) ; 
+    strcat ( data, method) ; 
+    strcat ( data, str2) ; 
+    snprintf( tmp, sizeof ( count ) , "%d" , count ) ; 
+    strcat ( data, tmp) ; 
+    strcat ( data, str3) ; 
+    strcat ( data, str4) ; 
+
+    memset ( tmp, 0, sizeof ( tmp) ) ; 
+    /*
+     * 下面这种转换秒的方法是错误的，因为sizeof最终得到的长度实际是Int类型的
+     * 长度，而实际的妙数有10位数字，所以最终存到tmp中的字符串也就只有三位
+     * 数字
+     * snprintf(tmp, sizeof((int)start.tv_sec),"%d",(int)start.tv_usec );
+    */ 
+    
+    /*取得开始时间的秒数和毫秒数*/ 
+
+    snprintf( tmp, 10, "%d" , ( int ) start. tv_sec ) ; 
+    strcat ( data, tmp) ; 
+    snprintf( tmp, sizeof ( str7) , "%s" , str7 ) ; 
+    strcat ( data, tmp) ; 
+    snprintf( tmp, 6, "%d" , ( int ) start. tv_usec ) ; 
+    strcat ( data, tmp) ; 
+
+    strcat ( data, str5) ; 
+    
+    /*取得结束时间的秒数和毫秒数*/ 
+
+    snprintf( tmp, 10, "%d" , ( int ) end. tv_sec ) ; 
+    strcat ( data, tmp) ; 
+    snprintf( tmp, sizeof ( str7) , "%s" , str7 ) ; 
+    strcat ( data, tmp) ; 
+    snprintf( tmp, 6, "%d" , ( int ) end. tv_usec ) ; 
+    strcat ( data, tmp) ; 
+
+    /*计算时间差，因为可以知道我们这个程序花费的时间是在
+     *毫秒级别的，所以计算时间差时我们就没有考虑秒，只是
+     *计算毫秒的差值
+     */ 
+    strcat ( data, str6) ; 
+    cost = ( int ) end. tv_usec- ( int ) start. tv_usec; 
+    snprintf( tmp, sizeof ( cost) , "%d" , cost ) ; 
+
+    strcat ( data, tmp) ; 
+    strcat ( data, str8) ; 
+    strcat ( data, "/n/n" ) ; 
+
+    writefile( filename, data) ; 
+    printk( "%d/n" , sizeof ( data) ) ; 
+} 
+
+void writefile( char * filename, char * data ) 
+{ 
+    struct file * filp; 
+    mm_segment_t fs; 
+
+    filp = filp_open( filename, O_RDWR| O_APPEND| O_CREAT, 0644) ; ; 
+    if ( IS_ERR( filp) ) { 
+        printk( "open file error.../n" ) ; 
+        return ; 
+    } 
+    fs = get_fs( ) ; 
+    set_fs( KERNEL_DS) ; 
+    filp->f_op->write(filp, data, strlen ( data) , &filp->f_pos); 
+    set_fs( fs) ; 
+    filp_close( filp, NULL ) ; 
+} 
+void traversal_list_for_each( void ) 
+{ 
+
+    task = & init_task; 
+    count = 0; 
+    method= "list_for_each/n" ; 
+
+    do_gettimeofday( & start) ; 
+    list_for_each( pos, &task->tasks ) { 
+        p = list_entry( pos, struct task_struct, tasks ) ; 
+        count++ ; 
+        printk( KERN_ALERT "%d/t%s/n" , p->pid, p->comm ) ; 
+    } 
+    do_gettimeofday( & end) ; 
+    
+    print_message( ) ; 
+    
+} 
+
+void traversal_list_for_each_entry( void ) 
+{ 
+
+    task = & init_task; 
+    count = 0; 
+    method= "list_for_each_entry/n" ; 
+
+    do_gettimeofday( & start) ; 
+    list_for_each_entry( p, & task->tasks, tasks ) { 
+        count++ ; 
+        printk( KERN_ALERT "%d/t%s/n" , p->pid, p->comm ) ; 
+    } 
+    do_gettimeofday( & end) ; 
+
+    print_message( ) ; 
+} 
+
+void traversal_for_each_process( void ) 
+{ 
+    count = 0; 
+    method= "for_each_process/n" ; 
+
+    do_gettimeofday( & start) ; 
+    for_each_process( task) { 
+        count++; 
+        printk( KERN_ALERT "%d/t%s/n" , task->pid, task->comm ) ; 
+    } 
+    do_gettimeofday( & end) ; 
+            
+    print_message( ) ; 
+} 
+
+Makefile
+
+#
+## Variables needed to build the kernel module
+#
+#
+name      = trave_process
+
+obj-m += $(name).o
+
+all: build
+
+.PHONY: build install clean
+
+build:
+    make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules CONFIG_DEBUG_SECTION_MISMATCH=y
+
+install: build
+    -mkdir -p /lib/modules/`uname -r`/kernel/arch/x86/kernel/
+    cp $(name).ko /lib/modules/`uname -r`/kernel/arch/x86/kernel/
+    depmod /lib/modules/`uname -r`/kernel/arch/x86/kernel/$(name).ko
+
+clean:
+    [ -d /lib/modules/$(shell uname -r)/build ] && \
+    make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+
+编译、加载并运行后，可以根据进程链表(task_struct链表)遍历出当前系统内核中存在的进程
+
+Relevant Link:
+http://blog.csdn.net/tigerjibo/article/details/8299599
+http://www.cnblogs.com/chengxuyuancc/p/3376627.html
+http://blog.csdn.net/tody_guo/article/details/5447402 
+}}}
+
+=== 内核模块相关数据结构 ===
+==== THIS_MODULE宏 ====
+{{{
+和CURRENT宏有几分相似，可以通过THIS_MODULE宏来引用模块的struct module结构指针
+
+\linux-2.6.32.63\include\linux\module.h
+
+#ifdef MODULE
+    #define MODULE_GENERIC_TABLE(gtype,name)            \
+    extern const struct gtype##_id __mod_##gtype##_table        \
+      __attribute__ ((unused, alias(__stringify(name))))
+    
+    extern struct module __this_module;
+    #define THIS_MODULE (&__this_module)
+#else  /* !MODULE */
+    #define MODULE_GENERIC_TABLE(gtype,name)
+    #define THIS_MODULE ((struct module *)0)
+#endif
+
+__this_module这个符号是在加载到内核后才产生的。insmod命令执行后，会调用kernel/module.c里的一个系统调用sys_init_module，它会调用load_module函数，将用户空间传入的整个内核模块文件创建成一个内核模块，并返回一个struct module结构体，从此，内核中便以这个结构体代表这个内核模块。THIS_MODULE类似进程的CURRENT
+关于sys_init_module、load_module的系统调用内核代码原理分析，请参阅另一篇文章
+http://www.cnblogs.com/LittleHann/p/3920387.html
+}}}
+
+==== struct module ====
+{{{
+结构体struct module在内核中代表一个内核模块，通过insmod(实际执行init_module系统调用)把自己编写的内核模块插入内核时，模块便与一个 struct module结构体相关联，并成为内核的一部分，也就是说在内核中，以module这个结构体代表一个内核模块(和windows下kprocess、kthread的概念很类似)，从这里也可以看出，在内核领域，windows和linux在很多地方是异曲同工的
+
+struct module
+{
+    /*
+    1. enum module_state state
+    enum module_state
+    {
+        MODULE_STATE_LIVE,    //模块当前正常使用中(存活状态) 
+        MODULE_STATE_COMING,    //模块当前正在被加载
+        MODULE_STATE_GOING,    //模块当前正在被卸载
+    };
+    load_module函数中完成模块的部分创建工作后，把状态置为 MODULE_STATE_COMING
+    sys_init_module函数中完成模块的全部初始化工作后(包括把模块加入全局的模块列表，调用模块本身的初始化函数)，把模块状态置为MODULE_STATE_LIVE
+    使用rmmod工具卸载模块时，会调用系统调用delete_module，会把模块的状态置为MODULE_STATE_GOING
+    这是模块内部维护的一个状态
+    */
+    enum module_state state;
+
+    /*
+    2. struct list_head list
+    list是作为一个列表的成员，所有的内核模块都被维护在一个全局链表中，链表头是一个全局变量struct module *modules。任何一个新创建的模块，都会被加入到这个链表的头部
+    struct list_head 
+    {
+        struct list_head *next, *prev;
+    };
+    这里，我们需要再次理解一下，链表是内核中的一个重要的机制，包括进程、模块在内的很多东西都被以链表的形式进行组织，因为是双向循环链表，我们可以任何一个modules->next遍历并获取到当前内核中的任何链表元素，这
+在很多的枚举场景、隐藏、反隐藏的技术中得以应用
+    */
+    struct list_head list;
+    
+    /*
+    3. char name[MODULE_NAME_LEN]
+    name是模块的名字，一般会拿模块文件的文件名作为模块名。它是这个模块的一个标识
+    */
+    char name[MODULE_NAME_LEN];
+
+    /*
+    4. struct module_kobject mkobj
+    该成员是一个结构体类型，结构体的定义如下：
+    struct module_kobject
+    {
+        /*
+    4.1  struct kobject kobj
+        kobj是一个struct kobject结构体
+        kobject是组成设备模型的基本结构。设备模型是在2.6内核中出现的新的概念，因为随着拓扑结构越来越复杂，以及要支持诸如电源管理等新特性的要求，向新版本的内核明确提出了这样的要求：需要有一个对系统的一般性
+抽象描述。设备模型提供了这样的抽象
+        kobject最初只是被理解为一个简单的引用计数，但现在也有了很多成员，它所能处理的任务以及它所支持的代码包括：对象的引用计数；sysfs表述；结构关联；热插拔事件处理。下面是kobject结构的定义：
+        struct kobject 
+        {
+            
+            //k_name和name都是该内核对象的名称，在内核模块的内嵌kobject中，名称即为内核模块的名称 
+            const char      *k_name;
+            char            name[KOBJ_NAME_LEN];
+            /*
+            kref是该kobject的引用计数，新创建的kobject被加入到kset时(调用kobject_init)，引用计数被加1，然后kobject跟它的parent建立关联时，引用计数被加1，所以一个新创建的kobject，其引用计数总是为2
+            */
+            struct kref     kref; 
+            //entry是作为链表的节点，所有同一子系统下的所有相同类型的kobject被链接成一个链表组织在一起 
+            struct list_head    entry; 
+            //parent指向该kobject所属分层结构中的上一层节点，所有内核模块的parent是module 
+            struct kobject      *parent;
+            /*
+            成员kset就是嵌入相同类型结构的kobject集合。下面是struct kset结构体的定义：
+            struct kset 
+            {
+                struct subsystem    *subsys;
+                struct kobj_type    *ktype;
+                struct list_head    list;
+                spinlock_t          list_lock;
+                struct kobject      kobj;
+                struct kset_uevent_ops  * uevent_ops;
+            };
+            */
+            struct kset         *kset; 
+            //ktype则是模块的属性，这些属性都会在kobject的sysfs目录中显示 
+            struct kobj_type    *ktype;
+            //dentry则是文件系统相关的一个节点
+            struct dentry       *dentry;
+        };
+        */
+        struct kobject kobj;
+         
+        //mod指向包容它的struct module成员 
+        struct module *mod;
+        }; 
+    */
+    struct module_kobject mkobj;
+ 
+    struct module_param_attrs *param_attrs;
+    const char *version;
+    const char *srcversion;
+    
+    /* Exported symbols */
+    const struct kernel_symbol *syms;
+    unsigned int num_syms;
+    const unsigned long *crcs;
+
+    /* GPL-only exported symbols. */
+    const struct kernel_symbol *gpl_syms;
+    unsigned int num_gpl_syms;
+    const unsigned long *gpl_crcs;
+
+    unsigned int num_exentries;
+    const struct exception_table_entry *extable;
+
+    int (*init)(void);
+    /*
+    初始化相关
+    */
+    void *module_init;
+    void *module_core;
+    unsigned long init_size, core_size;
+    unsigned long init_text_size, core_text_size;
+    struct mod_arch_specific arch;
+    int unsafe;
+    int license_gplok;
+
+    #ifdef CONFIG_MODULE_UNLOAD
+    struct module_ref ref[NR_CPUS];
+    struct list_head modules_which_use_me;
+    struct task_struct *waiter;
+    void (*exit)(void);
+    #endif
+
+    #ifdef CONFIG_KALLSYMS
+    Elf_Sym *symtab;
+    unsigned long num_symtab;
+    char *strtab;
+    struct module_sect_attrs *sect_attrs;
+    #endif
+    void *percpu;
+    char *args;
+};
+
+从struct module结构体可以看出，在内核态，我们如果要枚举当前模块列表，可以使用
+
+1. struct module->list
+2. struct module->mkobj->kobj->entry
+3. struct module->mkobj->kobj->kset
+//通过它们三个都可以指向一个内核模块的链表
+
+Relevant Link:
+http://lxr.free-electrons.com/source/include/linux/module.h
+http://www.cs.fsu.edu/~baker/devices/lxr/http/source/linux/include/linux/module.h
+http://blog.chinaunix.net/uid-9525959-id-2001630.html
+http://blog.csdn.net/linweig/article/details/5044722
+}}}
+
+==== struct module_use ====
+{{{
+source/include/linux/module.h
+
+/* modules using other modules: kdb wants to see this. */
+struct module_use 
+{
+    struct list_head source_list;
+    struct list_head target_list;
+    struct module *source, *target;
+};
+
+"struct module_use"和"struct module->module_which_use_me"这两个结果共同组合和保证了内核模块中的依赖关系。
+如果模块B使用了模块A提供的函数，那么模块A和模块B之间就存在关系，可以从两个方面来看这种关系
+
+1. 模块B依赖模块A
+除非模块A已经驻留在内核内存，否则模块B无法装载
+
+2. 模块B引用模块A
+除非模块B已经移除，否则模块A无法从内核移除，在内核中，这种关系称之为"模块B使用模块A"
+对每个使用了模块A中函数的模块B，都会创建一个module_use结构体实例，该实例将被添加到模块A(被依赖的模块)的module实例中的modules_which_use_me链表中，modules_which_use_me指向模块B的module实例。
+明白了模块间的依赖关系在数据结构上的表现，可以很容易地枚举出所有模块的依赖关系
+}}}
+
+=== 文件系统相关数据结构 ===
+==== struct file ====
+{{{
+文件结构体代表一个打开的文件，系统中的每个打开的文件在内核空间都有一个关联的struct file。它由内核在打开文件时创建，并传递给在文件上进行操作的任何函数。在文件的所有实例都关闭后，内核释放这个数据结构
+
+struct file 
+{
+    /*
+     * fu_list becomes invalid after file_free is called and queued via
+     * fu_rcuhead for RCU freeing
+     */
+    union 
+    {
+        /*
+        定义在 linux/include/linux/list.h中 
+        struct list_head 
+        {
+            struct list_head *next, *prev;
+        };
+        用于通用文件对象链表的指针，所有打开的文件形成一个链表
+        */
+        struct list_head    fu_list;
+        /*
+        定义在linux/include/linux/rcupdate.h中  
+        struct rcu_head 
+        {
+            struct rcu_head *next;
+            void (*func)(struct rcu_head *head);
+        };
+        RCU(Read-Copy Update)是Linux 2.6内核中新的锁机制
+        */
+        struct rcu_head     fu_rcuhead;
+    } f_u;
+    
+    /*
+    定义在linux/include/linux/namei.h中
+    struct path 
+    {
+        /*
+        struct vfsmount *mnt的作用是指出该文件的已安装的文件系统，即指向VFS安装点的指针
+        */
+        struct vfsmount *mnt;
+        /*
+        struct dentry *dentry是与文件相关的目录项对象，指向相关目录项的指针
+        */
+        struct dentry *dentry;
+    };
+    */
+    struct path        f_path;
+#define f_dentry    f_path.dentry
+#define f_vfsmnt    f_path.mnt
+
+    /*
+　　 指向文件操作表的指针
+    定义在linux/include/linux/fs.h中，其中包含着与文件关联的操作，例如
+    struct file_operations 
+    {
+    struct module *owner;
+    loff_t (*llseek) (struct file *, loff_t, int);
+    ssize_t (*read) (struct file *, char __user *, size_t, loff_t *);
+    ssize_t (*write) (struct file *, const char __user *, size_t, loff_t *);
+    ssize_t (*aio_read) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
+    ssize_t (*aio_write) (struct kiocb *, const struct iovec *, unsigned long, loff_t);
+    int (*readdir) (struct file *, void *, filldir_t);
+    unsigned int (*poll) (struct file *, struct poll_table_struct *);
+    int (*ioctl) (struct inode *, struct file *, unsigned int, unsigned long);
+    long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+    long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
+    int (*mmap) (struct file *, struct vm_area_struct *);
+    int (*open) (struct inode *, struct file *);
+    int (*flush) (struct file *, fl_owner_t id);
+    int (*release) (struct inode *, struct file *);
+    int (*fsync) (struct file *, struct dentry *, int datasync);
+    int (*aio_fsync) (struct kiocb *, int datasync);
+    int (*fasync) (int, struct file *, int);
+    int (*lock) (struct file *, int, struct file_lock *);
+    ssize_t (*sendpage) (struct file *, struct page *, int, size_t, loff_t *, int);
+    unsigned long (*get_unmapped_area)(struct file *, unsigned long, unsigned long, unsigned long, unsigned long);
+    int (*check_flags)(int);
+    int (*flock) (struct file *, int, struct file_lock *);
+    ssize_t (*splice_write)(struct pipe_inode_info *, struct file *, loff_t *, size_t, unsigned int);
+    ssize_t (*splice_read)(struct file *, loff_t *, struct pipe_inode_info *, size_t, unsigned int);
+    int (*setlease)(struct file *, long, struct file_lock **);
+     };
+    当打开一个文件时，内核就创建一个与该文件相关联的struct file结构，其中的*f_op就指向的是具体对该文件进行操作的函数
+    例如用户调用系统调用read来读取该文件的内容时，那么系统调用read最终会陷入内核调用sys_read函数，而sys_read最终会调用于该文件关联的struct file结构中的f_op->read函数对文件内容进行读取
+    */
+    const struct file_operations    *f_op;
+    spinlock_t        f_lock;  /* f_ep_links, f_flags, no IRQ */
+
+    /*
+    typedef struct { volatile int counter; } atomic_t;
+    volatile修饰字段告诉gcc不要对该类型的数据做优化处理，对它的访问都是对内存的访问，而不是对寄存器的访问
+    f_count的作用是记录对文件对象的引用计数，也即当前有多少个进程在使用该文件
+    */
+    atomic_long_t        f_count;
+
+    /*
+    当打开文件时指定的标志，对应系统调用open的int flags参数。驱动程序为了支持非阻塞型操作需要检查这个标志
+    */
+    unsigned int         f_flags;
+
+    /*
+    对文件的读写模式，对应系统调用open的mod_t mode参数。如果驱动程序需要这个值，可以直接读取这个字段。
+    mod_t被定义为：
+    typedef unsigned int __kernel_mode_t;
+    typedef __kernel_mode_t         mode_t;
+    */
+    fmode_t            f_mode;
+
+    /*
+    当前的文件指针位置，即文件的读写位置
+    loff_t被定义为：
+    typedef long long       __kernel_loff_t;
+    typedef __kernel_loff_t         loff_t;
+    */
+    loff_t            f_pos;
+
+    /*
+    struct fown_struct在linux/include/linux/fs.h被定义 
+    struct fown_struct 
+    {
+        rwlock_t lock;          /* protects pid, uid, euid fields */
+        struct pid *pid;        /* pid or -pgrp where SIGIO should be sent */
+        enum pid_type pid_type; /* Kind of process group SIGIO should be sent to */
+        uid_t uid, euid;        /* uid/euid of process setting the owner */
+        int signum;             /* posix.1b rt signal to be delivered on IO */
+    };
+    该结构的作用是通过信号进行I/O时间通知的数据
+    */
+    struct fown_struct    f_owner;
+    const struct cred    *f_cred;
+
+    /*
+    struct file_ra_state结构被定义在/linux/include/linux/fs.h中 
+    struct file_ra_state 
+    {
+        pgoff_t start;                  /* where readahead started */
+        unsigned long size;             /* # of readahead pages */
+        unsigned long async_size;       /* do asynchronous readahead when
+                           there are only # of pages ahead */
+                           
+        unsigned long ra_pages;         /* Maximum readahead window */
+        unsigned long mmap_hit;         /* Cache hit stat for mmap accesses */
+        unsigned long mmap_miss;        /* Cache miss stat for mmap accesses */
+        unsigned long prev_index;       /* Cache last read() position */
+        unsigned int prev_offset;       /* Offset where last read() ended in a page */
+    };
+    该结构标识了文件预读状态，文件预读算法使用的主要数据结构，当打开一个文件时，f_ra中出了perv_page(默认为－1)和ra_apges(对该文件允许的最大预读量)这两个字段外，其他的所有西端都置为0
+    */
+    struct file_ra_state    f_ra;
+    
+    /*
+    记录文件的版本号，每次使用后都自动递增
+    */
+    u64            f_version;
+#ifdef CONFIG_SECURITY
+    /*
+    #ifdef CONFIG_SECURITY
+        void                    *f_security;
+    #endif
+    如果在编译内核时配置了安全措施，那么struct file结构中就会有void *f_security数据项，用来描述安全措施或者是记录与安全有关的信息。
+    */
+    void            *f_security;
+#endif
+    /*
+    系统在调用驱动程序的open方法前将这个指针置为NULL。驱动程序可以将这个字段用于任意目的，也可以忽略这个字段。驱动程序可以用这个字段指向已分配的数据，但是一定要在内核释放file结构前的release方法中清除它
+    */
+    void            *private_data;
+
+#ifdef CONFIG_EPOLL
+    /*
+    被用在fs/eventpoll.c来链接所有钩到这个文件上。其中
+        1) f_ep_links是文件的事件轮询等待者链表的头
+        2) f_ep_lock是保护f_ep_links链表的自旋锁
+    */
+    struct list_head    f_ep_links;
+    struct list_head    f_tfile_llink;
+#endif /* #ifdef CONFIG_EPOLL */
+
+    /*
+    struct address_space被定义在/linux/include/linux/fs.h中，此处是指向文件地址空间的指针 
+    */
+    struct address_space    *f_mapping;
+#ifdef CONFIG_DEBUG_WRITECOUNT
+    unsigned long f_mnt_write_state;
+#endif
+};
+
+每个文件对象总是包含在下列的一个双向循环链表之中
+
+
+1. "未使用"文件对象的链表
+该链表既可以用做文件对象的内存高速缓存，又可以当作超级用户的备用存储器，也就是说，即使系统的动态内存用完，也允许超级用户打开文件。由于这些对象是未使用的，它们的f_count域是NULL，该链表首元素的地址存放在变量
+free_list中，内核必须确认该链表总是至少包含NR_RESERVED_FILES个对象，通常该值设为10
+
+2. "正在使用"文件对的象链表
+该链表中的每个元素至少由一个进程使用，因此，各个元素的f_count域不会为NULL，该链表中第一个元素的地址存放在变量anon_list中
+如果VFS需要分配一个新的文件对象，就调用函数get_empty_filp()。该函数检测"未使用"文件对象链表的元素个数是否多于NR_RESERVED_FILES，如果是，可以为新打开的文件使用其中的一个元素；如果没有，则退回到正常的内存
+分配(也就是说这是一种高速缓存机制)
+
+Relevant Link:
+http://linux.chinaunix.net/techdoc/system/2008/07/24/1020195.shtml
+http://blog.csdn.net/fantasyhujian/article/details/9166117
+}}}
+
+==== struct inode ====
+{{{
+我们知道，在linux内核中，用file结构表示打开的文件描述符，而用inode结构表示具体的文件
+
+struct inode 
+{    
+    /*
+    哈希表 
+    */
+    struct hlist_node    i_hash;
+
+    /*
+    索引节点链表(backing dev IO list)
+    */
+    struct list_head    i_list;     
+    struct list_head    i_sb_list;
+
+    /*
+    目录项链表
+    */
+    struct list_head    i_dentry;
+
+    /*
+    节点号
+    */
+    unsigned long        i_ino;
+
+    /*
+    引用记数
+    */
+    atomic_t        i_count;
+
+    /*
+    硬链接数
+    */
+    unsigned int        i_nlink;
+
+    /*
+    使用者id
+    */
+    uid_t            i_uid;
+
+    /*
+    使用者所在组id
+    */
+    gid_t            i_gid;
+
+    /*
+    实设备标识符
+    */
+    dev_t            i_rdev;
+
+    /*
+    版本号
+    */
+    u64            i_version;
+
+    /*
+    以字节为单位的文件大小
+    */
+    loff_t            i_size;
+#ifdef __NEED_I_SIZE_ORDERED
+    seqcount_t        i_size_seqcount;
+#endif
+    /*
+    最后访问时间
+    */
+    struct timespec        i_atime;
+
+    /*
+    最后修改(modify)时间
+    */
+    struct timespec        i_mtime;
+
+    /*
+    最后改变(change)时间
+    */
+    struct timespec        i_ctime;
+
+    /*
+    文件的块数
+    */
+    blkcnt_t        i_blocks;
+
+    /*
+    以位为单位的块大小
+    */ 
+    unsigned int        i_blkbits;
+    
+    /*
+    使用的字节数
+    */
+    unsigned short          i_bytes;
+
+    /*
+    访问权限控制
+    */
+    umode_t            i_mode;
+    
+    /*
+    自旋锁 
+    */
+    spinlock_t        i_lock;     
+    struct mutex        i_mutex;
+
+    /*
+    索引节点信号量
+    */
+    struct rw_semaphore    i_alloc_sem;
+
+    /*
+    索引节点操作表
+    索引节点的操作inode_operations定义在linux/fs.h
+    struct inode_operations 
+    {
+        /*
+        1. VFS通过系统调用create()和open()来调用该函数，从而为dentry对象创建一个新的索引节点。在创建时使用mode制定初始模式
+        */
+        int (*create) (struct inode *, struct dentry *,int); 
+        /*
+        2. 该函数在特定目录中寻找索引节点，该索引节点要对应于dentry中给出的文件名
+        */
+        struct dentry * (*lookup) (struct inode *, struct dentry *); 
+        /*
+        3. 该函数被系统调用link()调用，用来创建硬连接。硬链接名称由dentry参数指定，连接对象是dir目录中ld_dentry目录想所代表的文件
+        */
+        int (*link) (struct dentry *, struct inode *, struct dentry *); 
+        /*
+        4. 该函数被系统调用unlink()调用，从目录dir中删除由目录项dentry制动的索引节点对象
+        */
+        int (*unlink) (struct inode *, struct dentry *); 
+        /*
+        5. 该函数被系统调用symlik()调用，创建符号连接，该符号连接名称由symname指定，连接对象是dir目录中的dentry目录项
+        */
+        int (*symlink) (struct inode *, struct dentry *, const char *); 
+        /*
+        6. 该函数被mkdir()调用，创建一个新路径。创建时使用mode制定的初始模式
+        */
+        int (*mkdir) (struct inode *, struct dentry *, int); 
+        /*
+        7. 该函数被系统调用rmdir()调用，删除dir目录中的dentry目录项代表的文件
+        */
+        int (*rmdir) (struct inode *, struct dentry *); 
+        /*
+        8. 该函数被系统调用mknod()调用，创建特殊文件(设备文件、命名管道或套接字)。要创建的文件放在dir目录中，其目录项问dentry，关联的设备为rdev，初始权限由mode指定
+        */
+        int (*mknod) (struct inode *, struct dentry *, int, dev_t); 
+        /*
+        9. VFS调用该函数来移动文件。文件源路径在old_dir目录中，源文件由old_dentry目录项所指定，目标路径在new_dir目录中，目标文件由new_dentry指定
+        */
+        int (*rename) (struct inode *, struct dentry *, struct inode *, struct dentry *); 
+        /*
+        10. 该函数被系统调用readlink()调用，拷贝数据到特定的缓冲buffer中。拷贝的数据来自dentry指定的符号链接，最大拷贝大小可达到buflen字节
+        */
+        int (*readlink) (struct dentry *, char *, int); 
+        /*
+        11. 该函数由VFS调用，从一个符号连接查找他指向的索引节点，由dentry指向的连接被解析
+        */
+        int (*follow_link) (struct dentry *, struct nameidata *); 
+        /*
+        12. 在follow_link()调用之后，该函数由vfs调用进行清楚工作
+        */
+        int (*put_link) (struct dentry *, struct nameidata *); 
+        /*
+        13. 该函数由VFS调用，修改文件的大小，在调用之前，索引节点的i_size项必须被设置成预期的大小
+        */
+        void (*truncate) (struct inode *);
+        
+        /*
+        该函数用来检查inode所代表的文件是否允许特定的访问模式，如果允许特定的访问模式，返回0，否则返回负值的错误码。多数文件系统都将此区域设置为null，使用VFS提供的通用方法进行检查，这种检查操作仅仅比较索引
+及诶但对象中的访问模式位是否和mask一致，比较复杂的系统， 比如支持访问控制链(ACL)的文件系统，需要使用特殊的permission()方法
+        */
+        int (*permission) (struct inode *, int);
+        
+        /*
+        该函数被notify_change调用，在修改索引节点之后，通知发生了改变事件
+        */
+        int (*setattr) (struct dentry *, struct iattr *);
+        
+        /*
+        在通知索引节点需要从磁盘中更新时，VFS会调用该函数
+        */
+        int (*getattr) (struct vfsmount *, struct dentry *, struct kstat *);
+        
+        /*
+        该函数由VFS调用，向dentry指定的文件设置扩展属性，属性名为name，值为value
+        */
+        int (*setxattr) (struct dentry *, const char *, const void *, size_t, int);
+        
+        /*
+        该函数被VFS调用，向value中拷贝给定文件的扩展属性name对应的数值
+        */
+        ssize_t (*getxattr) (struct dentry *, const char *, void *, size_t);
+        
+        /*
+        该函数将特定文件所有属性别表拷贝到一个缓冲列表中
+        */
+        ssize_t (*listxattr) (struct dentry *, char *, size_t);
+        
+        /*
+        该函数从给定文件中删除指定的属性
+        */
+        int (*removexattr) (struct dentry *, const char *);        
+    };
+    */
+    const struct inode_operations    *i_op;
+
+    /*
+    默认的索引节点操作
+    former ->i_op->default_file_ops
+    */
+    const struct file_operations    *i_fop;     
+
+    /*
+    相关的超级块
+    */
+    struct super_block    *i_sb;
+
+    /*
+    文件锁链表
+    */
+    struct file_lock    *i_flock;
+
+    /*
+    相关的地址映射
+    */
+    struct address_space    *i_mapping;
+
+    /*
+    设备地址映射
+　　address_space结构与文件的对应：一个具体的文件在打开后，内核会在内存中为之建立一个struct inode结构，其中的i_mapping域指向一个address_space结构。这样，一个文件就对应一个address_space结构，一个 address_space与一个偏移量能够确定一个page cache 或swap cache中的一个页面。因此，当要寻址某个数据时，很容易根据给定的文件及数据在文件内的偏移量而找到相应的页面
+    */
+    struct address_space    i_data;
+#ifdef CONFIG_QUOTA
+    /*
+    节点的磁盘限额
+    */
+    struct dquot        *i_dquot[MAXQUOTAS];
+#endif
+    /*
+    块设备链表
+    */
+    struct list_head    i_devices;
+    union 
+    {
+        //管道信息
+        struct pipe_inode_info    *i_pipe;
+        //块设备驱动
+        struct block_device    *i_bdev;
+        struct cdev        *i_cdev;
+    };
+    
+    /*
+    索引节点版本号
+    */
+    __u32            i_generation;
+
+#ifdef CONFIG_FSNOTIFY
+    /*
+    目录通知掩码
+    all events this inode cares about
+    */
+    __u32            i_fsnotify_mask;  
+    struct hlist_head    i_fsnotify_mark_entries; /* fsnotify mark entries */
+#endif
+
+#ifdef CONFIG_INOTIFY
+    struct list_head    inotify_watches; /* watches on this inode */
+    struct mutex        inotify_mutex;    /* protects the watches list */
+#endif
+    /*
+    状态标志
+    */
+    unsigned long        i_state;
+
+    /*
+    首次修改时间
+    jiffies of first dirtying
+    */
+    unsigned long        dirtied_when;     
+    
+    /*
+    文件系统标志
+    */
+    unsigned int        i_flags;
+
+    /*
+    写者记数
+    */
+    atomic_t        i_writecount;
+#ifdef CONFIG_SECURITY
+    /*
+    安全模块
+    */
+    void            *i_security;
+#endif
+#ifdef CONFIG_FS_POSIX_ACL
+    struct posix_acl    *i_acl;
+    struct posix_acl    *i_default_acl;
+#endif
+    void            *i_private; /* fs or device private pointer */
+};
+}}}
+
+==== struct stat ====
+{{{
+struct stat在我们进行文件、目录属性读写的时候、磁盘IO状态监控的时候常常会用到的数据结构
+
+/*
+struct stat  
+{   
+    dev_t       st_dev;     // ID of device containing file -文件所在设备的ID  
+    ino_t       st_ino;     // inode number -inode节点号  
+    mode_t      st_mode;    // protection -保护模式?  
+    nlink_t     st_nlink;   // number of hard links -链向此文件的连接数(硬连接)   
+    uid_t       st_uid;     // user ID of owner -user id 
+    gid_t       st_gid;     // group ID of owner - group id 
+    dev_t       st_rdev;    // device ID (if special file) -设备号，针对设备文件  
+    off_t       st_size;    // total size, in bytes -文件大小，字节为单位  
+    blksize_t   st_blksize; // blocksize for filesystem I/O -系统块的大小   
+    blkcnt_t    st_blocks;  // number of blocks allocated -文件所占块数
+    
+    time_t      st_atime;   // time of last access - 最近存取时间  
+    time_t      st_mtime;   // time of last modification - 最近修改时间  
+    time_t      st_ctime;   // time of last status change - 最近创建时间 
+};  
+*/
+
+Relevant Link:
+http://blog.sina.com.cn/s/blog_7943319e01018m4h.html
+http://www.cnblogs.com/QJohnson/archive/2011/06/24/2089414.html
+http://blog.csdn.net/tianmohust/article/details/6609470
+Each process on the system has its own list of open files, root filesystem, current working directory, mount points, and so on. Three data structures tie together the VFS layer and the processes on the system: the files_struct,fs_struct, and namespace structure.
+
+The second process-related structure is fs_struct, which contains filesystem information related to a process and is pointed at by the fs field in the process descriptor. The structure is defined in <linux/fs_struct.h>. Here it is, with comments:
+}}}
+
+==== struct fs_struct ====
+{{{
+文件系统相关信息结构体
+
+struct fs_struct 
+{
+    atomic_t count;            //共享这个表的进程个数
+    rwlock_t lock;            //用于表中字段的读/写自旋锁
+    int umask;            //当打开文件设置文件权限时所使用的位掩码
+    
+    struct dentry * root;        //根目录的目录项 
+    struct dentry * pwd;        //当前工作目录的目录项
+    struct dentry * altroot;    //模拟根目录的目录项（在80x86结构上始终为NULL）
+
+    struct vfsmount * rootmnt;    //根目录所安装的文件系统对象
+    struct vfsmount* pwdmnt;    //当前工作目录所安装的文件系统对象  
+    struct vfsmount* altrootmnt;    //模拟根目录所安装的文件系统对象（在80x86结构上始终为NULL）
+};
+}}}
+
+==== struct files_struct ====
+{{{
+The files_struct is defined in <linux/file.h>. This table's address is pointed to by the files enTRy in the processor descriptor. All per-process information about open files and file descriptors is contained therein. Here it is, with comments:
+
+表示进程当前打开的文件，表的地址存放于进程描述符task_struct的files字段，每个进程用一个files_struct结构来记录文件描述符的使用情况，这个files_struct结构称为用户打开文件表，它是进程的私有数据
+
+struct files_struct 
+{
+    atomic_t count;                    //共享该表的进程数
+
+    struct fdtable *fdt;                //指向fdtable结构的指针
+    struct fdtable fdtab;                //指向fdtable结构
+
+    spinlock_t file_lock ____cacheline_aligned_in_smp;
+    int next_fd;                    //已分配的文件描述符加1
+    struct embedded_fd_set close_on_exec_init;    //指向执行exec()时需要关闭的文件描述符
+    struct embedded_fd_set open_fds_init;        //文件描述符的初值集合
+    struct file * fd_array[NR_OPEN_DEFAULT];        //文件对象指针的初始化数组
+};
+}}}
+
+==== struct fdtable ====
+{{{
+struct fdtable 
+{
+    unsigned int max_fds;
+    int max_fdset;
+
+    /* 
+    current fd array 
+    指向文件对象的指针数组，通常，fd字段指向files_struct结构的fd_array字段，该字段包括32个文件对象指针。如果进程打开的文件数目多于32，内核就分配一个新的、更大的文件指针数组，并将其地址存放在fd字段中，
+内核同时也更新max_fds字段的值
+    
+    对于在fd数组中所有元素的每个文件来说，数组的索引就是文件描述符(file descriptor)。通常，数组的第一个元素(索引为0)是进程的标准输入文件，数组的第二个元素(索引为1)是进程的标准输出文件，数组的第三个元素
+(索引为2)是进程的标准错误文件
+    */
+    struct file ** fd;      
+
+    fd_set *close_on_exec;
+    fd_set *open_fds;
+    struct rcu_head rcu;
+    struct files_struct *free_files;
+    struct fdtable *next;
+};
+#define NR_OPEN_DEFAULT BITS_PER_LONG
+#define BITS_PER_LONG 32  /* asm-i386 */
+
+Relevant Link:
+http://oss.org.cn/kernel-book/ch08/8.2.4.htm
+http://www.makelinux.net/books/lkd2/ch12lev1sec10
+
+用一张图表示task_struct、fs_struct、files_struct、fdtable、file的关系
+}}}
+{{local:images/linux_struct_fs_relationship.png}}
+
+==== struct dentry ====
+{{{
+struct dentry 
+{
+    //目录项引用计数器 
+    atomic_t d_count;
+
+    /*
+    目录项标志 protected by d_lock 
+    #define DCACHE_AUTOFS_PENDING 0x0001    // autofs: "under construction"  
+    #define DCACHE_NFSFS_RENAMED  0x0002    // this dentry has been "silly renamed" and has to be eleted on the last dput() 
+    #define    DCACHE_DISCONNECTED 0x0004        //指定了一个dentry当前没有连接到超级块的dentry树
+    #define DCACHE_REFERENCED    0x0008      //Recently used, don't discard.  
+    #define DCACHE_UNHASHED        0x0010        //该dentry实例没有包含在任何inode的散列表中
+    #define DCACHE_INOTIFY_PARENT_WATCHED    0x0020 // Parent inode is watched by inotify 
+    #define DCACHE_COOKIE        0x0040        // For use by dcookie subsystem 
+    #define DCACHE_FSNOTIFY_PARENT_WATCHED    0x0080 // Parent inode is watched by some fsnotify listener 
+    */
+    unsigned int d_flags;    
+
+    //per dentry lock    
+    spinlock_t d_lock;        
+
+    //当前dentry对象表示一个装载点，那么d_mounted设置为1，否则为0
+    int d_mounted;
+
+    /*
+    文件名所属的inode，如果为NULL，则表示不存在的文件名
+    如果dentry对象是一个不存在的文件名建立的，则d_inode为NULL指针，这有助于加速查找不存在的文件名，通常情况下，这与查找实际存在的文件名同样耗时
+    */
+    struct inode *d_inode;         
+    /*
+    The next three fields are touched by __d_lookup.  Place them here so they all fit in a cache line.
+    */
+    //用于查找的散列表 lookup hash list 
+    struct hlist_node d_hash;    
+
+    /*
+    指向当前的dentry实例的父母了的dentry实例 parent directory
+    当前的dentry实例即位于父目录的d_subdirs链表中，对于根目录(没有父目录)，d_parent指向其自身的dentry实例
+    */  
+    struct dentry *d_parent;
+
+    /*
+    d_iname指定了文件的名称，qstr是一个内核字符串的包装器，它存储了实际的char*字符串以及字符串长度和散列值，这使得更容易处理查找工作
+    要注意的是，这里并不存储绝对路径，而是只有路径的最后一个分量，例如对/usr/bin/emacs只存储emacs，因为在linux中，路径信息隐含在了dentry层次链表结构中了
+    */    
+    struct qstr d_name;
+
+    //LRU list
+    struct list_head d_lru;        
+    /*
+     * d_child and d_rcu can share memory
+     */
+    union 
+    {
+        /* child of parent list */
+        struct list_head d_child;
+        //链表元素，用于将dentry连接到inode的i_dentry链表中    
+         struct rcu_head d_rcu;
+    } d_u;
+
+    //our children 子目录/文件的目录项链表
+    struct list_head d_subdirs;    
+
+    /*
+    inode alias list 链表元素，用于将dentry连接到inode的i_dentry链表中 
+    d_alias用作链表元素，以连接表示相同文件的各个dentry对象，在利用硬链接用两个不同名称表示同一文件时，会发生这种情况，对应于文件的inode的i_dentry成员用作该链表的表头，各个dentry对象通过d_alias连接到该链表中
+    */
+    struct list_head d_alias;    
+
+    //used by d_revalidate 
+    unsigned long d_time;
+
+    /*
+    d_op指向一个结构，其中包含了各种函数指针，提供对dentry对象的各种操作，这些操作必须由底层文件系统实现
+    struct dentry_operations 
+    {
+        //在把目录项对象转换为一个文件路径名之前，判定该目录项对象是否依然有效
+        int (*d_revalidate)(struct dentry *, struct nameidata *);
+
+        //生成一个散列值，用于目录项散列表
+        int (*d_hash) (struct dentry *, struct qstr *);
+        
+        //比较两个文件名
+        int (*d_compare) (struct dentry *, struct qstr *, struct qstr *);
+
+        //当对目录项对象的最后一个引用被删除，调用该方法
+        int (*d_delete)(struct dentry *);
+
+        //当要释放一个目录项对象时，调用该方法
+        void (*d_release)(struct dentry *);
+
+        //当一个目录对象变为负状态时，调用该方法
+        void (*d_iput)(struct dentry *, struct inode *);
+        char *(*d_dname)(struct dentry *, char *, int);
+    };
+    */        
+    const struct dentry_operations *d_op;
+
+    //The root of the dentry tree dentry树的根，超级块
+    struct super_block *d_sb;    
+
+    //fs-specific data 特定文件系统的数据
+    void *d_fsdata;            
+
+    /*
+    短文件名small names存储在这里
+    如果文件名由少量字符组成，则只保存在d_iname中，而不是dnanme中，用于加速访问
+    */ 
+    unsigned char d_iname[DNAME_INLINE_LEN_MIN];    
+};
+
+Relevant Link:
+http://blog.csdn.net/fudan_abc/article/details/1775313
+}}}
+
+==== struct vfsmount ====
+{{{
+struct vfsmount
+{
+    struct list_head mnt_hash;
+
+    //装载点所在的父文件系统的vfsmount结构 fs we are mounted on，文件系统之间的父子关系就是这样实现的
+    struct vfsmount *mnt_parent;    
+
+    //装载点在父文件系统中的dentry(即装载点自身对应的dentry) dentry of mountpoint 
+    struct dentry *mnt_mountpoint;    
+
+    //当前文件系统的相对根目录的dentry root of the mounted tree 
+    struct dentry *mnt_root;    
+
+    /*
+    指向超级块的指针 pointer to superblock 
+    mnt_sb指针建立了与相关的超级块之间的关联(对每个装载的文件系统而言，都有且只有一个超级块实例)
+    */
+    struct super_block *mnt_sb;    
+
+    //子文件系统链表 
+    struct list_head mnt_mounts;    
+    //链表元素，用于父文件系统中的mnt_mounts链表
+    struct list_head mnt_child;    
+
+    /*
+    #define MNT_NOSUID    0x01 (禁止setuid执行)
+    #define MNT_NODEV    0x02 (装载的文件系统是虚拟的，没有物理后端设备)
+    #define MNT_NOEXEC    0x04
+    #define MNT_NOATIME    0x08
+    #define MNT_NODIRATIME    0x10
+    #define MNT_RELATIME    0x20
+    #define MNT_READONLY    0x40    // does the user want this to be r/o?  
+    #define MNT_STRICTATIME 0x80
+    #define MNT_SHRINKABLE    0x100 (专用于NFS、AFS 用来标记子装载，设置了该标记的装载允许自动移除)
+    #define MNT_WRITE_HOLD    0x200
+    #define MNT_SHARED    0x1000        // if the vfsmount is a shared mount (共享装载)
+    #define MNT_UNBINDABLE    0x2000    // if the vfsmount is a unbindable mount (不可绑定装载)
+    #define MNT_PNODE_MASK    0x3000    // propagation flag mask (传播标志掩码) 
+    */
+    int mnt_flags;
+    /* 4 bytes hole on 64bits arches */
+
+    //设备名称，例如/dev/dsk/hda1 Name of device e.g. /dev/dsk/hda1 
+    const char *mnt_devname;    
+    struct list_head mnt_list;
+
+    //链表元素，用于特定于文件系统的到期链表中 link in fs-specific expiry list 
+    struct list_head mnt_expire;
+
+    //链表元素，用于共享装载的循环链表 circular list of shared mounts     
+    struct list_head mnt_share;    
+
+    //从属装载的链表 list of slave mounts 
+    struct list_head mnt_slave_list;
+    //链表元素，用于从属装载的链表 slave list entry 
+    struct list_head mnt_slave;    
+
+    //指向主装载，从属装载位于master->mnt_slave_list链表上 slave is on master->mnt_slave_list 
+    struct vfsmount *mnt_master;    
+
+    //所属的命名空间 containing namespace 
+    struct mnt_namespace *mnt_ns;    
+    int mnt_id;            /* mount identifier */
+    int mnt_group_id;        /* peer group identifier */
+    /*
+    mnt_count实现了一个使用计数器，每当一个vfsmount实例不再需要时，都必须用mntput将计数器减1.mntget与mntput相对
+    We put mnt_count & mnt_expiry_mark at the end of struct vfsmount to let these frequently modified fields in a separate cache line (so that reads of mnt_flags wont ping-pong on SMP machines)
+    把mnt_count和mnt_expiry_mark防止在struct vfsmount的末尾，以便让这些频繁修改的字段与结构的主体处于两个不同的缓存行中(这样在SMP机器上读取mnt_flags不会造成高速缓存的颠簸)
+    */
+    atomic_t mnt_count;
+
+    //如果标记为到期，则其值为true true if marked for expiry 
+    int mnt_expiry_mark;        
+    int mnt_pinned;
+    int mnt_ghosts;
+#ifdef CONFIG_SMP
+    int *mnt_writers;
+#else
+    int mnt_writers;
+#endif
+};
+
+Relevant Link: 
+http://www.cnblogs.com/Wandererzj/archive/2012/04/12/2444888.html
+}}}
+
+==== struct nameidata ====
+{{{
+路径查找是VFS的一个很重要的操作：给定一个文件名，获取该文件名的inode。路径查找是VFS中相当繁琐的一部分，主要是因为
+1. 符号链接
+一个文件可能通过符号链接引用另一个文件，查找代码必须考虑到这种可能性，能够识别出链接，并在相应的处理后跳出循环
+
+2. 文件系统装载点
+必须检测装载点，而后据此重定向查找操作
+
+3. 在通向目标文件名的路径上，必须检查所有目录的访问权限，进程必须有适当的权限，否则操作将终止，并给出错误信息
+
+4. . ..和//等特殊路径引入了复杂性
+
+路径查找过程涉及到很多函数调用，在这些调用过程中，nameidata起到了很重要的作用：
+
+1. 向查找函数传递参数
+2. 保存查找结果 
+inode是类Unix系统的文件系统的基本索引方法，每个文件都对应一个inode，再通过inode找到文件中的实际数据，因此根据文件路径名找到具体的inode节点就是一个很重要的处理步骤。系统会缓存用过的每个文件或目录对应的dentry结构, 从该结构可以指向相应的inode, 每次打开文件, 都会最终对应到文件的inode，中间查找过程称为namei
+
+结构体定义如下
+struct nameidata 
+{
+    /*
+    用于确定文件路径
+    struct path 
+    {
+        struct vfsmount *mnt;
+        struct dentry *dentry;
+    };
+    */
+    struct path    path;
+
+    //需要查找的名称，这是一个快速字符串，除了路径字符串本身外，还包含字符串的长度和一个散列值
+    struct qstr    last;
+
+    //
+    struct path    root;
+    unsigned int    flags;
+    int        last_type;
+
+    //当前路径深度
+    unsigned    depth;
+
+    //由于在符号链接处理时，nd的名字一直发生变化，这里用来保存符号链接处理中的路径名
+    char *saved_names[MAX_NESTED_LINKS + 1];
+
+    /* Intent data */
+    union 
+    {
+        struct open_intent open;
+    } intent;
+};
+
+Relevant Link:
+http://man7.org/linux/man-pages/man7/path_resolution.7.html
+http://blog.sina.com.cn/s/blog_4a2f24830100l2h4.html
+http://blog.csdn.net/kickxxx/article/details/9529961
+http://blog.csdn.net/air_snake/article/details/2690554
+http://losemyheaven.blog.163.com/blog/static/17071980920124593256317/
+}}}
+
+==== struct super_block ====
+{{{
+/source/include/linux/fs.h
+
+struct super_block 
+{
+    /* 
+    Keep this first 
+    指向超级块链表的指针，用于将系统中所有的超级块聚集到一个链表中，该链表的表头是全局变量super_blocks
+    */
+    struct list_head    s_list;
+
+    /* 
+    search index; _not_ kdev_t 
+    设备标识符
+    */        
+    dev_t            s_dev;        
+
+    //以字节为单位的块大小
+    unsigned long        s_blocksize;
+
+    //以位为单位的块大小
+    unsigned char        s_blocksize_bits;
+
+    //修改脏标志，如果以任何方式改变了超级块，需要向磁盘回写，都会将s_dirt设置为1，否则为0
+    unsigned char        s_dirt;
+
+    //文件大小上限 Max file size
+    loff_t            s_maxbytes;     
+
+    //文件系统类型
+    struct file_system_type    *s_type; 
+
+    /*
+    struct super_operations 
+    {
+        //给定的超级块下创建和初始化一个新的索引节点对象； 
+        struct inode *(*alloc_inode)(struct super_block *sb);
+
+        //用于释放给定的索引节点； 
+        void (*destroy_inode)(struct inode *);
+
+        //VFS在索引节点脏（被修改）时会调用此函数，日志文件系统（如ext3,ext4）执行该函数进行日志更新； 
+        void (*dirty_inode) (struct inode *);
+
+        //用于将给定的索引节点写入磁盘，wait参数指明写操作是否需要同步； 
+        int (*write_inode) (struct inode *, struct writeback_control *wbc);
+
+        //在最后一个指向索引节点的引用被释放后，VFS会调用该函数，VFS只需要简单地删除这个索引节点后，普通Uinx文件系统就不会定义这个函数了；
+        void (*drop_inode) (struct inode *);
+
+        //用于从磁盘上删除给定的索引节点； 
+        void (*delete_inode) (struct inode *);
+
+        //在卸载文件系统时由VFS调用，用来释放超级块，调用者必须一直持有s_lock锁；
+        void (*put_super) (struct super_block *);
+
+        //用给定的超级块更新磁盘上的超级块。VFS通过该函数对内存中的超级块和磁盘中的超级块进行同步。调用者必须一直持有s_lock锁； 
+        void (*write_super) (struct super_block *);
+
+        //使文件系统的数据元与磁盘上的文件系统同步。wait参数指定操作是否同步； 
+        int (*sync_fs)(struct super_block *sb, int wait);
+        int (*freeze_fs) (struct super_block *);
+        int (*unfreeze_fs) (struct super_block *);
+
+         //VFS通过调用该函数获取文件系统状态。指定文件系统县官的统计信息将放置在statfs中； 
+        int (*statfs) (struct dentry *, struct kstatfs *);
+
+        //当指定新的安装选项重新安装文件系统时，VFS会调用该函数。调用者必须一直持有s_lock锁； 
+        int (*remount_fs) (struct super_block *, int *, char *);
+
+        //VFS调用该函数释放索引节点，并清空包含相关数据的所有页面； 
+        void (*clear_inode) (struct inode *);
+
+        //VFS调用该函数中断安装操作。该函数被网络文件系统使用，如NFS； 
+        void (*umount_begin) (struct super_block *);
+
+        int (*show_options)(struct seq_file *, struct vfsmount *);
+        int (*show_stats)(struct seq_file *, struct vfsmount *);
+        #ifdef CONFIG_QUOTA
+        ssize_t (*quota_read)(struct super_block *,
+        int, char *, size_t, loff_t);
+        ssize_t (*quota_write)(struct super_block *,
+        int, const char *, size_t, loff_t);
+        #endif
+        int (*bdev_try_to_free_page)(struct super_block*,
+        struct page*, gfp_t);
+    };
+    */
+    const struct super_operations    *s_op;
+
+    //磁盘限额方法
+    const struct dquot_operations    *dq_op;
+
+    //磁盘限额方法
+    const struct quotactl_ops    *s_qcop;
+
+    //导出方法
+    const struct export_operations *s_export_op;
+
+    //挂载标志 
+    unsigned long        s_flags;
+
+    //文件系统魔数
+    unsigned long        s_magic;
+
+    //目录挂载点，s_root将超级块与全局根目录的dentry项关联起来，只有通常可见的文件系统的超级块，才指向/(根)目录的dentry实例。具有特殊功能、不出现在通常的目录层次结构中的文件系统(例如管道或套接字文件系统)，指向专门的项，不能通过普通的文件命令访问。处理文件系统对象的代码经常需要检查文件系统是否已经装载，而s_root可用于该目的，如果它为NULL，则该文件系统是一个伪文件系统，只在内核内部可见。否则，该文件系统在用户空间中是可见的
+    struct dentry        *s_root;
+
+    //卸载信号量
+    struct rw_semaphore    s_umount;
+
+    //超级块信号量
+    struct mutex        s_lock;
+
+    //引用计数
+    int            s_count;
+
+    //尚未同步标志
+    int            s_need_sync;
+
+    //活动引用计数
+    atomic_t        s_active;
+#ifdef CONFIG_SECURITY
+    //安全模块
+    void                    *s_security;
+#endif
+    struct xattr_handler    **s_xattr;
+
+    //all inodes 
+    struct list_head    s_inodes;    
+
+    //匿名目录项 anonymous dentries for (nfs) exporting 
+    struct hlist_head    s_anon;        
+
+    //被分配文件链表，列出了该超级块表示的文件系统上所有打开的文件。内核在卸载文件系统时将参考该列表，如果其中仍然包含为写入而打开的文件，则文件系统仍然处于使用中，卸载操作失败，并将返回适当的错误信息
+    struct list_head    s_files;
+
+    /* s_dentry_lru and s_nr_dentry_unused are protected by dcache_lock */
+    struct list_head    s_dentry_lru; 
+
+    //unused dentry lru of dentry on lru 
+    int            s_nr_dentry_unused;
+
+    //指向了底层文件系统的数据所在的相关块设备
+    struct block_device    *s_bdev;
+    struct backing_dev_info *s_bdi;
+    struct mtd_info        *s_mtd;
+
+    //该类型文件系统
+    struct list_head    s_instances;
+
+    //限额相关选项 Diskquota specific options 
+    struct quota_info    s_dquot;     
+
+    int            s_frozen;
+    wait_queue_head_t    s_wait_unfrozen;
+
+    //文本名字 Informational name 
+    char s_id[32];                 
+
+    //Filesystem private info 
+    void             *s_fs_info;
+    fmode_t            s_mode;
+
+    /*
+     * The next field is for VFS *only*. No filesystems have any business
+     * even looking at it. You had been warned.
+     */
+    struct mutex s_vfs_rename_mutex;    /* Kludge */
+
+    /* Granularity of c/m/atime in ns. Cannot be worse than a second 指定了文件系统支持的各种时间戳的最大可能的粒度 */
+    u32           s_time_gran;
+
+    /*
+     * Filesystem subtype.  If non-empty the filesystem type field
+     * in /proc/mounts will be "type.subtype"
+     */
+    char *s_subtype;
+
+    /*
+     * Saved mount options for lazy filesystems using
+     * generic_show_options()
+     */
+    char *s_options;
+};
+
+Relevant Link:
+http://linux.chinaunix.net/techdoc/system/2008/09/06/1030468.shtml
+http://lxr.free-electrons.com/source/include/linux/fs.h
+}}}
+
+==== struct file_system_type ====
+{{{
+struct file_system_type 
+{
+    //文件系统的类型名，以字符串的形式出现，保存了文件系统的名称(例如reiserfs、ext3)
+    const char *name;
+
+    /*
+    使用的标志，指明具体文件系统的一些特性，有关标志定义于fs.h中
+    #define FS_REQUIRES_DEV 1 
+    #define FS_BINARY_MOUNTDATA 2
+    #define FS_HAS_SUBTYPE 4
+    #define FS_REVAL_DOT    16384    // Check the paths ".", ".." for staleness  
+    #define FS_RENAME_DOES_D_MOVE    32768    // FS will handle d_move() during rename() internally. 
+    */
+    int fs_flags;
+
+    //用于从底层存储介质读取超级块的函数，地址保存在get_sb中，这个函数对装载过程很重要，逻辑上，该函数依赖具体的文件系统，不能实现为抽象，而且该函数也不能保存在super_operations结构中，因为超级块对象和指向该结构的指针都是在调用get_sb之后创建的
+    int (*get_sb) (struct file_system_type *, int, const char *, void *, struct vfsmount *);
+
+    //kill_sb在不再需要某个文件系统类型时执行清理工作
+    void (*kill_sb) (struct super_block *);
+
+    /*
+    1. 如果file_system_type所代表的文件系统是通过可安装模块(LKM)实现的，则该指针指向代表着具体模块的module结构
+    2. 如果文件系统是静态地链接到内核，则这个域为NULL
+    实际上，我们只需要把这个域置为THIS_MODLUE(宏)，它就能自动地完成上述工作 
+    */    
+    struct module *owner;
+
+    //把所有的file_system_type结构链接成单项链表的链接指针，变量file_systems指向这个链表。这个链表是一个临界资源，受file_systems_lock自旋读写锁的保护
+    struct file_system_type * next;
+
+    /*
+    对于每个已经装载的文件系统，在内存中都创建了一个超级块结构，该结构保存了文件系统它本身和装载点的有关信息。由于可以装载几个同一类型的文件系统(例如home、root分区，它们的文件系统类型通常相同)，同一文件系统类型可能对应了多个超级块结构，这些超级块聚集在一个链表中。fs_supers是对应的表头
+    这个域是Linux2.4.10以后的内核版本中新增加的，这是一个双向链表。链表中的元素是超级块结构，每个文件系统都有一个超级块，但有些文件系统可能被安装在不同的设备上，而且每个具体的设备都有一个超级块，这些超级块就形成一个双向链表
+    */
+    struct list_head fs_supers;
+
+    struct lock_class_key s_lock_key;
+    struct lock_class_key s_umount_key;
+
+    struct lock_class_key i_lock_key;
+    struct lock_class_key i_mutex_key;
+    struct lock_class_key i_mutex_dir_key;
+    struct lock_class_key i_alloc_sem_key;
+};
+
+Relevant Link:
+http://oss.org.cn/kernel-book/ch08/8.4.1.htm
+}}}
+
+=== 内核安全相关数据结构 ===
+==== struct security_operations ====
+{{{
+这是一个钩子函数的指针数组，其中每一个数组元素都是一个SELINUX安全钩子函数，在2.6以上的内核中，大部分涉及安全控制的系统调用都被替换为了这个结构体中的对应钩子函数项，从而使SELINUX能在代码执行流这个层面实现安全访问控制
+
+这个结构中包含了按照内核对象或内核子系统分组的钩子组成的子结构，以及一些用于系统操作的顶层钩子。在内核源代码中很容易找到对钩子函数的调用: 其前缀是security_ops->xxxx
+
+struct security_operations 
+{
+    char name[SECURITY_NAME_MAX + 1];
+
+    int (*ptrace_access_check) (struct task_struct *child, unsigned int mode);
+    int (*ptrace_traceme) (struct task_struct *parent);
+    int (*capget) (struct task_struct *target,
+               kernel_cap_t *effective,
+               kernel_cap_t *inheritable, kernel_cap_t *permitted);
+    int (*capset) (struct cred *new,
+               const struct cred *old,
+               const kernel_cap_t *effective,
+               const kernel_cap_t *inheritable,
+               const kernel_cap_t *permitted);
+    int (*capable) (struct task_struct *tsk, const struct cred *cred,
+            int cap, int audit);
+    int (*acct) (struct file *file);
+    int (*sysctl) (struct ctl_table *table, int op);
+    int (*quotactl) (int cmds, int type, int id, struct super_block *sb);
+    int (*quota_on) (struct dentry *dentry);
+    int (*syslog) (int type);
+    int (*settime) (struct timespec *ts, struct timezone *tz);
+    int (*vm_enough_memory) (struct mm_struct *mm, long pages);
+
+    int (*bprm_set_creds) (struct linux_binprm *bprm);
+    int (*bprm_check_security) (struct linux_binprm *bprm);
+    int (*bprm_secureexec) (struct linux_binprm *bprm);
+    void (*bprm_committing_creds) (struct linux_binprm *bprm);
+    void (*bprm_committed_creds) (struct linux_binprm *bprm);
+
+    int (*sb_alloc_security) (struct super_block *sb);
+    void (*sb_free_security) (struct super_block *sb);
+    int (*sb_copy_data) (char *orig, char *copy);
+    int (*sb_kern_mount) (struct super_block *sb, int flags, void *data);
+    int (*sb_show_options) (struct seq_file *m, struct super_block *sb);
+    int (*sb_statfs) (struct dentry *dentry);
+    int (*sb_mount) (char *dev_name, struct path *path,
+             char *type, unsigned long flags, void *data);
+    int (*sb_check_sb) (struct vfsmount *mnt, struct path *path);
+    int (*sb_umount) (struct vfsmount *mnt, int flags);
+    void (*sb_umount_close) (struct vfsmount *mnt);
+    void (*sb_umount_busy) (struct vfsmount *mnt);
+    void (*sb_post_remount) (struct vfsmount *mnt,
+                 unsigned long flags, void *data);
+    void (*sb_post_addmount) (struct vfsmount *mnt,
+                  struct path *mountpoint);
+    int (*sb_pivotroot) (struct path *old_path,
+                 struct path *new_path);
+    void (*sb_post_pivotroot) (struct path *old_path,
+                   struct path *new_path);
+    int (*sb_set_mnt_opts) (struct super_block *sb,
+                struct security_mnt_opts *opts);
+    void (*sb_clone_mnt_opts) (const struct super_block *oldsb,
+                   struct super_block *newsb);
+    int (*sb_parse_opts_str) (char *options, struct security_mnt_opts *opts);
+
+#ifdef CONFIG_SECURITY_PATH
+    int (*path_unlink) (struct path *dir, struct dentry *dentry);
+    int (*path_mkdir) (struct path *dir, struct dentry *dentry, int mode);
+    int (*path_rmdir) (struct path *dir, struct dentry *dentry);
+    int (*path_mknod) (struct path *dir, struct dentry *dentry, int mode,
+               unsigned int dev);
+    int (*path_truncate) (struct path *path, loff_t length,
+                  unsigned int time_attrs);
+    int (*path_symlink) (struct path *dir, struct dentry *dentry,
+                 const char *old_name);
+    int (*path_link) (struct dentry *old_dentry, struct path *new_dir,
+              struct dentry *new_dentry);
+    int (*path_rename) (struct path *old_dir, struct dentry *old_dentry,
+                struct path *new_dir, struct dentry *new_dentry);
+#endif
+
+    int (*inode_alloc_security) (struct inode *inode);
+    void (*inode_free_security) (struct inode *inode);
+    int (*inode_init_security) (struct inode *inode, struct inode *dir,
+                    char **name, void **value, size_t *len);
+    int (*inode_create) (struct inode *dir,
+                 struct dentry *dentry, int mode);
+    int (*inode_link) (struct dentry *old_dentry,
+               struct inode *dir, struct dentry *new_dentry);
+    int (*inode_unlink) (struct inode *dir, struct dentry *dentry);
+    int (*inode_symlink) (struct inode *dir,
+                  struct dentry *dentry, const char *old_name);
+    int (*inode_mkdir) (struct inode *dir, struct dentry *dentry, int mode);
+    int (*inode_rmdir) (struct inode *dir, struct dentry *dentry);
+    int (*inode_mknod) (struct inode *dir, struct dentry *dentry,
+                int mode, dev_t dev);
+    int (*inode_rename) (struct inode *old_dir, struct dentry *old_dentry,
+                 struct inode *new_dir, struct dentry *new_dentry);
+    int (*inode_readlink) (struct dentry *dentry);
+    int (*inode_follow_link) (struct dentry *dentry, struct nameidata *nd);
+    int (*inode_permission) (struct inode *inode, int mask);
+    int (*inode_setattr)    (struct dentry *dentry, struct iattr *attr);
+    int (*inode_getattr) (struct vfsmount *mnt, struct dentry *dentry);
+    void (*inode_delete) (struct inode *inode);
+    int (*inode_setxattr) (struct dentry *dentry, const char *name,
+                   const void *value, size_t size, int flags);
+    void (*inode_post_setxattr) (struct dentry *dentry, const char *name,
+                     const void *value, size_t size, int flags);
+    int (*inode_getxattr) (struct dentry *dentry, const char *name);
+    int (*inode_listxattr) (struct dentry *dentry);
+    int (*inode_removexattr) (struct dentry *dentry, const char *name);
+    int (*inode_need_killpriv) (struct dentry *dentry);
+    int (*inode_killpriv) (struct dentry *dentry);
+    int (*inode_getsecurity) (const struct inode *inode, const char *name, void **buffer, bool alloc);
+    int (*inode_setsecurity) (struct inode *inode, const char *name, const void *value, size_t size, int flags);
+    int (*inode_listsecurity) (struct inode *inode, char *buffer, size_t buffer_size);
+    void (*inode_getsecid) (const struct inode *inode, u32 *secid);
+
+    int (*file_permission) (struct file *file, int mask);
+    int (*file_alloc_security) (struct file *file);
+    void (*file_free_security) (struct file *file);
+    int (*file_ioctl) (struct file *file, unsigned int cmd,
+               unsigned long arg);
+    int (*file_mmap) (struct file *file,
+              unsigned long reqprot, unsigned long prot,
+              unsigned long flags, unsigned long addr,
+              unsigned long addr_only);
+    int (*file_mprotect) (struct vm_area_struct *vma,
+                  unsigned long reqprot,
+                  unsigned long prot);
+    int (*file_lock) (struct file *file, unsigned int cmd);
+    int (*file_fcntl) (struct file *file, unsigned int cmd,
+               unsigned long arg);
+    int (*file_set_fowner) (struct file *file);
+    int (*file_send_sigiotask) (struct task_struct *tsk,
+                    struct fown_struct *fown, int sig);
+    int (*file_receive) (struct file *file);
+    int (*dentry_open) (struct file *file, const struct cred *cred);
+
+    int (*task_create) (unsigned long clone_flags);
+    int (*cred_alloc_blank) (struct cred *cred, gfp_t gfp);
+    void (*cred_free) (struct cred *cred);
+    int (*cred_prepare)(struct cred *new, const struct cred *old,
+                gfp_t gfp);
+    void (*cred_commit)(struct cred *new, const struct cred *old);
+    void (*cred_transfer)(struct cred *new, const struct cred *old);
+    int (*kernel_act_as)(struct cred *new, u32 secid);
+    int (*kernel_create_files_as)(struct cred *new, struct inode *inode);
+    int (*kernel_module_request)(void);
+    int (*task_setuid) (uid_t id0, uid_t id1, uid_t id2, int flags);
+    int (*task_fix_setuid) (struct cred *new, const struct cred *old,
+                int flags);
+    int (*task_setgid) (gid_t id0, gid_t id1, gid_t id2, int flags);
+    int (*task_setpgid) (struct task_struct *p, pid_t pgid);
+    int (*task_getpgid) (struct task_struct *p);
+    int (*task_getsid) (struct task_struct *p);
+    void (*task_getsecid) (struct task_struct *p, u32 *secid);
+    int (*task_setgroups) (struct group_info *group_info);
+    int (*task_setnice) (struct task_struct *p, int nice);
+    int (*task_setioprio) (struct task_struct *p, int ioprio);
+    int (*task_getioprio) (struct task_struct *p);
+    int (*task_setrlimit) (unsigned int resource, struct rlimit *new_rlim);
+    int (*task_setscheduler) (struct task_struct *p, int policy,
+                  struct sched_param *lp);
+    int (*task_getscheduler) (struct task_struct *p);
+    int (*task_movememory) (struct task_struct *p);
+    int (*task_kill) (struct task_struct *p,
+              struct siginfo *info, int sig, u32 secid);
+    int (*task_wait) (struct task_struct *p);
+    int (*task_prctl) (int option, unsigned long arg2,
+               unsigned long arg3, unsigned long arg4,
+               unsigned long arg5);
+    void (*task_to_inode) (struct task_struct *p, struct inode *inode);
+
+    int (*ipc_permission) (struct kern_ipc_perm *ipcp, short flag);
+    void (*ipc_getsecid) (struct kern_ipc_perm *ipcp, u32 *secid);
+
+    int (*msg_msg_alloc_security) (struct msg_msg *msg);
+    void (*msg_msg_free_security) (struct msg_msg *msg);
+
+    int (*msg_queue_alloc_security) (struct msg_queue *msq);
+    void (*msg_queue_free_security) (struct msg_queue *msq);
+    int (*msg_queue_associate) (struct msg_queue *msq, int msqflg);
+    int (*msg_queue_msgctl) (struct msg_queue *msq, int cmd);
+    int (*msg_queue_msgsnd) (struct msg_queue *msq,
+                 struct msg_msg *msg, int msqflg);
+    int (*msg_queue_msgrcv) (struct msg_queue *msq,
+                 struct msg_msg *msg,
+                 struct task_struct *target,
+                 long type, int mode);
+
+    int (*shm_alloc_security) (struct shmid_kernel *shp);
+    void (*shm_free_security) (struct shmid_kernel *shp);
+    int (*shm_associate) (struct shmid_kernel *shp, int shmflg);
+    int (*shm_shmctl) (struct shmid_kernel *shp, int cmd);
+    int (*shm_shmat) (struct shmid_kernel *shp,
+              char __user *shmaddr, int shmflg);
+
+    int (*sem_alloc_security) (struct sem_array *sma);
+    void (*sem_free_security) (struct sem_array *sma);
+    int (*sem_associate) (struct sem_array *sma, int semflg);
+    int (*sem_semctl) (struct sem_array *sma, int cmd);
+    int (*sem_semop) (struct sem_array *sma,
+              struct sembuf *sops, unsigned nsops, int alter);
+
+    int (*netlink_send) (struct sock *sk, struct sk_buff *skb);
+    int (*netlink_recv) (struct sk_buff *skb, int cap);
+
+    void (*d_instantiate) (struct dentry *dentry, struct inode *inode);
+
+    int (*getprocattr) (struct task_struct *p, char *name, char **value);
+    int (*setprocattr) (struct task_struct *p, char *name, void *value, size_t size);
+    int (*secid_to_secctx) (u32 secid, char **secdata, u32 *seclen);
+    int (*secctx_to_secid) (const char *secdata, u32 seclen, u32 *secid);
+    void (*release_secctx) (char *secdata, u32 seclen);
+
+    int (*inode_notifysecctx)(struct inode *inode, void *ctx, u32 ctxlen);
+    int (*inode_setsecctx)(struct dentry *dentry, void *ctx, u32 ctxlen);
+    int (*inode_getsecctx)(struct inode *inode, void **ctx, u32 *ctxlen);
+
+#ifdef CONFIG_SECURITY_NETWORK
+    int (*unix_stream_connect) (struct socket *sock,
+                    struct socket *other, struct sock *newsk);
+    int (*unix_may_send) (struct socket *sock, struct socket *other);
+
+    int (*socket_create) (int family, int type, int protocol, int kern);
+    int (*socket_post_create) (struct socket *sock, int family,
+                   int type, int protocol, int kern);
+    int (*socket_bind) (struct socket *sock,
+                struct sockaddr *address, int addrlen);
+    int (*socket_connect) (struct socket *sock,
+                   struct sockaddr *address, int addrlen);
+    int (*socket_listen) (struct socket *sock, int backlog);
+    int (*socket_accept) (struct socket *sock, struct socket *newsock);
+    int (*socket_sendmsg) (struct socket *sock,
+                   struct msghdr *msg, int size);
+    int (*socket_recvmsg) (struct socket *sock,
+                   struct msghdr *msg, int size, int flags);
+    int (*socket_getsockname) (struct socket *sock);
+    int (*socket_getpeername) (struct socket *sock);
+    int (*socket_getsockopt) (struct socket *sock, int level, int optname);
+    int (*socket_setsockopt) (struct socket *sock, int level, int optname);
+    int (*socket_shutdown) (struct socket *sock, int how);
+    int (*socket_sock_rcv_skb) (struct sock *sk, struct sk_buff *skb);
+    int (*socket_getpeersec_stream) (struct socket *sock, char __user *optval, int __user *optlen, unsigned len);
+    int (*socket_getpeersec_dgram) (struct socket *sock, struct sk_buff *skb, u32 *secid);
+    int (*sk_alloc_security) (struct sock *sk, int family, gfp_t priority);
+    void (*sk_free_security) (struct sock *sk);
+    void (*sk_clone_security) (const struct sock *sk, struct sock *newsk);
+    void (*sk_getsecid) (struct sock *sk, u32 *secid);
+    void (*sock_graft) (struct sock *sk, struct socket *parent);
+    int (*inet_conn_request) (struct sock *sk, struct sk_buff *skb,
+                  struct request_sock *req);
+    void (*inet_csk_clone) (struct sock *newsk, const struct request_sock *req);
+    void (*inet_conn_established) (struct sock *sk, struct sk_buff *skb);
+    void (*req_classify_flow) (const struct request_sock *req, struct flowi *fl);
+    int (*tun_dev_create)(void);
+    void (*tun_dev_post_create)(struct sock *sk);
+    int (*tun_dev_attach)(struct sock *sk);
+#endif    /* CONFIG_SECURITY_NETWORK */
+
+#ifdef CONFIG_SECURITY_NETWORK_XFRM
+    int (*xfrm_policy_alloc_security) (struct xfrm_sec_ctx **ctxp,
+            struct xfrm_user_sec_ctx *sec_ctx);
+    int (*xfrm_policy_clone_security) (struct xfrm_sec_ctx *old_ctx, struct xfrm_sec_ctx **new_ctx);
+    void (*xfrm_policy_free_security) (struct xfrm_sec_ctx *ctx);
+    int (*xfrm_policy_delete_security) (struct xfrm_sec_ctx *ctx);
+    int (*xfrm_state_alloc_security) (struct xfrm_state *x,
+        struct xfrm_user_sec_ctx *sec_ctx,
+        u32 secid);
+    void (*xfrm_state_free_security) (struct xfrm_state *x);
+    int (*xfrm_state_delete_security) (struct xfrm_state *x);
+    int (*xfrm_policy_lookup) (struct xfrm_sec_ctx *ctx, u32 fl_secid, u8 dir);
+    int (*xfrm_state_pol_flow_match) (struct xfrm_state *x,
+                      struct xfrm_policy *xp,
+                      struct flowi *fl);
+    int (*xfrm_decode_session) (struct sk_buff *skb, u32 *secid, int ckall);
+#endif    /* CONFIG_SECURITY_NETWORK_XFRM */
+
+    /* key management security hooks */
+#ifdef CONFIG_KEYS
+    int (*key_alloc) (struct key *key, const struct cred *cred, unsigned long flags);
+    void (*key_free) (struct key *key);
+    int (*key_permission) (key_ref_t key_ref,
+                   const struct cred *cred,
+                   key_perm_t perm);
+    int (*key_getsecurity)(struct key *key, char **_buffer);
+    int (*key_session_to_parent)(const struct cred *cred,
+                     const struct cred *parent_cred,
+                     struct key *key);
+#endif    /* CONFIG_KEYS */
+
+#ifdef CONFIG_AUDIT
+    int (*audit_rule_init) (u32 field, u32 op, char *rulestr, void **lsmrule);
+    int (*audit_rule_known) (struct audit_krule *krule);
+    int (*audit_rule_match) (u32 secid, u32 field, u32 op, void *lsmrule,
+                 struct audit_context *actx);
+    void (*audit_rule_free) (void *lsmrule);
+#endif /* CONFIG_AUDIT */
+};
+
+Relevant Link:
+http://www.hep.by/gnu/kernel/lsm/framework.html
+http://blog.sina.com.cn/s/blog_858820890101eb3c.html
+http://mirror.linux.org.au/linux-mandocs/2.6.4-cset-20040312_2111/security_operations.html
+}}}
+
+==== struct kprobe ====
+{{{
+用于存储每个探测点的基本结构
+
+struct kprobe 
+{
+    /*用于保存kprobe的全局hash表，以被探测的addr为key*/
+    struct hlist_node hlist;
+
+    /* list of kprobes for multi-handler support */
+    /*当对同一个探测点存在多个探测函数时，所有的函数挂在这条链上*/
+    struct list_head list;
+
+    /*count the number of times this probe was temporarily disarmed */
+    unsigned long nmissed;
+
+    /* location of the probe point */
+    /*被探测的目标地址，要注意的是，只能是addr或是symbol_name其中一个填入了值，如果两个都填入，在注册这个探头的时候就会出现错误-21非法符号*/
+    kprobe_opcode_t *addr;
+
+    /* Allow user to indicate symbol name of the probe point */
+    /*symblo_name的存在，允许用户指定函数名而非确定的地址，我们在设置的时候就可以直接设置函数名，而有内核函数kallsyms_lookup_name("xx")去获取具体的函数地址*/
+    const char *symbol_name;
+
+    /* Offset into the symbol */
+    /*
+    如果被探测点为函数内部某个指令，需要使用addr + offset的方式
+    从这点也可以看出，kprobe可以hook在内核中的任何位置
+    */
+    unsigned int offset;
+
+    /* Called before addr is executed. */
+    /*探测函数，在目标探测点执行之前调用*/
+    kprobe_pre_handler_t pre_handler;
+
+    /* Called after addr is executed, unless... */
+    /*探测函数，在目标探测点执行之后调用*/
+    kprobe_post_handler_t post_handler;
+
+    /*
+    ...called if executing addr causes a fault (eg. page fault).
+    Return 1 if it handled fault, otherwise kernel will see it.
+    */
+    kprobe_fault_handler_t fault_handler;
+
+    /*
+    called if breakpoint trap occurs in probe handler.
+    Return 1 if it handled break, otherwise kernel will see it.
+    */
+    kprobe_break_handler_t break_handler;
+
+    /*opcode 以及 ainsn 用于保存被替换的指令码*/ 
+    /* Saved opcode (which has been replaced with breakpoint) */
+    kprobe_opcode_t opcode;
+
+    /* copy of the original instruction */
+    struct arch_specific_insn ainsn;
+
+    /*
+    Indicates various status flags.
+    Protected by kprobe_mutex after this kprobe is registered.
+    */
+    u32 flags;
+};
+}}}
+
+==== struct jprobe ====
+{{{
+我们知道，jprobe是对kprobes的一层功能上的封装，这点从数据结构上也能看出来
+
+struct jprobe 
+{  
+    struct kprobe kp;  
+
+    /*
+    定义的probe程序，要注意的是
+    1. 注册进去的探头程序应该和被注册的函数的参数列表一致
+    2. 我们在设置函数指针的时候需要使用(kprobe_opcode_t *)进行强制转换
+    */
+    void *entry;  
+}  
+}}}
+
+==== struct kretprobe ====
+{{{
+kretprobe注册(register_kretprobe)的时候需要传递这个结构体
+
+struct kretprobe 
+{
+    struct kprobe kp;
+
+    //注册的回调函数，handler指定探测点的处理函数
+    kretprobe_handler_t handler;
+
+    //注册的预处理回调函数，类似于kprobes中的pre_handler()
+    kretprobe_handler_t entry_handler;
+
+    //maxactive指定可以同时运行的最大处理函数实例数，它应当被恰当设置，否则可能丢失探测点的某些运行
+    int maxactive;
+    int nmissed;
+
+    //指示kretprobe需要为回调监控预留多少内存空间
+    size_t data_size;
+    struct hlist_head free_instances;
+    raw_spinlock_t lock;
+}; 
+}}}
+
+==== struct kretprobe_instance  ====
+{{{
+在kretprobe的注册处理函数(.handler)中我们可以拿到这个结构体
+
+struct kretprobe_instance 
+{
+    struct hlist_node hlist;
+    
+    //指向相应的kretprobe_instance变量(就是我们在register_kretprobe时传入的参数) 
+    struct kretprobe *rp;
+    
+    //返回地址
+    kprobe_opcode_t *ret_addr;
+
+    //指向相应的task_struct
+    struct task_struct *task;
+    char data[0];
+};
+}}}
+
+==== struct kretprobe_blackpoint 、struct kprobe_blacklist_entry ====
+{{{
+struct kretprobe_blackpoint 
+{
+    const char *name;
+    void *addr;
+}; 
+
+struct kprobe_blacklist_entry 
+{
+    struct list_head list;
+    unsigned long start_addr;
+    unsigned long end_addr;
+};
+}}}
+
+==== struct linux_binprm ====
+{{{
+在Linux内核中，每种二进制格式都表示为struct linux_binprm数据结构，Linux支持的二进制格式有
+
+1. flat_format: 平坦格式
+用于没有内存管理单元(MMU)的嵌入式CPU上，为节省空间，可执行文件中的数据还可以压缩(如果内核可提供zlib支持)
+
+2. script_format: 伪格式
+用于运行使用#!机制的脚本，检查文件的第一行，内核即知道使用何种解释器，启动适当的应用程序即可(例如: #! /usr/bin/perl 则启动perl)
+
+3. misc_format: 伪格式
+用于启动需要外部解释器的应用程序，与#!机制相比，解释器无须显示指定，而可以通过特定的文件标识符(后缀、文件头..)，例如该格式用于执行java字节码或用wine运行windows程序
+
+4. elf_format: 
+这是一种与计算机和体系结构无关的格式，可用于32/64位，它是linux的标准格式
+
+5. elf_fdpic_format: ELF格式变体
+提供了针对没有MMU系统的特别特性
+
+6. irix_format: ELF格式变体
+提供了特定于irix的特性
+
+7. som_format:
+在PA-Risc计算机上使用，特定于HP-UX的格式
+
+8. aout_format:
+a.out是引入ELF之前linux的标准格式
+
+/source/include/linux/binfmts.h
+
+/*
+ * This structure is used to hold the arguments that are used when loading binaries.
+ */
+struct linux_binprm
+{
+    //保存可执行文件的头128字节
+    char buf[BINPRM_BUF_SIZE];
+#ifdef CONFIG_MMU
+    struct vm_area_struct *vma;
+    unsigned long vma_pages;
+#else
+# define MAX_ARG_PAGES    32
+    struct page *page[MAX_ARG_PAGES];
+#endif
+    struct mm_struct *mm;
+    /*
+    当前内存页最高地址
+    current top of mem 
+    */
+    unsigned long p; 
+    unsigned int
+        cred_prepared:1,/* true if creds already prepared (multiple
+                 * preps happen for interpreters) */
+        cap_effective:1;/* true if has elevated effective capabilities,
+                 * false if not; except for init which inherits
+                 * its parent's caps anyway */
+#ifdef __alpha__
+    unsigned int taso:1;
+#endif
+    unsigned int recursion_depth;
+    //要执行的文件
+    struct file * file;
+    //new credentials  
+    struct cred *cred;    
+    int unsafe;        /* how unsafe this exec is (mask of LSM_UNSAFE_*) */
+    unsigned int per_clear;    /* bits to clear in current->personality */
+    //命令行参数和环境变量数目
+    int argc, envc;
+    /*
+    要执行的文件的名称
+    Name of binary as seen by procps
+    */
+    char * filename;
+    /*
+    要执行的文件的真实名称，通常和filename相同
+    Name of the binary really executed. Most of the time same as filename, but could be different for binfmt_{misc,script}
+    */     
+    char * interp;         
+    unsigned interp_flags;
+    unsigned interp_data;
+    unsigned long loader, exec;
+};
+}}}
+
+==== struct linux_binfmt  ====
+{{{
+/source/include/linux/binfmts.h
+
+/*
+ * This structure defines the functions that are used to load the binary formats that
+ * linux accepts.
+*/
+struct linux_binfmt 
+{
+    //链表结构
+    struct list_head lh;
+    struct module *module;
+    //装入二进制代码
+    int (*load_binary)(struct linux_binprm *, struct  pt_regs * regs);
+
+    //装入公用库
+    int (*load_shlib)(struct file *);
+
+    int (*core_dump)(long signr, struct pt_regs *regs, struct file *file, unsigned long limit);
+    unsigned long min_coredump;    /* minimal dump size */
+    int hasvdso;
+};
+}}} 
+
+=== 系统网络状态相关的数据结构 ===
+==== struct ifconf ====
+{{{
+\linux-2.6.32.63\include\linux\if.h
+
+/* Structure used in SIOCGIFCONF request.  Used to retrieve interface
+   configuration for machine (useful for programs which must know all
+   networks accessible).  
+*/ 
+struct ifconf
+{
+    int ifc_len;        // Size of buffer.   
+    union
+    {
+    __caddr_t ifcu_buf;
+    struct ifreq *ifcu_req;    //保存每块网卡的具体信息的结构体数组
+    } ifc_ifcu;
+};
+#define ifc_buf    ifc_ifcu.ifcu_buf   /* Buffer address.  */
+#define ifc_req    ifc_ifcu.ifcu_req   /* Array of structures.  */
+#define _IOT_ifconf _IOT(_IOTS(struct ifconf),1,0,0,0,0) /* not right */
+}}}
+
+==== struct ifreq ====
+{{{
+\linux-2.6.32.63\include\linux\if.h
+
+/*
+ * Interface request structure used for socket
+ * ioctl's.  All interface ioctl's must have parameter
+ * definitions which begin with ifr_name.  The
+ * remainder may be interface specific.
+*/
+struct ifreq 
+{
+#define IFHWADDRLEN    6
+    union
+    {
+        char    ifrn_name[IFNAMSIZ];        /* if name, e.g. "en0" */
+    } ifr_ifrn;
+    
+    //描述套接口的地址结构
+    union 
+    {
+        struct    sockaddr ifru_addr;
+        struct    sockaddr ifru_dstaddr;
+        struct    sockaddr ifru_broadaddr;
+        struct    sockaddr ifru_netmask;
+        struct  sockaddr ifru_hwaddr;
+        short    ifru_flags;
+        int    ifru_ivalue;
+        int    ifru_mtu;
+        struct  ifmap ifru_map;
+        char    ifru_slave[IFNAMSIZ];    /* Just fits the size */
+        char    ifru_newname[IFNAMSIZ];
+        void __user *    ifru_data;
+        struct    if_settings ifru_settings;
+    } ifr_ifru;
+};
+#define ifr_name    ifr_ifrn.ifrn_name    /* interface name     */
+#define ifr_hwaddr    ifr_ifru.ifru_hwaddr    /* MAC address         */
+#define    ifr_addr    ifr_ifru.ifru_addr    /* address        */
+#define    ifr_dstaddr    ifr_ifru.ifru_dstaddr    /* other end of p-p lnk    */
+#define    ifr_broadaddr    ifr_ifru.ifru_broadaddr    /* broadcast address    */
+#define    ifr_netmask    ifr_ifru.ifru_netmask    /* interface net mask    */
+#define    ifr_flags    ifr_ifru.ifru_flags    /* flags        */
+#define    ifr_metric    ifr_ifru.ifru_ivalue    /* metric        */
+#define    ifr_mtu        ifr_ifru.ifru_mtu    /* mtu            */
+#define ifr_map        ifr_ifru.ifru_map    /* device map        */
+#define ifr_slave    ifr_ifru.ifru_slave    /* slave device        */
+#define    ifr_data    ifr_ifru.ifru_data    /* for use by interface    */
+#define ifr_ifindex    ifr_ifru.ifru_ivalue    /* interface index    */
+#define ifr_bandwidth    ifr_ifru.ifru_ivalue    /* link bandwidth    */
+#define ifr_qlen    ifr_ifru.ifru_ivalue    /* Queue length     */
+#define ifr_newname    ifr_ifru.ifru_newname    /* New name        */
+#define ifr_settings    ifr_ifru.ifru_settings    /* Device/proto settings*/
+}}}
+{{local:images/linux_struct_ifreq.png}}
+{{{
+code
+
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <net/if_arp.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
+ 
+#define MAXINTERFACES 16    /* 最大接口数 */
+ 
+int fd;         /* 套接字 */
+int if_len;     /* 接口数量 */
+struct ifreq buf[MAXINTERFACES];    /* ifreq结构数组 */
+struct ifconf ifc;                  /* ifconf结构 */
+ 
+int main(argc, argv)
+{
+    /* 建立IPv4的UDP套接字fd */
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+    {
+        perror("socket(AF_INET, SOCK_DGRAM, 0)");
+        return -1;
+    }
+ 
+    /* 初始化ifconf结构 */
+    ifc.ifc_len = sizeof(buf);
+    ifc.ifc_buf = (caddr_t) buf;
+ 
+    /* 获得接口列表 */
+    if (ioctl(fd, SIOCGIFCONF, (char *) &ifc) == -1)
+    {
+        perror("SIOCGIFCONF ioctl");
+        return -1;
+    }
+ 
+    if_len = ifc.ifc_len / sizeof(struct ifreq); /* 接口数量 */
+    printf("接口数量:%d/n/n", if_len);
+ 
+    while (if_len– > 0) /* 遍历每个接口 */
+    {
+        printf("接口：%s/n", buf[if_len].ifr_name); /* 接口名称 */
+ 
+        /* 获得接口标志 */
+        if (!(ioctl(fd, SIOCGIFFLAGS, (char *) &buf[if_len])))
+        {
+            /* 接口状态 */
+            if (buf[if_len].ifr_flags & IFF_UP)
+            {
+                printf("接口状态: UP/n");
+            }
+            else
+            {
+                printf("接口状态: DOWN/n");
+            }
+        }
+        else
+        {
+            char str[256];
+            sprintf(str, "SIOCGIFFLAGS ioctl %s", buf[if_len].ifr_name);
+            perror(str);
+        }
+ 
+ 
+        /* IP地址 */
+        if (!(ioctl(fd, SIOCGIFADDR, (char *) &buf[if_len])))
+        {
+            printf("IP地址:%s/n",
+                    (char*)inet_ntoa(((struct sockaddr_in*) (&buf[if_len].ifr_addr))->sin_addr));
+        }
+        else
+        {
+            char str[256];
+            sprintf(str, "SIOCGIFADDR ioctl %s", buf[if_len].ifr_name);
+            perror(str);
+        }
+ 
+        /* 子网掩码 */
+        if (!(ioctl(fd, SIOCGIFNETMASK, (char *) &buf[if_len])))
+        {
+            printf("子网掩码:%s/n",
+                    (char*)inet_ntoa(((struct sockaddr_in*) (&buf[if_len].ifr_addr))->sin_addr));
+        }
+        else
+        {
+            char str[256];
+            sprintf(str, "SIOCGIFADDR ioctl %s", buf[if_len].ifr_name);
+            perror(str);
+        }
+ 
+        /* 广播地址 */
+        if (!(ioctl(fd, SIOCGIFBRDADDR, (char *) &buf[if_len])))
+        {
+            printf("广播地址:%s/n",
+                    (char*)inet_ntoa(((struct sockaddr_in*) (&buf[if_len].ifr_addr))->sin_addr));
+        }
+        else
+        {
+            char str[256];
+            sprintf(str, "SIOCGIFADDR ioctl %s", buf[if_len].ifr_name);
+            perror(str);
+        }
+ 
+        /*MAC地址 */
+        if (!(ioctl(fd, SIOCGIFHWADDR, (char *) &buf[if_len])))
+        {
+            printf("MAC地址:%02x:%02x:%02x:%02x:%02x:%02x/n/n",
+                    (unsigned char) buf[if_len].ifr_hwaddr.sa_data[0],
+                    (unsigned char) buf[if_len].ifr_hwaddr.sa_data[1],
+                    (unsigned char) buf[if_len].ifr_hwaddr.sa_data[2],
+                    (unsigned char) buf[if_len].ifr_hwaddr.sa_data[3],
+                    (unsigned char) buf[if_len].ifr_hwaddr.sa_data[4],
+                    (unsigned char) buf[if_len].ifr_hwaddr.sa_data[5]);
+        }
+        else
+        {
+            char str[256];
+            sprintf(str, "SIOCGIFHWADDR ioctl %s", buf[if_len].ifr_name);
+            perror(str);
+        }
+    }//–while end
+ 
+    //关闭socket
+    close(fd);
+    return 0;
+}
+
+Relevant Link:
+http://blog.csdn.net/jk110333/article/details/8832077
+http://www.360doc.com/content/12/0314/15/5782959_194281431.shtml
+}}}
+
+==== struct socket ====
+{{{
+\linux-2.6.32.63\include\linux\net.h
+
+struct socket 
+{    
+    /*
+    1. state：socket状态
+    typedef enum 
+    {
+        SS_FREE = 0,            //该socket还未分配
+        SS_UNCONNECTED,         //未连向任何socket
+        SS_CONNECTING,          //正在连接过程中
+        SS_CONNECTED,           //已连向一个socket
+        SS_DISCONNECTING        //正在断开连接的过程中
+    }socket_state; 
+    */
+    socket_state        state;
+
+    kmemcheck_bitfield_begin(type);
+    /*
+    2. type：socket类型
+    enum sock_type 
+    {
+        SOCK_STREAM    = 1,    //stream (connection) socket
+        SOCK_DGRAM    = 2,    //datagram (conn.less) socket
+        SOCK_RAW    = 3,    //raw socket
+        SOCK_RDM    = 4,    //reliably-delivered message
+        SOCK_SEQPACKET    = 5,//sequential packet socket
+        SOCK_DCCP    = 6,    //Datagram Congestion Control Protocol socket
+        SOCK_PACKET    = 10,    //linux specific way of getting packets at the dev level.
+    };
+    */
+    short            type;
+    kmemcheck_bitfield_end(type);
+
+    /*
+    3. flags：socket标志
+        1) #define SOCK_ASYNC_NOSPACE 0
+        2) #define SOCK_ASYNC_WAITDATA 1
+        3) #define SOCK_NOSPACE 2
+        4) #define SOCK_PASSCRED 3
+        5) #define SOCK_PASSSEC 4
+    */
+    unsigned long        flags;
+
+    //fasync_list is used when processes have chosen asynchronous handling of this 'file'
+    struct fasync_struct    *fasync_list;
+    //4. Not used by sockets in AF_INET
+    wait_queue_head_t    wait;
+
+    //5. file holds a reference to the primary file structure associated with this socket
+    struct file        *file;
+
+    /*
+    6. sock
+    This is very important, as it contains most of the useful state associated with a socket. 
+    */
+    struct sock        *sk;
+
+    //7. ops：定义了当前socket的处理函数
+    const struct proto_ops    *ops;
+};
+}}}
+
+==== struct sock ====
+{{{
+struct sock本身不能获取到当前socket的IP、Port相关信息，要通过inet_sk()进行转换得到struct inet_sock才能得到IP、Port相关信息。但struct sock保存和当前socket大量的元描述信息
+
+\linux-2.6.32.63\include\net\sock.h
+
+struct sock 
+{
+    /*
+     * Now struct inet_timewait_sock also uses sock_common, so please just
+     * don't add nothing before this first member (__sk_common) --acme
+     */
+    //shared layout with inet_timewait_sock
+    struct sock_common    __sk_common;
+#define sk_node            __sk_common.skc_node
+#define sk_nulls_node        __sk_common.skc_nulls_node
+#define sk_refcnt        __sk_common.skc_refcnt
+
+#define sk_copy_start        __sk_common.skc_hash
+#define sk_hash            __sk_common.skc_hash
+#define sk_family        __sk_common.skc_family
+#define sk_state        __sk_common.skc_state
+#define sk_reuse        __sk_common.skc_reuse
+#define sk_bound_dev_if        __sk_common.skc_bound_dev_if
+#define sk_bind_node        __sk_common.skc_bind_node
+#define sk_prot            __sk_common.skc_prot
+#define sk_net            __sk_common.skc_net
+
+    kmemcheck_bitfield_begin(flags);
+    //mask of %SEND_SHUTDOWN and/or %RCV_SHUTDOWN
+    unsigned int        sk_shutdown  : 2,
+                //%SO_NO_CHECK setting, wether or not checkup packets
+                sk_no_check  : 2,
+                //%SO_SNDBUF and %SO_RCVBUF settings
+                sk_userlocks : 4,
+                //which protocol this socket belongs in this network family
+                sk_protocol  : 8,
+                //socket type (%SOCK_STREAM, etc)
+                sk_type      : 16;
+    kmemcheck_bitfield_end(flags);
+    //size of receive buffer in bytes
+    int            sk_rcvbuf;
+    //synchronizer
+    socket_lock_t        sk_lock;
+    /*
+     * The backlog queue is special, it is always used with
+     * the per-socket spinlock held and requires low latency
+     * access. Therefore we special case it's implementation.
+     */
+    struct 
+    {
+        struct sk_buff *head;
+        struct sk_buff *tail;
+    } sk_backlog;
+    //sock wait queue
+    wait_queue_head_t    *sk_sleep;
+    //destination cache
+    struct dst_entry    *sk_dst_cache;
+#ifdef CONFIG_XFRM
+    //flow policy
+    struct xfrm_policy    *sk_policy[2];
+#endif
+    //destination cache lock
+    rwlock_t        sk_dst_lock;
+    //receive queue bytes committed
+    atomic_t        sk_rmem_alloc;
+    //transmit queue bytes committed
+    atomic_t        sk_wmem_alloc;
+    //"o" is "option" or "other"
+    atomic_t        sk_omem_alloc;
+    //size of send buffer in bytes
+    int            sk_sndbuf;
+    //incoming packets
+    struct sk_buff_head    sk_receive_queue;
+    //Packet sending queue
+    struct sk_buff_head    sk_write_queue;
+#ifdef CONFIG_NET_DMA
+    //DMA copied packets
+    struct sk_buff_head    sk_async_wait_queue;
+#endif
+    //persistent queue size
+    int            sk_wmem_queued;
+    //space allocated forward
+    int            sk_forward_alloc;
+    //allocation mode
+    gfp_t            sk_allocation;
+    //route capabilities (e.g. %NETIF_F_TSO)
+    int            sk_route_caps;
+    //GSO type (e.g. %SKB_GSO_TCPV4)
+    int            sk_gso_type;
+    //Maximum GSO segment size to build
+    unsigned int        sk_gso_max_size;
+    //%SO_RCVLOWAT setting
+    int            sk_rcvlowat;
+    /*
+    1. %SO_LINGER (l_onoff)
+    2. %SO_BROADCAST
+    3. %SO_KEEPALIVE
+    4. %SO_OOBINLINE settings
+    5. %SO_TIMESTAMPING settings
+    */
+    unsigned long         sk_flags;
+    //%SO_LINGER l_linger setting
+    unsigned long            sk_lingertime;
+    //rarely used
+    struct sk_buff_head    sk_error_queue;
+    //sk_prot of original sock creator (see ipv6_setsockopt, IPV6_ADDRFORM for instance)
+    struct proto        *sk_prot_creator;
+    //used with the callbacks in the end of this struct
+    rwlock_t        sk_callback_lock;
+    //last error
+    int            sk_err,
+                //rrors that don't cause failure but are the cause of a persistent failure not just 'timed out'
+                sk_err_soft;
+                    //raw/udp drops counter
+    atomic_t        sk_drops;
+    //always used with the per-socket spinlock held
+    //current listen backlog
+    unsigned short        sk_ack_backlog;
+    //listen backlog set in listen()
+    unsigned short        sk_max_ack_backlog;
+    //%SO_PRIORITY setting
+    __u32            sk_priority;
+    //%SO_PEERCRED setting
+    struct ucred        sk_peercred;
+    //%SO_RCVTIMEO setting
+    long            sk_rcvtimeo;
+    //%SO_SNDTIMEO setting
+    long            sk_sndtimeo;
+    //socket filtering instructions
+    struct sk_filter          *sk_filter;
+    //private area, net family specific, when not using slab
+    void            *sk_protinfo;
+    //sock cleanup timer
+    struct timer_list    sk_timer;
+    //time stamp of last packet received
+    ktime_t            sk_stamp;
+    //Identd and reporting IO signals
+    struct socket        *sk_socket;
+    //RPC layer private data
+    void            *sk_user_data;
+    //cached page for sendmsg
+    struct page        *sk_sndmsg_page;
+    //front of stuff to transmit
+    struct sk_buff        *sk_send_head;
+    //cached offset for sendmsg
+    __u32            sk_sndmsg_off;
+    //a write to stream socket waits to start
+    int            sk_write_pending;
+#ifdef CONFIG_SECURITY
+    //used by security modules
+    void            *sk_security;
+#endif
+    //generic packet mark
+    __u32            sk_mark;
+    /* XXX 4 bytes hole on 64 bit */
+    //callback to indicate change in the state of the sock
+    void            (*sk_state_change)(struct sock *sk);
+    //callback to indicate there is data to be processed
+    void            (*sk_data_ready)(struct sock *sk, int bytes);
+    //callback to indicate there is bf sending space available
+    void            (*sk_write_space)(struct sock *sk);
+    //callback to indicate errors (e.g. %MSG_ERRQUEUE)
+    void            (*sk_error_report)(struct sock *sk);
+    //callback to process the backlog
+      int            (*sk_backlog_rcv)(struct sock *sk, struct sk_buff *skb);  
+      //called at sock freeing time, i.e. when all refcnt == 0
+    void                    (*sk_destruct)(struct sock *sk);
+}
+}}}
+
+==== struct proto_ops ====
+{{{
+\linux-2.6.32.63\include\linux\net.h
+
+struct proto_ops 
+{
+    int        family;
+    struct module    *owner;
+    int        (*release)   (struct socket *sock);
+    int        (*bind)         (struct socket *sock, struct sockaddr *myaddr, int sockaddr_len);
+    int        (*connect)   (struct socket *sock, struct sockaddr *vaddr, int sockaddr_len, int flags);
+    int        (*socketpair)(struct socket *sock1, struct socket *sock2);
+    int        (*accept)    (struct socket *sock, struct socket *newsock, int flags);
+    int        (*getname)   (struct socket *sock, struct sockaddr *addr, int *sockaddr_len, int peer);
+    unsigned int    (*poll)         (struct file *file, struct socket *sock, struct poll_table_struct *wait);
+    int        (*ioctl)     (struct socket *sock, unsigned int cmd, unsigned long arg);
+    int         (*compat_ioctl) (struct socket *sock, unsigned int cmd, unsigned long arg);
+    int        (*listen)    (struct socket *sock, int len);
+    int        (*shutdown)  (struct socket *sock, int flags);
+    int        (*setsockopt)(struct socket *sock, int level, int optname, char __user *optval, unsigned int optlen);
+    int        (*getsockopt)(struct socket *sock, int level, int optname, char __user *optval, int __user *optlen);
+    int        (*compat_setsockopt)(struct socket *sock, int level, int optname, char __user *optval, unsigned int optlen);
+    int        (*compat_getsockopt)(struct socket *sock, int level, int optname, char __user *optval, int __user *optlen);
+    int        (*sendmsg)   (struct kiocb *iocb, struct socket *sock, struct msghdr *m, size_t total_len);
+    /* Notes for implementing recvmsg:
+     * ===============================
+     * msg->msg_namelen should get updated by the recvmsg handlers
+     * iff msg_name != NULL. It is by default 0 to prevent
+     * returning uninitialized memory to user space.  The recvfrom
+     * handlers can assume that msg.msg_name is either NULL or has
+     * a minimum size of sizeof(struct sockaddr_storage).
+     */
+    int        (*recvmsg)   (struct kiocb *iocb, struct socket *sock, struct msghdr *m, size_t total_len, int flags);
+    int        (*mmap)         (struct file *file, struct socket *sock, struct vm_area_struct * vma);
+    ssize_t        (*sendpage)  (struct socket *sock, struct page *page, int offset, size_t size, int flags);
+    ssize_t     (*splice_read)(struct socket *sock,  loff_t *ppos, struct pipe_inode_info *pipe, size_t len, unsigned int flags);
+};
+}}}
+
+==== struct inet_sock ====
+{{{
+在实际编程中，我们需要使用inet_sk()，将"struct sock"结果强制转换为"struct inet_sock"之后，才可以从中取出我们想要的IP、Port等信息
+
+\linux-2.6.32.63\include\net\inet_sock.h
+
+static inline struct inet_sock *inet_sk(const struct sock *sk)
+{
+    return (struct inet_sock *)sk;
+}
+
+inet_sock的结构体定义如下
+struct inet_sock 
+{
+    /* sk and pinet6 has to be the first two members of inet_sock */
+    //ancestor class
+    struct sock        sk;
+#if defined(CONFIG_IPV6) || defined(CONFIG_IPV6_MODULE)
+    //pointer to IPv6 control block
+    struct ipv6_pinfo    *pinet6;
+#endif
+    /* Socket demultiplex comparisons on incoming packets. */
+    //Foreign IPv4 addr
+    __be32            daddr;
+    //Bound local IPv4 addr
+    __be32            rcv_saddr;
+    //Destination port
+    __be16            dport;
+    //Local port
+    __u16            num;
+    //Sending source
+    __be32            saddr;
+    //Unicast TTL
+    __s16            uc_ttl;
+    __u16            cmsg_flags;
+    struct ip_options_rcu    *inet_opt;
+    //Source port
+    __be16            sport;
+    //ID counter for DF pkts
+    __u16            id;
+    //TOS
+    __u8            tos;
+    //Multicasting TTL
+    __u8            mc_ttl;
+    __u8            pmtudisc;
+    __u8            recverr:1,
+                //is this an inet_connection_sock?
+                is_icsk:1,
+                freebind:1,
+                hdrincl:1,
+                mc_loop:1,
+                transparent:1,
+                mc_all:1;
+                //Multicast device index
+    int            mc_index;
+    __be32            mc_addr;
+    struct ip_mc_socklist    *mc_list;
+    //info to build ip hdr on each ip frag while socket is corked
+    struct 
+    {
+        unsigned int        flags;
+        unsigned int        fragsize;
+        struct ip_options    *opt;
+        struct dst_entry    *dst;
+        int            length; /* Total length of all frames */
+        __be32            addr;
+        struct flowi        fl;
+    } cork;
+};
+}}}
+
+==== struct sockaddr ====
+{{{
+struct sockaddr 
+{
+    // address family, AF_xxx
+    unsigned short    sa_family;
+    
+    // 14 bytes of protocol address
+    char              sa_data[14];  
+};
+
+/* Structure describing an Internet (IP) socket address. */
+#define __SOCK_SIZE__    16        /* sizeof(struct sockaddr)    */
+struct sockaddr_in 
+{
+    /* Address family */
+    sa_family_t        sin_family;
+    
+    /* Port number */
+    __be16        sin_port;
+    
+    /* Internet address */
+    struct in_addr    sin_addr;    
+
+    /* Pad to size of `struct sockaddr'. */
+    unsigned char        __pad[__SOCK_SIZE__ - sizeof(short int) - izeof(unsigned short int) - sizeof(struct in_addr)];
+};
+#define sin_zero    __pad        /* for BSD UNIX comp. -FvK    */
+
+/* Internet address. */
+struct in_addr 
+{
+    __be32    s_addr;
+};
+ 
+
+=== 系统内存相关的数据结构 ===
+==== struct mm_struct ====
+{{{
+指向进程所拥有的内存描述符，保存了进程的内存管理信息
+struct mm_struct 
+{
+    struct vm_area_struct * mmap;        /* list of VMAs */
+    struct rb_root mm_rb;
+    struct vm_area_struct * mmap_cache;    /* last find_vma result */
+    unsigned long (*get_unmapped_area) (struct file *filp, unsigned long addr, unsigned long len, unsigned long pgoff, unsigned long flags);
+    void (*unmap_area) (struct mm_struct *mm, unsigned long addr);
+    unsigned long mmap_base;        /* base of mmap area */
+    unsigned long task_size;        /* size of task vm space */
+    unsigned long cached_hole_size;     /* if non-zero, the largest hole below free_area_cache */
+    unsigned long free_area_cache;        /* first hole of size cached_hole_size or larger */
+    pgd_t * pgd;
+    atomic_t mm_users;            /* How many users with user space? */
+    atomic_t mm_count;            /* How many references to "struct mm_struct" (users count as 1) */
+    int map_count;                /* number of VMAs */
+    struct rw_semaphore mmap_sem;
+    spinlock_t page_table_lock;        /* Protects page tables and some counters */
+
+    /* List of maybe swapped mm's.    These are globally strung together off init_mm.mmlist, and are protected by mmlist_lock */
+    struct list_head mmlist;        
+    /* Special counters, in some configurations protected by the
+     * page_table_lock, in other configurations by being atomic.
+     */
+    mm_counter_t _file_rss;
+    mm_counter_t _anon_rss;
+
+    unsigned long hiwater_rss;    /* High-watermark of RSS usage */
+    unsigned long hiwater_vm;    /* High-water virtual memory usage */
+
+    unsigned long total_vm, locked_vm, shared_vm, exec_vm;
+    unsigned long stack_vm, reserved_vm, def_flags, nr_ptes;
+    unsigned long start_code, end_code, start_data, end_data;
+    unsigned long start_brk, brk, start_stack;
+    unsigned long arg_start, arg_end, env_start, env_end;
+
+    unsigned long saved_auxv[AT_VECTOR_SIZE]; /* for /proc/PID/auxv */
+
+    struct linux_binfmt *binfmt;
+
+    cpumask_t cpu_vm_mask;
+
+    /* Architecture-specific MM context */
+    mm_context_t context;
+
+    /* Swap token stuff */
+    /*
+     * Last value of global fault stamp as seen by this process.
+     * In other words, this value gives an indication of how long
+     * it has been since this task got the token.
+     * Look at mm/thrash.c
+     */
+    unsigned int faultstamp;
+    unsigned int token_priority;
+    unsigned int last_interval;
+
+    unsigned long flags; /* Must use atomic bitops to access the bits */
+
+    struct core_state *core_state; /* coredumping support */
+#ifdef CONFIG_AIO
+    spinlock_t        ioctx_lock;
+    struct hlist_head    ioctx_list;
+#endif
+#ifdef CONFIG_MM_OWNER
+    /*
+     * "owner" points to a task that is regarded as the canonical
+     * user/owner of this mm. All of the following must be true in
+     * order for it to be changed:
+     *
+     * current == mm->owner
+     * current->mm != mm
+     * new_owner->mm == mm
+     * new_owner->alloc_lock is held
+     */
+    struct task_struct *owner;
+#endif
+
+#ifdef CONFIG_PROC_FS
+    /* store ref to file /proc/<pid>/exe symlink points to */
+    struct file *exe_file;
+    unsigned long num_exe_file_vmas;
+#endif
+#ifdef CONFIG_MMU_NOTIFIER
+    struct mmu_notifier_mm *mmu_notifier_mm;
+#endif
+};
+}}}
+
+==== struct vm_area_struct ====
+{{{
+进程虚拟内存的每个区域表示为struct vm_area_struct的一个实例
+
+struct vm_area_struct 
+{
+    /* 
+    associated mm_struct 
+    vm_mm是一个反向指针，指向该区域所属的mm_struct实例
+    */
+    struct mm_struct             *vm_mm;   
+    
+    /* VMA start, inclusive vm_mm内的起始地址 */
+    unsigned long                vm_start; 
+    /* VMA end , exclusive 在vm_mm内结束地址之后的第一个字节的地址 */
+    unsigned long                vm_end;    
+    
+    /* 
+    list of VMA's 
+    进程所有vm_area_struct实例的链表是通过vm_next实现的
+    各进程的虚拟内存区域链表，按地址排序 
+    */
+    struct vm_area_struct        *vm_next;     
+
+    /* 
+    access permissions 
+    该虚拟内存区域的访问权限 
+    1) _PAGE_READ
+    2) _PAGE_WRITE
+    3) _PAGE_EXECUTE
+    */
+    pgprot_t                     vm_page_prot; 
+    
+    /* 
+    flags 
+    vm_flags是描述该区域的一组标志，用于定义区域性质，这些都是在<mm.h>中声明的预处理器常数 
+    */
+    unsigned long                vm_flags;      
+    struct rb_node               vm_rb;         /* VMA's node in the tree */
+
+    /*
+    对于有地址空间和后备存储器的区域来说:
+    shared连接到address_space->i_mmap优先树
+    或连接到悬挂在优先树结点之外、类似的一组虚拟内存区的链表
+    或连接到ddress_space->i_mmap_nonlinear链表中的虚拟内存区域
+    */
+    union 
+    {         /* links to address_space->i_mmap or i_mmap_nonlinear */
+        struct 
+        {
+            struct list_head        list;
+            void                    *parent;
+            struct vm_area_struct   *head;
+        } vm_set;
+        struct prio_tree_node prio_tree_node;
+    } shared;
+
+    /*
+    在文件的某一页经过写时复制之后，文件的MAP_PRIVATE虚拟内存区域可能同时在i_mmap树和anon_vma链表中，MAP_SHARED虚拟内存区域只能在i_mmap树中
+    匿名的MAP_PRIVATE、栈或brk虚拟内存区域(file指针为NULL)只能处于anon_vma链表中
+    */
+    struct list_head             anon_vma_node;     /* anon_vma entry 对该成员的访问通过anon_vma->lock串行化 */
+    struct anon_vma              *anon_vma;         /* anonymous VMA object 对该成员的访问通过page_table_lock串行化 */
+    struct vm_operations_struct  *vm_ops;           /* associated ops 用于处理该结构的各个函数指针 */
+    unsigned long                vm_pgoff;          /* offset within file 后备存储器的有关信息 */
+    struct file                  *vm_file;          /* mapped file, if any 映射到的文件(可能是NULL) */
+    void                         *vm_private_data;  /* private data vm_pte(即共享内存) */
+};
+
+vm_flags是描述该区域的一组标志，用于定义区域性质，这些都是在<mm.h>中声明的预处理器常数
+\linux-2.6.32.63\include\linux\mm.h
+
+#define VM_READ        0x00000001    /* currently active flags */
+#define VM_WRITE    0x00000002
+#define VM_EXEC        0x00000004
+#define VM_SHARED    0x00000008
+
+/* mprotect() hardcodes VM_MAYREAD >> 4 == VM_READ, and so for r/w/x bits. */
+#define VM_MAYREAD    0x00000010    /* limits for mprotect() etc */
+#define VM_MAYWRITE    0x00000020
+#define VM_MAYEXEC    0x00000040
+#define VM_MAYSHARE    0x00000080
+
+/*
+VM_GROWSDOWN、VM_GROWSUP表示一个区域是否可以向下、向上扩展
+1. 由于堆自下而上增长，其区域需要设置VM_GROWSUP
+2. 栈自顶向下增长，对该区域设置VM_GROWSDOWN
+*/
+#define VM_GROWSDOWN    0x00000100    /* general info on the segment */
+#if defined(CONFIG_STACK_GROWSUP) || defined(CONFIG_IA64)
+#define VM_GROWSUP    0x00000200
+#else
+#define VM_GROWSUP    0x00000000
+#endif
+#define VM_PFNMAP    0x00000400    /* Page-ranges managed without "struct page", just pure PFN */
+#define VM_DENYWRITE    0x00000800    /* ETXTBSY on write attempts.. */
+
+#define VM_EXECUTABLE    0x00001000
+#define VM_LOCKED    0x00002000
+#define VM_IO           0x00004000    /* Memory mapped I/O or similar */
+
+/* 
+Used by sys_madvise() 
+由于区域很可能从头到尾顺序读取，则设置VM_SEQ_READ。VM_RAND_READ指定了读取可能是随机的
+这两个标志用于"提示"内存管理子系统和块设备层，以优化其性能，例如如果访问是顺序的，则启用页的预读
+*/            
+#define VM_SEQ_READ    0x00008000    /* App will access data sequentially */
+#define VM_RAND_READ    0x00010000    /* App will not benefit from clustered reads */
+
+#define VM_DONTCOPY    0x00020000      /* Do not copy this vma on fork 相关的区域在fork系统调用执行时不复制 */
+#define VM_DONTEXPAND    0x00040000    /* Cannot expand with mremap() 禁止区域通过mremap系统调用扩展 */
+#define VM_RESERVED    0x00080000    /* Count as reserved_vm like IO */
+#define VM_ACCOUNT    0x00100000    /* Is a VM accounted object VM_ACCOUNT指定区域是否被归入overcommit特性的计算中 */
+#define VM_NORESERVE    0x00200000    /* should the VM suppress accounting */
+#define VM_HUGETLB    0x00400000    /* Huge TLB Page VM 如果区域是基于某些体系结构支持的巨型页，则设置VM_HUGETLB */
+#define VM_NONLINEAR    0x00800000    /* Is non-linear (remap_file_pages) */
+#define VM_MAPPED_COPY    0x01000000    /* T if mapped copy of data (nommu mmap) */
+#define VM_INSERTPAGE    0x02000000    /* The vma has had "vm_insert_page()" done on it */
+#define VM_ALWAYSDUMP    0x04000000    /* Always include in core dumps */
+
+#define VM_CAN_NONLINEAR 0x08000000    /* Has ->fault & does nonlinear pages */
+#define VM_MIXEDMAP    0x10000000    /* Can contain "struct page" and pure PFN pages */
+#define VM_SAO        0x20000000    /* Strong Access Ordering (powerpc) */
+#define VM_PFN_AT_MMAP    0x40000000    /* PFNMAP vma that is fully mapped at mmap time */
+#define VM_MERGEABLE    0x80000000    /* KSM may merge identical pages */
+
+这些特性以多种方式限制内存分配
+}}}
+
+==== struct pg_data_t ====
+{{{
+\linux-2.6.32.63\include\linux\mmzone.h
+在NUMA、UMA中，整个内存划分为"结点"，每个结点关联到系统中的一个处理器，在内核中表示为pg_data_t的实例，各个内存节点保存在一个单链表中，供内核遍历
+
+typedef struct pglist_data 
+{
+    //node_zones是一个数组，包含了结点中的管理区
+    struct zone node_zones[MAX_NR_ZONES];
+
+    //node_zonelists指定了结点及其内存域的列表，node_zonelist中zone的顺序代表了分配内存的顺序，前者分配内存失败将会到后者的区域中分配内存，node_zonelist数组对每种可能的内存域类型都配置了一个独立的数组项，包括类型为zonelist的备用列表
+    struct zonelist node_zonelists[MAX_ZONELISTS];
+
+    //nr_zones保存结点中不同内存域的数目
+    int nr_zones;
+#ifdef CONFIG_FLAT_NODE_MEM_MAP    /* means !SPARSEMEM */
+    /*
+    node_mem_map指向struct page实例数组的指针，用于描述结点的所有物理内存页，它包含了结点中所有内存域的页
+    每个结点又划分为"内存域"，是内存的进一步划分，各个内存域都关联了一个数组，用来组织属于该内存域的物理内存页(页帧)，对每个页帧，都分配一个struct page实例以及所需的管理数据
+    */
+    struct page *node_mem_map;
+#ifdef CONFIG_CGROUP_MEM_RES_CTLR
+    struct page_cgroup *node_page_cgroup;
+#endif
+#endif
+    //在系统启动期间，内存管理子系统初始化之前，内核也需要使用内存(必须保留部分内存用于初始化内存管理子系统)，为了解决这个问题，内核使用了"自举内存分配器(boot memory allocator)"，bdata指向自举内存分配器数据结构的实例
+    struct bootmem_data *bdata;
+#ifdef CONFIG_MEMORY_HOTPLUG
+    /*
+     * Must be held any time you expect node_start_pfn, node_present_pages
+     * or node_spanned_pages stay constant.  Holding this will also
+     * guarantee that any pfn_valid() stays that way.
+     *
+     * Nests above zone->lock and zone->size_seqlock.
+     */
+    spinlock_t node_size_lock;
+#endif
+    /*
+    node_start_pfn是该NUMA结点第一个页帧的逻辑编号，系统中所有结点的页帧是依次编号的，每个页帧的号码都是全局唯一的(不单单是结点内唯一)
+    node_start_pfn在UMA系统中总是0，因为其中只有一个结点，因此其第一个页帧编号总是0
+    */
+    unsigned long node_start_pfn;
+    /* 
+    total number of physical pages 
+    node_present_pages指定了结点中页帧的总数目
+    */
+    unsigned long node_present_pages; 
+    /* 
+    total size of physical page range, including holes 
+    node_spanned_pages给出了该结点以页帧为单位计算的长度
+
+    node_present_pages、node_spanned_pages的值不一定相同，因为结点中可能有一些空洞，并不对应真正的页帧
+    */
+    unsigned long node_spanned_pages;
+
+    //node_id是全局结点ID，系统中的NUMA结点都是从0开始编号
+    int node_id;
+
+    //kswapd是交换守护进程(swap deamon)的等待队列，在将页帧换出时会用到
+    wait_queue_head_t kswapd_wait;
+
+    //kswapd指向负责该结点的交换守护进程的task_strcut
+    struct task_struct *kswapd;
+
+    //kswapd_max_order用于页交换子系统的实现，用来定义需要释放的区域的长度
+    int kswapd_max_order;
+} pg_data_t;
+}}}
+
+==== struct zone ====
+{{{
+内存划分为"结点"，每个结点关联到系统中的一个处理器，各个结点又划分为"内存域"，是内存的进一步划分 
+\linux-2.6.32.63\include\linux\mmzone.h
+
+struct zone 
+{
+    /* Fields commonly accessed by the page allocator 通常由页分配器访问的字段*/
+
+    /* 
+    zone watermarks, access with *_wmark_pages(zone) macros 
+    pages_min、pages_high、pages_low是页换出时使用的"水印"，如果内存不足，内核可以将页写到硬盘，这3个成员会影响交换守护进程的行为
+    1. 如果空闲页多于pages_high: 则内存域的状态是理想的
+    2. 如果空闲页的数目低于pages_low: 则内核开始将页换出到硬盘
+    3. 如果空闲页的数目低于pages_min: 则页回收工作的压力已经很大了，因为内存域中急需空闲页，内核中有一些机制用于处理这种紧急情况
+    */
+    unsigned long watermark[NR_WMARK];
+
+    /*
+     * When free pages are below this point, additional steps are taken
+     * when reading the number of free pages to avoid per-cpu counter
+     * drift allowing watermarks to be breached
+     */
+    unsigned long percpu_drift_mark;
+
+    /*
+    We don't know if the memory that we're going to allocate will be freeable or/and it will be released eventually, 
+    so to avoid totally wasting several GB of ram we must reserve some of the lower zone memory (otherwise we risk to run OOM on the lower zones despite there's tons of freeable ram on the higher zones). 
+    This array is recalculated at runtime if the sysctl_lowmem_reserve_ratio sysctl changes.
+    lowmem_reserve数组分别为各种内存域指定了若干页，用于一些无论如何都不能失败的关键性内存分配，各个内存域的份额根据重要性确定
+　　lowmem_reserve的计算由setup_per_zone_lowmem_reserve完成，内核迭代系统的所有结点，对每个结点的各个内存域分别计算预留内存最小值，具体的算法是
+    内存域中页帧的总数 / sysctl_lowmem_reserve_ratio[zone]
+    除数(sysctl_lowmem_reserve_ratio[zone])的默认设置对低端内存域是256，对高端内存域是32
+    */
+    unsigned long        lowmem_reserve[MAX_NR_ZONES];
+
+#ifdef CONFIG_NUMA
+    int node;
+    /*
+     * zone reclaim becomes active if more unmapped pages exist.
+     */
+    unsigned long        min_unmapped_pages;
+    unsigned long        min_slab_pages;
+    struct per_cpu_pageset    *pageset[NR_CPUS];
+#else
+    /*
+    pageset是一个数组，用于实现每个CPU的热/冷页帧列表，内核使用这些列表来保存可用于满足实现的"新鲜页"。但冷热帧对应的高速缓存状态不同
+    1. 热帧: 页帧已经加载到高速缓存中，与在内存中的页相比，因此可以快速访问，故称之为热的
+    2. 冷帧: 未缓存的页帧已经不在高速缓存中，故称之为冷的
+    */ 
+    struct per_cpu_pageset    pageset[NR_CPUS];
+#endif
+    /*
+     * free areas of different sizes
+     */
+    spinlock_t        lock;
+#ifdef CONFIG_MEMORY_HOTPLUG
+    /* see spanned/present_pages for more description */
+    seqlock_t        span_seqlock;
+#endif
+    /*
+    不同长度的空闲区域
+    free_area是同名数据结构的数组，用于实现伙伴系统，每个数组元素都表示某种固定长度的一些连续内存区，对于包含在每个区域中的空闲内存页的管理，free_area是一个起点
+    */
+    struct free_area    free_area[MAX_ORDER];
+
+#ifndef CONFIG_SPARSEMEM
+    /*
+     * Flags for a pageblock_nr_pages block. See pageblock-flags.h.
+     * In SPARSEMEM, this map is stored in struct mem_section
+     */
+    unsigned long        *pageblock_flags;
+#endif /* CONFIG_SPARSEMEM */
+
+
+    ZONE_PADDING(_pad1_)
+
+    /* 
+    Fields commonly accessed by the page reclaim scanner 
+    通常由页面回收扫描程序访问的字段
+    */
+    spinlock_t        lru_lock;    
+    struct zone_lru 
+    {
+        struct list_head list;
+    } lru[NR_LRU_LISTS];
+
+    struct zone_reclaim_stat reclaim_stat;
+
+    /* 
+    since last reclaim 
+    上一次回收以来扫描过的页
+    */
+    unsigned long        pages_scanned;     
+    /* 
+    zone flags
+    内存域标志
+    */  
+    unsigned long        flags;           
+
+    /* 
+    Zone statistics 
+    内存域统计量，vm_stat维护了大量有关该内存域的统计信息，内核中很多地方都会更新其中的信息
+    */
+    atomic_long_t        vm_stat[NR_VM_ZONE_STAT_ITEMS];
+
+    /*
+    prev_priority holds the scanning priority for this zone.  
+    It is defined as the scanning priority at which we achieved our reclaim target at the previous try_to_free_pages() or balance_pgdat() invokation.
+    We use prev_priority as a measure of how much stress page reclaim is under - it drives the swappiness decision: whether to unmap mapped pages.
+    Access to both this field is quite racy even on uniprocessor.  But it is expected to average out OK.
+    prev_priority存储了上一次扫描操作扫描该内存域的优先级，扫描操作是由try_to_free_pages进行的，直至释放足够的页帧，扫描会根据该值判断是否换出映射的页
+    */
+    int prev_priority;
+
+    /*
+     * The target ratio of ACTIVE_ANON to INACTIVE_ANON pages on
+     * this zone's LRU.  Maintained by the pageout code.
+     */
+    unsigned int inactive_ratio;
+
+    ZONE_PADDING(_pad2_)
+    /*
+    Rarely used or read-mostly fields 
+    很少使用或大多数情况下是只读的字段
+    */
+
+    /*
+    1. wait_table: the array holding the hash table
+    2. wait_table_hash_nr_entries: the size of the hash table array
+    3. wait_table_bits: wait_table_size == (1 << wait_table_bits)
+ 
+    The purpose of all these is to keep track of the people waiting for a page to become available and make them runnable again when possible. 
+    The trouble is that this consumes a lot of space, especially when so few things wait on pages at a given time. 
+    So instead of using per-page waitqueues, we use a waitqueue hash table.
+    The bucket discipline is to sleep on the same queue when colliding and wake all in that wait queue when removing.
+    When something wakes, it must check to be sure its page is truly available, a la thundering herd. 
+    The cost of a collision is great, but given the expected load of the table, they should be so rare as to be outweighed by the benefits from the saved space.
+     __wait_on_page_locked() and unlock_page() in mm/filemap.c, are the primary users of these fields, and in mm/page_alloc.c free_area_init_core() performs the initialization of them.
+
+    wait_table、wait_table_hash_nr_entries、wait_table_bits实现了一个等待队列，可用于存储等待某一页变为可用的等待进程，进程排成一个队列，等待某些条件，在条件变为真时，内核会通知进程恢复工作
+    */
+    wait_queue_head_t    * wait_table;
+    unsigned long        wait_table_hash_nr_entries;
+    unsigned long        wait_table_bits;
+
+    /*
+    Discontig memory support fields.
+    支持不连续内存模型的字段，内存域和父节点之间的关联由zone_pgdat建立，zone_pgdat指向对应的pg_list_data实例(内存结点)
+    */
+    struct pglist_data    *zone_pgdat;
+    /* 
+    zone_start_pfn == zone_start_paddr >> PAGE_SHIFT 
+    zone_start_pfn是内存域第一个页帧的索引
+    */
+    unsigned long        zone_start_pfn;
+
+    /*
+    zone_start_pfn, spanned_pages and present_pages are all protected by span_seqlock.  
+    It is a seqlock because it has to be read outside of zone->lock, and it is done in the main allocator path.  But, it is written quite infrequently.
+    
+    The lock is declared along with zone->lock because it is frequently read in proximity to zone->lock.  It's good to give them a chance of being in the same cacheline.
+    */
+    unsigned long        spanned_pages;    /* total size, including holes 内存域中页的总数，包含空洞*/
+    unsigned long        present_pages;    /* amount of memory (excluding holes) 内存域中页的实际数量(除去空洞) */
+
+    /*rarely used fields:*/
+    /*
+    name是一个字符串，保存该内存域的管用名称，有3个选项可用
+    1. Normal
+    2. DMA
+    3. HighMem
+    */
+    const char        *name;
+} ____cacheline_internodealigned_in_smp;
+
+该结构比较特殊的方面是它由ZONE_PADDING分隔为几个部分，这是因为对zone结构的访问非常频繁，在多处理器系统上，通常会有不同的CPU试图同时访问结构成员，因此使用了锁防止它们彼此干扰，避免错误和不一致。由于内核对该结构的访问非常频繁，因此会经常性地获取该结构的两个自旋锁zone->lock、zone->lru_lock
+因此，如果数据保存在CPU高速缓存中，那么会处理的更快速。而高速缓存分为行，每一行负责不同的内存区，内核使用ZONE_PADDING宏生成"填充"字段添加到结构中，以确保每个自旋锁都处于自身的"缓存行"中，还使用了编译器关键字____cacheline_internodealigned_in_smp，用以实现最优的高速缓存对齐方式
+
+这是内核在基于对CPU底层硬件的深刻理解后做出的优化，通过看似浪费空间的"冗余"操作，提高了CPU的并行处理效率，防止了因为锁导致的等待损耗
+}}}
+
+==== struct page ====
+{{{
+\linux-2.6.32.63\include\linux\mm_types.h
+该结构的格式是体系结构无关的，不依赖于使用的CPU类型，每个页帧都由该结构描述  
+
+/*
+Each physical page in the system has a struct page associated with it to keep track of whatever it is we are using the page for at the moment. 
+Note that we have no way to track which tasks are using a page, though if it is a pagecache page, rmap structures can tell us who is mapping it.
+*/
+struct page 
+{
+    /* 
+    Atomic flags, some possibly updated asynchronously 
+    flag存储了体系结构无关的标志，用来存放页的状态属性，每一位代表一种状态，所以至少可以同时表示出32中不同的状态,这些状态定义在linux/page-flags.h中    
+    enum pageflags 
+    {
+        PG_locked,            //Page is locked. Don't touch. 指定了页是否锁定，如果该比特位置位，内核的其他部分不允许访问该页，这防止了内存管理出现竞态条件，例如从硬盘读取数据到页帧时
+        PG_error,            //如果在涉及该页的I/O操作期间发生错误，则PG_error置位
+        PG_referenced,        //PG_referenced、PG_active控制了系统使用该页的活跃程度，在页交换子系统选择换出页时，该信息很重要
+        PG_uptodate,        //PG_uptodate表示页的数据已经从块设备读取，期间没有出错
+        PG_dirty,            //如果与硬盘上的数据相比，页的内容已经改变，则置位PG_dirty。处于性能考虑，页并不在每次修改后立即写回，因此内核使用该标志注明页已经改变，可以在稍后刷出。设置了该标志的页称为脏的(即内存中的数据没有与外存储器介质如硬盘上的数据同步)
+        PG_lru,                //PG_lru有助于实现页面回收和切换，内核使用两个最近最少使用(least recently used lru)链表来区别活动和不活动页，如果页在其中一个链表中，则设置该比特位
+        PG_active,
+        PG_slab,            //如果页是SLAB分配器的一部分，则设置PG_slab位
+        PG_owner_priv_1,    //Owner use. If pagecache, fs may use 
+        PG_arch_1,
+        PG_reserved,
+        PG_private,            //If pagecache, has fs-private data: 如果page结构的private成员非空，则必须设置PG_private位，用于I/O的页，可使用该字段将页细分为多个缓冲区
+        PG_private_2,        //If pagecache, has fs aux data 
+        PG_writeback,        //Page is under writeback: 如果页的内容处于向块设备回写的过程中，则需要设置PG_writeback位
+    #ifdef CONFIG_PAGEFLAGS_EXTENDED
+        PG_head,            //A head page 
+        PG_tail,            //A tail page  
+    #else
+        PG_compound,        //A compound page: PG_compound表示该页属于一个更大的复合页，复合页由多个相连的普通页组成
+    #endif
+        PG_swapcache,        //Swap page: swp_entry_t in private: 如果页处于交换缓存，则设置PG_swapcache位，在这种情况下，private包含一个类型为swap_entry_t的项 
+        PG_mappedtodisk,    //Has blocks allocated on-disk  
+        PG_reclaim,            //To be reclaimed asap: 在可用内存的数量变少时，内核视图周期性地回收页，即剔除不活动、未用的页，在内核决定回收某个特定的页=之后，需要设置PG_reclaim标志通知
+        PG_buddy,            //Page is free, on buddy lists: 如果页空闲且包含在伙伴系统的列表中，则设置PG_buddy位，伙伴系统是页分配机制的核心
+        PG_swapbacked,        //Page is backed by RAM/swap 
+        PG_unevictable,        //Page is "unevictable"  
+    #ifdef CONFIG_HAVE_MLOCKED_PAGE_BIT
+        PG_mlocked,            //Page is vma mlocked  
+    #endif
+    #ifdef CONFIG_ARCH_USES_PG_UNCACHED
+        PG_uncached,        //Page has been mapped as uncached  
+    #endif
+    #ifdef CONFIG_MEMORY_FAILURE
+        PG_hwpoison,        //hardware poisoned page. Don't touch  
+    #endif
+        __NR_PAGEFLAGS,
+ 
+        PG_checked = PG_owner_priv_1,    //Filesystems   
+        PG_fscache = PG_private_2,        //page backed by cache 
+
+        //XEN  
+        PG_pinned = PG_owner_priv_1,
+        PG_savepinned = PG_dirty,
+
+        //SLOB  
+        PG_slob_free = PG_private,
+
+        //SLUB  
+        PG_slub_frozen = PG_active,
+        PG_slub_debug = PG_error,
+    };
+
+    内核定义了一些标准宏，用于检查页是否设置了某个特定的比特位，或者操作某个比特位，这些宏的名称有一定的模式，这些操作都是原子的
+    1. PageXXX(page): 会检查页是否设置了PG_XXX位
+    2. SetPageXXX: 在某个比特位没有设置的情况下，设置该比特位，并返回原值
+    3. ClearPageXXX: 无条件地清除某个特定的比特位
+    4. TestClearPageXXX: 清除某个设置的比特位，并返回原值 
+    */
+    unsigned long flags;    
+
+    /*
+    Usage count, see below
+    _count记录了该页被引用了多少次，_count是一个使用计数，表示内核中引用该页的次数
+    1. 在其值到达0时，内核就知道page实例当前不使用，因此可以删除
+    2. 如果其值大于0，该实例绝不会从内存删除
+    */    
+    atomic_t _count;         
+    union 
+    {
+        /* 
+        Count of ptes mapped in mms, to show when page is mapped & limit reverse map searches.
+        内存管理子系统中映射的页表项计数，用于表示在页表中有多少项指向该页，还用于限制逆向映射搜索
+        atomic_t类型允许以原子方式修改其值，即不受并发访问的影响
+        */
+        atomic_t _mapcount; 
+        struct 
+        {    /* 
+            SLUB: 用于SLUB分配器，表示对象的数目 
+            */
+            u16 inuse;
+            u16 objects;
+        };
+    };
+    union 
+    {
+        struct 
+        {
+            /* 
+            Mapping-private opaque data: 由映射私有，不透明数据
+            usually used for buffer_heads if PagePrivate set: 如果设置了PagePrivate，通常用于buffer_heads
+            used for swp_entry_t if PageSwapCache: 如果设置了PageSwapCache，则用于swp_entry_t
+            indicates order in the buddy system if PG_buddy is set: 如果设置了PG_buddy，则用于表示伙伴系统中的阶
+            private是一个指向"私有"数据的指针，虚拟内存管理会忽略该数据
+            */
+            unsigned long private;        
+
+            /* 
+            If low bit clear, points to inode address_space, or NULL: 如果最低位为0，则指向inode address_space，成为NULL
+            If page mapped as anonymous memory, low bit is set, and it points to anon_vma object: 如果页映射为匿名内存，则将最低位置位，而且该指针指向anon_vma对象
+            mapping指定了页帧所在的地址空间
+            */
+            struct address_space *mapping;    
+        };
+#if USE_SPLIT_PTLOCKS
+        spinlock_t ptl;
+#endif
+        /* 
+        SLUB: Pointer to slab 
+        用于SLAB分配器: 指向SLAB的指针
+        */
+        struct kmem_cache *slab;    
+        /* 
+        Compound tail pages 
+        内核可以将多个相连的页合并成较大的复合页(compound page)，分组中的第一个页称作首页(head page)，而所有其余各页叫做尾页(tail page)，所有尾页对应的page实例中，都将first_page设置为指向首页
+        用于复合页的页尾，指向首页
+        */
+        struct page *first_page;    
+    };
+    union 
+    {
+        /* 
+        Our offset within mapping. 
+        index是页帧在映射内的偏移量
+        */
+        pgoff_t index;        
+        void *freelist;        /* SLUB: freelist req. slab lock */
+    };
+
+    /* 
+    Pageout list(换出页列表), eg. active_list protected by zone->lru_lock 
+    */
+    struct list_head lru;        
+    /*
+     * On machines where all RAM is mapped into kernel address space,
+     * we can simply calculate the virtual address. On machines with
+     * highmem some memory is mapped into kernel virtual memory
+     * dynamically, so we need a place to store that address.
+     * Note that this field could be 16 bits on x86 ... ;)
+     *
+     * Architectures with slow multiplication can define
+     * WANT_PAGE_VIRTUAL in asm/page.h
+     */
+#if defined(WANT_PAGE_VIRTUAL)
+    /* 
+    Kernel virtual address (NULL if not kmapped, ie. highmem) 
+    内核虚拟地址(如果没有映射机制则为NULL，即高端内存)
+    */
+    void *virtual;            
+#endif /* WANT_PAGE_VIRTUAL */
+#ifdef CONFIG_WANT_PAGE_DEBUG_FLAGS
+    unsigned long debug_flags;    /* Use atomic bitops on this */
+#endif
+
+#ifdef CONFIG_KMEMCHECK
+    /*
+     * kmemcheck wants to track the status of each byte in a page; this
+     * is a pointer to such a status block. NULL if not tracked.
+     */
+    void *shadow;
+#endif
+};
+
+很多时候，需要等待页的状态改变，然后才能恢复工作，内核提供了两个辅助函数
+\linux-2.6.32.63\include\linux\pagemap.h
+
+static inline void wait_on_page_locked(struct page *page);
+假定内核的一部分在等待一个被锁定的页面，直至页面解锁，wait_on_page_locked提供了该功能，在页面锁定的情况下调用该函数，内核将进入睡眠，在页解锁之后，睡眠进程被自动唤醒并继续共走
+
+static inline void wait_on_page_writeback(struct page *page);
+wait_on_page_writeback的工作方式类似，该函数会等待到与页面相关的所有待决回写操作结束，将页面包含的数据同步到块设备(例如硬盘)为止
+}}}
+
+=== 中断相关的数据结构 ===
+==== struct irq_desc ====
+{{{
+用于表示IRQ描述符的结构定义如下：\linux-2.6.32.63\include\linux\irq.h
+
+struct irq_desc 
+{
+    //1. interrupt number for this descriptor
+    unsigned int        irq;
+
+    //2. irq stats per cpu
+    unsigned int            *kstat_irqs;
+#ifdef CONFIG_INTR_REMAP
+    //3. iommu with this irq
+    struct irq_2_iommu      *irq_2_iommu;
+#endif
+    //4. highlevel irq-events handler [if NULL, __do_IRQ()]
+    irq_flow_handler_t    handle_irq;
+
+    //5. low level interrupt hardware access
+    struct irq_chip        *chip;
+
+    //6. MSI descriptor
+    struct msi_desc        *msi_desc;
+
+    //7. per-IRQ data for the irq_chip methods
+    void            *handler_data;
+
+    //8. platform-specific per-chip private data for the chip methods, to allow shared chip implementations
+    void            *chip_data;
+
+    /* IRQ action list */
+    //9. the irq action chain
+    struct irqaction    *action;    
+
+    /* IRQ status */
+    //10. status information
+    unsigned int        status;        
+
+    /* nested irq disables */
+    //11. disable-depth, for nested irq_disable() calls
+    unsigned int        depth;        
+
+    /* nested wake enables */
+    //12. enable depth, for multiple set_irq_wake() callers
+    unsigned int        wake_depth;    
+
+    /* For detecting broken IRQs */
+    //13. stats field to detect stalled irqs
+    unsigned int        irq_count;    
+
+    /* Aging timer for unhandled count */
+    //14. aging timer for unhandled count
+    unsigned long        last_unhandled;    
+
+    //15. stats field for spurious unhandled interrupts
+    unsigned int        irqs_unhandled;
+
+    //16. locking for SMP
+    spinlock_t        lock;
+#ifdef CONFIG_SMP
+    //17. IRQ affinity on SMP
+    cpumask_var_t        affinity;
+
+    //18. node index useful for balancing
+    unsigned int        node;
+#ifdef CONFIG_GENERIC_PENDING_IRQ
+    //19. pending rebalanced interrupts
+    cpumask_var_t        pending_mask;
+#endif
+#endif
+    //20. number of irqaction threads currently running
+    atomic_t        threads_active;
+
+    //21. wait queue for sync_irq to wait for threaded handlers
+    wait_queue_head_t       wait_for_threads;
+#ifdef CONFIG_PROC_FS
+    //22. /proc/irq/ procfs entry
+    struct proc_dir_entry    *dir;
+#endif
+    //23. flow handler name for /proc/interrupts output
+    const char        *name;
+} ____cacheline_internodealigned_in_smp;
+
+status描述了IRQ的当前状态
+irq.h中定义了各种表示当前状态的常数，可用于描述IRQ电路当前的状态。每个常数表示位串中的一个置为的标志位(可以同时设置)
+
+/*
+ * IRQ line status.
+ *
+ * Bits 0-7 are reserved for the IRQF_* bits in linux/interrupt.h
+ *
+ * IRQ types
+ */
+#define IRQ_TYPE_NONE        0x00000000    /* Default, unspecified type */
+#define IRQ_TYPE_EDGE_RISING    0x00000001    /* Edge rising type */
+#define IRQ_TYPE_EDGE_FALLING    0x00000002    /* Edge falling type */
+#define IRQ_TYPE_EDGE_BOTH (IRQ_TYPE_EDGE_FALLING | IRQ_TYPE_EDGE_RISING)
+#define IRQ_TYPE_LEVEL_HIGH    0x00000004    /* Level high type */
+#define IRQ_TYPE_LEVEL_LOW    0x00000008    /* Level low type */
+#define IRQ_TYPE_SENSE_MASK    0x0000000f    /* Mask of the above */
+#define IRQ_TYPE_PROBE        0x00000010    /* Probing in progress */
+
+/* 
+IRQ handler active - do not enter! 
+与IRQ_DISABLED类似，IRQ_DISABLED会阻止其余的内核代码执行该处理程序
+*/
+#define IRQ_INPROGRESS        0x00000100    
+
+/* 
+IRQ disabled - do not enter!  
+用户表示被设备驱动程序禁用的IRQ电路毛概标志通知内核不要进入处理程序
+*/
+#define IRQ_DISABLED        0x00000200    
+
+/* 
+IRQ pending - replay on enable 
+当CPU产生一个中断但尚未执行对应的处理程序时，IRQ_PENDING标志位置位
+*/
+#define IRQ_PENDING        0x00000400    
+
+/* 
+IRQ has been replayed but not acked yet 
+IRQ_REPLAY意味着该IRQ已经禁用，但此前尚有一个未确认的中断
+*/
+#define IRQ_REPLAY        0x00000800    
+#define IRQ_AUTODETECT        0x00001000    /* IRQ is being autodetected */
+#define IRQ_WAITING        0x00002000    /* IRQ not yet seen - for autodetection */
+
+/* 
+IRQ level triggered 
+用于Alpha和PowerPC系统，用于区分电平触发和边沿触发的IRQ
+*/
+#define IRQ_LEVEL        0x00004000    
+
+/* 
+IRQ masked - shouldn't be seen again 
+为正确处理发生在中断处理期间的中断，需要IRQ_MASKED标志位
+*/
+#define IRQ_MASKED        0x00008000    
+
+/* 
+IRQ is per CPU 
+某个IRQ只能发生在一个CPU上时，将设置IRQ_PER_CPU标志位，在SMP系统中，该标志使几个用于防止并发访问的保护机制变得多余
+*/
+#define IRQ_PER_CPU        0x00010000    
+#define IRQ_NOPROBE        0x00020000    /* IRQ is not valid for probing */
+#define IRQ_NOREQUEST        0x00040000    /* IRQ cannot be requested */
+#define IRQ_NOAUTOEN        0x00080000    /* IRQ will not be enabled on request irq */
+#define IRQ_WAKEUP        0x00100000    /* IRQ triggers system wakeup */
+#define IRQ_MOVE_PENDING    0x00200000    /* need to re-target IRQ destination */
+#define IRQ_NO_BALANCING    0x00400000    /* IRQ is excluded from balancing */
+#define IRQ_SPURIOUS_DISABLED    0x00800000    /* IRQ was disabled by the spurious trap */
+#define IRQ_MOVE_PCNTXT        0x01000000    /* IRQ migration from process context */
+#define IRQ_AFFINITY_SET    0x02000000    /* IRQ affinity was set from userspace*/
+#define IRQ_SUSPENDED        0x04000000    /* IRQ has gone through suspend sequence */
+#define IRQ_ONESHOT        0x08000000    /* IRQ is not unmasked after hardirq */
+#define IRQ_NESTED_THREAD    0x10000000    /* IRQ is nested into another, no own handler thread */
+
+#ifdef CONFIG_IRQ_PER_CPU
+# define CHECK_IRQ_PER_CPU(var) ((var) & IRQ_PER_CPU)
+# define IRQ_NO_BALANCING_MASK    (IRQ_PER_CPU | IRQ_NO_BALANCING)
+#else
+# define CHECK_IRQ_PER_CPU(var) 0
+# define IRQ_NO_BALANCING_MASK    IRQ_NO_BALANCING
+#endif
+}}}
+
+==== struct irq_chip ====
+{{{
+\linux-2.6.32.63\include\linux\irq.h
+
+struct irq_chip 
+{
+    /*
+    1. name for /proc/interrupts
+    包含一个短的字符串，用于标识硬件控制器
+        1) IA-32: XTPIC
+        2) AMD64: IO-APIC
+    */
+    const char    *name;
+
+    //2. start up the interrupt (defaults to ->enable if NULL)，用于第一次初始化一个IRQ，startup实际上就是将工作转给enable
+    unsigned int    (*startup)(unsigned int irq);
+
+    //3. shut down the interrupt (defaults to ->disable if NULL)
+    void        (*shutdown)(unsigned int irq);
+
+    //4. enable the interrupt (defaults to chip->unmask if NULL)
+    void        (*enable)(unsigned int irq);
+
+    //5. disable the interrupt (defaults to chip->mask if NULL)
+    void        (*disable)(unsigned int irq);
+
+    //6. start of a new interrupt
+    void        (*ack)(unsigned int irq);
+
+    //7. mask an interrupt source
+    void        (*mask)(unsigned int irq);
+
+    //8. ack and mask an interrupt source
+    void        (*mask_ack)(unsigned int irq);
+
+    //9. unmask an interrupt source
+    void        (*unmask)(unsigned int irq);
+
+    //10. end of interrupt - chip level
+    void        (*eoi)(unsigned int irq);
+
+    //11. end of interrupt - flow level
+    void        (*end)(unsigned int irq);
+
+    //12. set the CPU affinity on SMP machines
+    int        (*set_affinity)(unsigned int irq, const struct cpumask *dest);
+
+    //13. resend an IRQ to the CPU
+    int        (*retrigger)(unsigned int irq);
+
+    //14. set the flow type (IRQ_TYPE_LEVEL/etc.) of an IRQ
+    int        (*set_type)(unsigned int irq, unsigned int flow_type);
+
+    //15. enable/disable power-management wake-on of an IRQ
+    int        (*set_wake)(unsigned int irq, unsigned int on);
+
+    //16. function to lock access to slow bus (i2c) chips
+    void        (*bus_lock)(unsigned int irq);
+
+    //17. function to sync and unlock slow bus (i2c) chips
+    void        (*bus_sync_unlock)(unsigned int irq);
+
+    /* Currently used only by UML, might disappear one day.*/
+#ifdef CONFIG_IRQ_RELEASE_METHOD
+    //18. release function solely used by UML
+    void        (*release)(unsigned int irq, void *dev_id);
+#endif
+    /*
+     * For compatibility, ->typename is copied into ->name.
+     * Will disappear.
+     */
+    //19. obsoleted by name, kept as migration helper
+    const char    *typename;
+};
+
+该结构需要考虑内核中出现的各个IRQ实现的所有特性。因此，一个该结构的特定实例，通常只定义所有可能方法的一个子集，下面以IO-APIC、i8259A标准中断控制器作为例子
+
+\linux-2.6.32.63\arch\x86\kernel\io_apic.c
+
+static struct irq_chip ioapic_chip __read_mostly = {
+    .name        = "IO-APIC",
+    .startup    = startup_ioapic_irq,
+    .mask        = mask_IO_APIC_irq,
+    .unmask        = unmask_IO_APIC_irq,
+    .ack        = ack_apic_edge,
+    .eoi        = ack_apic_level,
+#ifdef CONFIG_SMP
+    .set_affinity    = set_ioapic_affinity_irq,
+#endif
+    .retrigger    = ioapic_retrigger_irq,
+};
+
+linux-2.6.32.63\arch\alpha\kernel\irq_i8259.c
+
+struct irq_chip i8259a_irq_type = {
+    .name        = "XT-PIC",
+    .startup    = i8259a_startup_irq,
+    .shutdown    = i8259a_disable_irq,
+    .enable        = i8259a_enable_irq,
+    .disable    = i8259a_disable_irq,
+    .ack        = i8259a_mask_and_ack_irq,
+    .end        = i8259a_end_irq,
+};
+
+可以看到，运行该设备，只需要定义所有可能处理程序函数的一个子集
+}}}
+
+==== struct irqaction ====
+{{{
+struct irqaction结构是struct irq_desc中和IRQ处理函数相关的成员结构
+
+struct irqaction 
+{
+    //1. name、dev_id唯一地标识一个中断处理程序
+    irq_handler_t           handler;
+    void                    *dev_id;
+
+    void __percpu           *percpu_dev_id;
+
+    //2. next用于实现共享的IRQ处理程序
+    struct irqaction        *next;
+    irq_handler_t           thread_fn;
+    struct task_struct      *thread;
+    unsigned int            irq;
+
+    //3. flags是一个标志变量，通过位图描述了IRQ(和相关的中断)的一些特性，位图中的各个标志位可以通过预定义的常数访问
+    unsigned int            flags;
+    unsigned long           thread_flags;
+    unsigned long           thread_mask;
+
+    //4. name是一个短字符串，用于标识设备
+    const char              *name;
+    struct proc_dir_entry   *dir;
+} ____cacheline_internodealigned_in_smp;
+
+几个irqaction实例聚集到一个链表中，链表的所有元素都必须处理同一个IRQ编号，在发生一个共享中断时，内核扫描该链表找出中断实际上的来源设备
+}}} 
+{{local:images/linux_struct_irqaction.png}}
+
+=== 进程间通信(IPC)相关数据结构 ===
+==== struct ipc_namespace ====
+{{{
+从内核版本2.6.19开始，IPC机制已经能够意识到命名空间的存在，但管理IPC命名空间比较简单，因为它们之间没有层次关系，给定的进程属于task_struct->nsproxy->ipc_ns指向的命名空间，初始的默认命名空间通过ipc_namespace的静态实例init_ipc_ns实现，每个命名空间都包括如下结构
+source/include/linux/ipc_namespace.h
+
+struct ipc_namespace 
+{
+    atomic_t    count;
+    /*
+    每个数组元素对应一种IPC机制
+        1) ids[0]: 信号量
+        2) ids[1]: 消息队列
+        3) ids[2]: 共享内存
+    */
+    struct ipc_ids    ids[3];
+
+    int        sem_ctls[4];
+    int        used_sems;
+
+    int        msg_ctlmax;
+    int        msg_ctlmnb;
+    int        msg_ctlmni;
+    atomic_t    msg_bytes;
+    atomic_t    msg_hdrs;
+    int        auto_msgmni;
+
+    size_t        shm_ctlmax;
+    size_t        shm_ctlall;
+    int        shm_ctlmni;
+    int        shm_tot;
+
+    struct notifier_block ipcns_nb;
+
+    /* The kern_mount of the mqueuefs sb.  We take a ref on it */
+    struct vfsmount    *mq_mnt;
+
+    /* # queues in this ns, protected by mq_lock */
+    unsigned int    mq_queues_count;
+
+    /* next fields are set through sysctl */
+    unsigned int    mq_queues_max;   /* initialized to DFLT_QUEUESMAX */
+    unsigned int    mq_msg_max;      /* initialized to DFLT_MSGMAX */
+    unsigned int    mq_msgsize_max;  /* initialized to DFLT_MSGSIZEMAX */
+};
+
+Relevant Link:
+http://blog.csdn.net/bullbat/article/details/7781027
+http://book.51cto.com/art/201005/200882.htm
+}}}
+
+==== struct ipc_ids ====
+{{{
+这个结构保存了有关IPC对象状态的一般信息，每个struct ipc_ids结构实例对应于一种IPC机制: 共享内存、信号量、消息队列。为了防止对每个；类别都需要查找对应的正确数组索引，内核提供了辅助函数msg_ids、shm_ids、sem_ids
+source/include/linux/ipc_namespace.h
+
+struct ipc_ids 
+{
+    //1. 当前使用中IPC对象的数目
+    int in_use; 
+
+    /*
+    2. 用户连续产生用户空间IPC ID，需要注意的是，ID不等同于序号，内核通过ID来标识IPC对象，ID按资源类型管理，即一个ID用于消息队列，一个用于信号量、一个用于共享内存对象
+    每次创建新的IPC对象时，序号加1(自动进行回绕，即到达最大值自动变为0)
+    用户层可见的ID = s * SEQ_MULTIPLER + i，其中s是当前序号，i是内核内部的ID，SEQ_MULTIPLER设置为IPC对象的上限
+    如果重用了内部ID，仍然会产生不同的用户空间ID，因为序号不会重用，在用户层传递了一个旧的ID时，这种做法最小化了使用错误资源的风险
+    */
+    unsigned short seq;
+    unsigned short seq_max; 
+
+    //3. 内核信号量，它用于实现信号量操作，避免用户空间中的竞态条件，该互斥量有效地保护了包含信号量值的数据结构
+    struct rw_semaphore rw_mutex;
+
+    //4. 每个IPC对象都由kern_ipc_perm的一个实例表示，ipcs_idr用于将ID关联到指向对应的kern_ipc_perm实例的指针
+    struct idr ipcs_idr;
+};
+
+每个IPC对象都由kern_ipc_perm的一个实例表示，每个对象都有一个内核内部ID，ipcs_idr用于将ID关联到指向对应的kern_ipc_perm实例的指针
+}}}
+
+==== struct kern_ipc_perm ====
+{{{
+这个结构保存了当前IPC对象的"所有者"、和访问权限等相关信息
+/source/include/linux/ipc.h
+
+/* Obsolete, used only for backwards compatibility and libc5 compiles */
+struct ipc_perm
+{
+    //1. 保存了用户程序用来标识信号量的魔数
+    __kernel_key_t    key;
+
+    //2. 当前IPC对象所有者的UID
+    __kernel_uid_t    uid;
+
+    //3. 当前IPC对象所有者的组ID
+    __kernel_gid_t    gid;
+
+    //4. 产生信号量的进程的用户ID
+    __kernel_uid_t    cuid;
+
+    //5. 产生信号量的进程的用户组ID
+    __kernel_gid_t    cgid;
+
+    //6. 位掩码。指定了所有者、组、其他用户的访问权限
+    __kernel_mode_t    mode; 
+
+    //7. 一个序号，在分配IPC时使用
+    unsigned short    seq;
+};
+
+这个结果不足以保存信号量所需的所有信息。在进程的task_struct实例中有一个与IPC相关的成员
+
+struct task_struct
+{
+    ...
+    #ifdef CONFIG_SYSVIPC  
+        struct sysv_sem sysvsem;
+    #endif
+    ...
+}
+//只有设置了配置选项CONFIG_SYSVIPC时，Sysv相关代码才会被编译到内核中
+}}}
+{{local:images/linux_struct_kern_ipc_perm.png}}
+
+==== struct sysv_sem ====
+{{{
+struct sysv_sem数据结构封装了另一个成员
+
+struct sysv_sem 
+{
+    //用于撤销信号量
+    struct sem_undo_list *undo_list;
+};
+如果崩溃金曾修改了信号量状态之后，可能会导致有等待该信号量的进程无法唤醒(伪死锁)，则该机制在这种情况下很有用。通过使用撤销列表中的信息在适当的时候撤销这些操作，信号量可以恢复到一致状态，防止死锁
+}}}
+
+==== struct sem_queue ====
+{{{
+struct sem_queue数据结构用于将信号量与睡眠进程关联起来，该进程想要执行信号量操作，但目前因为资源争夺关系不允许。简单来说，信号量的"待决操作列表"中，每一项都是该数据结构的实例
+
+/* One queue for each sleeping process in the system. */
+struct sem_queue 
+{
+    /* 
+    queue of pending operations: 等待队列，使用next、prev串联起来的双向链表 
+    */
+    struct list_head    list;
+
+    /* 
+    this process: 睡眠的结构 
+    */
+    struct task_struct    *sleeper; 
+
+    /* 
+    undo structure: 用于撤销的结构 
+    */
+    struct sem_undo        *undo;     
+
+    /* 
+    process id of requesting process: 请求信号量操作的进程ID 
+    */
+    int                pid;    
+
+    /* 
+    completion status of operation: 操作的完成状态 
+    */ 
+    int                status;     
+
+    /* 
+    array of pending operations: 待决操作数组
+    */
+    struct sembuf        *sops;     
+
+    /* 
+    number of operations: 操作数目 
+    */
+    int            nsops;
+
+    /* 
+    does the operation alter the array?: 操作是否改变了数组？
+    */     
+    int            alter;   
+};
+
+对每个信号量，都有一个队列管理与信号量相关的所有睡眠进程(待决进程)，该队列并未使用内核的标准设施实现，而是通过next、prev指针手工实现
+
+信号量各数据结构之间的相互关系
+}}}
+{{local:images/linux_struct_sem1.jpg}}<BR>
+{{local:images/linux_struct_sem2.png}}
+
+==== struct msg_queue ====
+{{{
+和消息队列相关的数据结构，struct msg_queue作为消息队列的链表头，描述了当前消息队列的相关信息以及队列的访问权限
+
+/source/include/linux/msg.h
+
+/* one msq_queue structure for each present queue on the system */
+struct msg_queue 
+{
+    struct kern_ipc_perm q_perm;
+
+    /* 
+    last msgsnd time: 上一次调用msgsnd发送消息的时间
+    */
+    time_t q_stime;            
+
+    /* 
+    last msgrcv time: 上一次调用msgrcv接收消息的时间 
+    */
+    time_t q_rtime;            
+
+    /* 
+    last change time: 上一次修改的时间 
+    */
+    time_t q_ctime;            
+
+    /* 
+    current number of bytes on queue: 队列上当前字节数目
+    */
+    unsigned long q_cbytes;    
+
+    /* 
+    number of messages in queue: 队列中的消息数目 
+    */    
+    unsigned long q_qnum;    
+
+    /* 
+    max number of bytes on queue: 队列上最大字节数目
+    */    
+    unsigned long q_qbytes;        
+
+    /* 
+    pid of last msgsnd: 上一次调用msgsnd的pid 
+    */
+    pid_t q_lspid;    
+
+    /* 
+    last receive pid: 上一次接收消息的pid
+    */        
+    pid_t q_lrpid;            
+
+    struct list_head q_messages;
+    struct list_head q_receivers;
+    struct list_head q_senders;
+};
+
+我们重点关注一下结构体的最后3个成员，它们是3个标准的内核链表
+
+1. struct list_head q_messages : 消息本身
+2. struct list_head q_receivers : 睡眠的接收者
+3. struct list_head q_senders : 睡眠的发送者
+q_messages(消息本身)中的各个消息都封装在一个msg_msg实例中
+}}}
+
+==== struct msg_msg ====
+{{{
+\linux-2.6.32.63\include\linux\msg.h
+
+/* one msg_msg structure for each message */
+struct msg_msg 
+{
+    //用作连接各个消息的链表元素
+    struct list_head m_list; 
+
+    //消息类型
+    long  m_type;  
+
+    /* 
+    message text size: 消息长度 
+    */        
+    int m_ts;    
+
+    /*
+    如果保存了超过一个内存页的长消息，则需要next
+    每个消息都(至少)分配了一个内存页，msg_msg实例保存在该页的起始处，剩余的空间可以用于存储消息的正文
+    */       
+    struct msg_msgseg* next;
+    void *security;
+    /* the actual message follows immediately */
+};
+}}}
+{{local:images/linux_struct_msg_msg.png}}
+{{{
+消息队列通信时，发送进程和接收进程都可以进入睡眠
+
+1. 如果消息队列已经达到最大容量，则发送者在试图写入时会进入睡眠
+2. 如果接受者在试图获取消息时会进入睡眠
+在实际的编程中，为了缓解因为消息队列上限满导致消息发送者(senders 向消息队列中写入数据的进程)被强制睡眠阻塞，我们可以采取几个措施
+
+1. vim /etc/sysctl.conf
+2. 使用非阻塞消息发送方式调用msgsnd() API
+/*
+int ret = msgsnd(msgq_id, msg, msg_size, IPC_NOWAIT);
+IPC_NOWAIT：当消息队列已满的时候，msgsnd函数不等待立即返回
+*/
+
+Relevant Link:
+http://blog.csdn.net/guoping16/article/details/6584024
+}}}
+
+==== struct msg_sender ====
+{{{
+对于消息队列来说，睡眠的发送者放置在msg_queue的q_senders链表中，链表元素使用下列数据结构
+
+/* one msg_sender for each sleeping sender */
+struct msg_sender 
+{
+    //链表元素
+    struct list_head    list;
+
+    //指向对应进程的task_struct的指针
+    struct task_struct    *tsk;
+};
+
+这里不需要额外的信息，因为发送进程是sys_msgsnd系统调用期间进入睡眠，也可能是通过sys_ipc系统调用期间进入睡眠(sys_ipc会在唤醒后自动重试发送操作)
+}}}
+
+==== struct msg_receiver ====
+{{{
+/*
+ * one msg_receiver structure for each sleeping receiver:
+ */
+struct msg_receiver 
+{
+    struct list_head    r_list;
+    struct task_struct    *r_tsk;
+
+    int            r_mode;
+
+    //对预期消息的描述
+    long            r_msgtype;
+    long            r_maxsize;
+
+    //指向msg_msg实例的指针，在消息可用的情况下，该指针指定了复制数据的目标地址
+    struct msg_msg        *volatile r_msg;
+};
+
+每个消息队列都有一个msqid_ds结构与其关联
+}}}
+
+==== struct msqid_ds ====
+{{{
+\linux-2.6.32.63\include\linux\msg.h
+
+/* Obsolete, used only for backwards compatibility and libc5 compiles */
+struct msqid_ds 
+{
+    struct ipc_perm msg_perm;
+    struct msg *msg_first;        /* first message on queue,unused  */
+    struct msg *msg_last;        /* last message in queue,unused */
+    __kernel_time_t msg_stime;    /* last msgsnd time */
+    __kernel_time_t msg_rtime;    /* last msgrcv time */
+    __kernel_time_t msg_ctime;    /* last change time */
+    unsigned long  msg_lcbytes;    /* Reuse junk fields for 32 bit */
+    unsigned long  msg_lqbytes;    /* ditto */
+    unsigned short msg_cbytes;    /* current number of bytes on queue */
+    unsigned short msg_qnum;    /* number of messages in queue */
+    unsigned short msg_qbytes;    /* max number of bytes on queue */
+    __kernel_ipc_pid_t msg_lspid;    /* pid of last msgsnd */
+    __kernel_ipc_pid_t msg_lrpid;    /* last receive pid */
+};
+
+下图说明了消息队列所涉及各数据结构的相互关系
+}}}
+{{local:images/linux_struct_msg_relationship.png}}
+
+=== 命名空间(namespace)相关数据结构 ===
+{{{
+Linux内核通过数据结构之间互相的连接关系，形成了一套虚拟的命名空间的虚拟化概念
+}}}
+==== struct pid_namespace ====
+{{{
+\linux-2.6.32.63\include\linux\pid_namespace.h
+
+struct pid_namespace 
+{
+    struct kref kref;
+    struct pidmap pidmap[PIDMAP_ENTRIES];
+    int last_pid;
+
+    /*
+    每个PID命名空间都具有一个进程，其发挥的作用相当于全局的init进程，init的一个目的是对孤儿调用wait4，命名空间局部的init变体也必须完成该工作。child_reaper保存了指向该进程的task_struct的指针
+    */
+    struct task_struct *child_reaper;
+    struct kmem_cache *pid_cachep;
+
+    /*
+    2. level表示当前命名空间在命名空间层次结构中的深度。初始命名空间的level为0，下一层为1，逐层递增。level较高的命名空间中的ID，对level较低的命名空间来说是可见的(即子命名空间对父命名空间可见)。从给定的level位置，内核即可推断进程会关联到多少个ID(即子命名空间中的进程需要关联从当前命名空间一直到最顶层的所有命名空间)
+    */
+    unsigned int level;
+
+    /*
+    3. parent是指向父命名空间的指针
+    */
+    struct pid_namespace *parent;
+#ifdef CONFIG_PROC_FS
+    struct vfsmount *proc_mnt;
+#endif
+#ifdef CONFIG_BSD_PROCESS_ACCT
+    struct bsd_acct_struct *bacct;
+#endif
+};
+}}}
+
+==== struct pid、struct upid ====
+{{{
+PID的管理围绕着两个数据结构展开，struct pid是内核对PID的内部表示、struct upid则表示特定的命名空间中可见的信息
+
+\linux-2.6.32.63\include\linux\pid.h
+
+/*
+struct upid is used to get the id of the struct pid, as it is seen in particular namespace. 
+Later the struct pid is found with find_pid_ns() using the int nr and struct pid_namespace *ns.
+*/
+struct upid {
+    /* Try to keep pid_chain in the same cacheline as nr for find_vpid */
+
+    //1. 表示ID的数值
+    int nr;
+
+    //2. 指向该ID所属的命名空间的指针
+    struct pid_namespace *ns;
+
+    /*
+    3. 所有的upid实例都保存在一个散列表中，pid_chain用内核的标准方法实现了散列溢出链表
+    */
+    struct hlist_node pid_chain;
+};
+
+struct pid
+{
+    //1. 引用计数器
+    atomic_t count;
+    unsigned int level;
+
+    /* 
+    lists of tasks that use this pid 
+    task是一个数组，每个数组项都是一个散列表头，对应于一个ID类型，因为一个ID可能用于几个进程，所有共享同一个给定ID的task_struct实例，都通过该列表连接起来，PIDTYPE_MAX表示ID类型的数目
+    enum pid_type
+    {
+        PIDTYPE_PID,
+        PIDTYPE_PGID,
+        PIDTYPE_SID,
+        PIDTYPE_MAX
+    };
+    */
+    struct hlist_head tasks[PIDTYPE_MAX];
+    struct rcu_head rcu;
+    struct upid numbers[1];
+};
+
+可以看到，内核用数据结构中的这种N:N的关系，实现了一个虚拟的层次命名空间结构
+}}}
+{{local:images/linux_struct_pid_relationship1.png}}<BR>
+{{local:images/linux_struct_pid_relationship2.png}}
+
+==== struct nsproxy ====
+{{{
+\linux-2.6.32.63\include\linux\nsproxy.h
+
+/*
+A structure to contain pointers to all per-process namespaces
+1. fs (mount)
+2. uts
+3. network
+4. sysvipc
+5. etc
+'count' is the number of tasks holding a reference. The count for each namespace, then, will be the number of nsproxies pointing to it, not the number of tasks.
+The nsproxy is shared by tasks which share all namespaces. As soon as a single namespace is cloned or unshared, the nsproxy is copied.
+*/
+struct nsproxy 
+{
+    atomic_t count;
+
+    /*
+    1. UTS(UNIX Timesharing System)命名空间包含了运行内核的名称、版本、底层体系结构类型等信息
+    */
+    struct uts_namespace *uts_ns;
+
+    /*
+    2. 保存在struct ipc_namespace中的所有与进程间通信(IPC)有关的信息
+    */
+    struct ipc_namespace *ipc_ns;
+
+    /*
+    3. 已经装载的文件系统的视图，在struct mnt_namespace中给出
+    */
+    struct mnt_namespace *mnt_ns;
+
+    /*
+    4. 有关进程ID的信息，由struct pid_namespace提供
+    */
+    struct pid_namespace *pid_ns;
+
+    /*
+    5. struct net包含所有网络相关的命名空间参数
+    */
+    struct net          *net_ns;
+};
+extern struct nsproxy init_nsproxy;
+}}}
+
+==== struct mnt_namespace ====
+{{{
+\linux-2.6.32.63\include\linux\mnt_namespace.h
+
+struct mnt_namespace 
+{
+    //使用计数器，指定了使用该命名空间的进程数目
+    atomic_t        count;
+
+    //指向根目录的vfsmount实例
+    struct vfsmount *    root;
+
+    //双链表表头，保存了VFS命名空间中所有文件系统的vfsmount实例，链表元素是vfsmount的成员mnt_list
+    struct list_head    list;
+    wait_queue_head_t poll;
+    int event;
+};
+}}}
+

@@ -8,7 +8,9 @@
 [[linux学习笔记 － 系统调用]]<BR>
 [[linux学习笔记 － device tree]]</BR>
 [[linux学习笔记 － boot.img布局]]</BR>
+[[linux学习笔记 － 数据结构]]<BR>
 [[linux学习笔记 － 常用API]]<BR>
+[[linux学习笔记 － 常用配置]]<BR>
 <BR>
 [[linux学习笔记 － firmware]]<BR>
 [[linux学习笔记 － 杂记]]<BR>

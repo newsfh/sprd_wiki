@@ -233,6 +233,8 @@ struct page {
 
 ==== pageflags ====
 {{{
+可以通过pageflag_names这个全局变量看
+
 16/*
 17 * Various page->flags bits:
 18 *

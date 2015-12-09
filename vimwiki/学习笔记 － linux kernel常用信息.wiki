@@ -609,6 +609,7 @@ static DECLARE_BITMAP(cpu_online_bits, CONFIG_NR_CPUS) __read_mostly;
 ----
 = memory =
 == 全局变量 ==
+=== pageflag_names ===
 === high_memory ===
 === mem_map ===
 === slab_caches ===

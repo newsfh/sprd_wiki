@@ -191,6 +191,13 @@ cat utilization_gp/utilization_gp_pp/utilization_pp 查看GPU当前的负载
 }}}
 
 ----
+=== sprd_debug ===
+==== /d/sprd_debug/cpu/cpu_usage ====
+==== /d/sprd_debug/io/last_regs ====
+==== /d/sprd_debug/irq/irqlog ====
+==== /d/sprd_debug/sche/schedlog ====
+
+----
 === 资料 ===
 [[http://blog.csdn.net/adaptiver/article/details/6891666|proc下文件(buddyinfo/vmallocinfo...)]]<BR>
 [[http://bbs.chinaunix.net/thread-2002769-1-1.html|proc文件系统详解]]<BR>

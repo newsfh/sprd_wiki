@@ -499,8 +499,8 @@ static void eng_get_modem_int(char* type, char* at_chan, char* diag_chan, char* 
 ro.modem.type.tty定义在device/sprd/scx35l_coreprimelite/system.prop里
 ro.modem.tl.tty=/dev/stty_lte
 2. 发AT命令
-监听回应：cat /dev/stty_lte31 &
-发AT命令：echo "AT\r" > /dev/stty_lte31
+监听回应：cat /dev/stty_lte30 &
+发AT命令：echo "AT\r" > /dev/stty_lte30
 }}}
 
 
@@ -875,7 +875,7 @@ dd if=sysdump.core.01_0x80000000-0xafffffff_dump.lst of=cp.mem bs=1048576 skip=1
 === 模拟重启modem ===
 {{{
 setprop persist.sys.sprd.modemreset 1
-echo "AT+SPATASSERT=1\r" > /dev/stty_lte31
+echo "AT+SPATASSERT=1\r" > /dev/stty_lte30
 }}}
 
 ----
