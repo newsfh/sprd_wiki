@@ -13,6 +13,10 @@ echo N > /sys/module/printk/parameters/console_suspend
 ----
 === system ===
 ==== /proc/interrupts ====
+==== /proc/sysrq-trigger ====
+{{{
+echo "c" > /proc/sysrq-trigger		模拟panic
+}}}
 ==== /proc/<pid>/stat ====
 {{{
     seq_printf(m, "%d (%s) %c", pid_nr_ns(pid, ns), tcomm, state);              // 进程(包括轻量级进程，即线程)号；
@@ -196,6 +200,11 @@ cat utilization_gp/utilization_gp_pp/utilization_pp 查看GPU当前的负载
 ==== /d/sprd_debug/io/last_regs ====
 ==== /d/sprd_debug/irq/irqlog ====
 ==== /d/sprd_debug/sche/schedlog ====
+
+----
+=== other ===
+==== /sys/class/backlight/sprd_backlight/ ====
+==== /sys/class/thermal/thermal_zone1 ====
 
 ----
 === 资料 ===

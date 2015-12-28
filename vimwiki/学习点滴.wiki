@@ -1051,6 +1051,10 @@ device/sprd/scx35/sepolicy/engpc.te
 -rw-rw---- radio    system            u:object_r:sysfs_wake_lock:s0 wake_unlock
 若想对state进行操作，则需要加
 allow engpc sysfs:file write;
+
+http://blog.csdn.net/luoshengyang/article/details/37613135		SEAndroid安全机制框架分析
+http://blog.csdn.net/luoshengyang/article/details/37749383		SEAndroid安全机制中的文件安全上下文关联分析
+http://blog.csdn.net/luoshengyang/article/details/38054645		SEAndroid安全机制中的进程安全上下文关联分析
 }}}
 
 === wifi document ===
@@ -1941,3 +1945,9 @@ SPRD_visitor
 帐号：samsung01
 密码：sam..123
 }}}
+
+=== prime版本显示4G图标 ===
+{{{
+adb shell settings put global captive_portal_detection_enabled 0
+}}}
+

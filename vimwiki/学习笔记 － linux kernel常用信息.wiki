@@ -89,6 +89,9 @@ sprd_debug_log = $4 = {
       ...
       }}}.
 }
+
+三星对应的sec_debug_log
+在SharkLS里，它是用ioremap的方式实现，实现文件在kernel/drivers/platform/sprd/sec_debug.c，地址固定在0x86a00000，可以用v.v (struct sched_log*)0xc6a00000
 }}}
 
 === sprd_sysdump_extra ===
@@ -615,6 +618,7 @@ static DECLARE_BITMAP(cpu_online_bits, CONFIG_NR_CPUS) __read_mostly;
 === slab_caches ===
 === kmem_cache ===
 === kmalloc_caches ===
+=== contig_page_data ===
 [[linux学习笔记%20－%20内存管理|全局变量]]
 
 == 数据结构 ==

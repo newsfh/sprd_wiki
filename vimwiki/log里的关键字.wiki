@@ -32,3 +32,30 @@ kernel build
 {{{
 ro.build.date=Fri Nov 13 05:32:43 CST 2015
 }}}
+
+* 亮灭屏
+ * 灭屏
+{{{
+01-01 11:07:04.711 10484 10696 D PowerManagerService: [api] [s] goToSleep: 4 (uid: 1000 pid: 10484) eventTime = 10525584
+01-01 11:07:04.711 10484 10696 I PowerManagerService: !@[ps] Screen__Off - 22 :  goToSleep:  (uid: 1000 pid: 10484) (4)
+01-01 11:07:04.711 10484 10696 I PowerManagerService: Going to sleep due to power button (uid 1000)...
+}}}
+ * 亮屏
+{{{
+01-01 11:08:33.506 10484 10696 D PowerManagerService: [api] [s] wakeUpWithReason (uid: 1000 pid: 10484) eventTime = 10540384 event = 1
+01-01 11:08:33.506 10484 10696 I PowerManagerService: !@[ps] Screen__On  - 24 :  wakeUpWithReason: 1 (uid: 1000 pid: 10484) (1)
+01-01 11:08:33.506 10484 10696 I PowerManagerService: Waking up from sleep (uid 1000)...
+01-01 11:08:33.506 10484 10696 D PowerManagerService: [PWL] sb acquire: PowerManagerService.Broadcasts
+01-01 11:08:33.506 10484 10696 D PowerManagerService: [s] UserActivityState : 0 -> 1
+01-01 11:08:33.506 10484 10696 D PowerManagerService: [PWL] sb acquire: PowerManagerService.Display
+}}}
+
+* GPU绘制
+{{{
+setprop debug.egl.trace 1
+stop
+start
+
+重启后，灭屏后抓取main log
+adb logcat -v threadtime | grep glDraw | tee log.txt
+}}}

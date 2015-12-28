@@ -11,6 +11,7 @@
 <div class="toc">
 <ul>
 <li><a href="#toc_0.0.1">smp_processor_id()</a>
+<li><a href="#toc_0.0.2">ioremap_nocache</a>
 </ul>
 </ul>
 </ul>
@@ -20,6 +21,30 @@
 <h3 id="toc_0.0.1">smp_processor_id()</h3>
 <pre>
 获取当前在哪个CPU上
+</pre>
+
+<h3 id="toc_0.0.2">ioremap_nocache</h3>
+<pre>
+phys_addr_t phy_sec_debug_log_struct = 0x86A00000;
+/* we should meet to align to 1M regarding for  size */
+size_t phy_sec_debug_log_struct_size = 0x100000;
+static void map_noncached_sched_log_buf(void)
+{
+    void __iomem *base=0;
+
+    base = ioremap_nocache(phy_sec_debug_log_struct ,phy_sec_debug_log_struct_size );
+    psec_debug_log = base;
+}
+
+void __sec_debug_task_log(int cpu, struct task_struct *task)
+{
+    unsigned i;
+
+    i = atomic_inc_return(&amp;task_log_idx[cpu]) &amp; (SCHED_LOG_MAX - 1);
+    psec_debug_log-&gt;task[cpu][i].time = cpu_clock(cpu);
+    strcpy(psec_debug_log-&gt;task[cpu][i].comm, task-&gt;comm);
+    psec_debug_log-&gt;task[cpu][i].pid = task-&gt;pid;
+}
 </pre>
 
 </body>
