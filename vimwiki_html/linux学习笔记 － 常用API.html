@@ -12,6 +12,11 @@
 <ul>
 <li><a href="#toc_0.0.1">smp_processor_id()</a>
 <li><a href="#toc_0.0.2">ioremap_nocache</a>
+<li><a href="#toc_0.0.3">time</a>
+<ul>
+<li><a href="#toc_0.0.3.1">local_clock</a>
+<li><a href="#toc_0.0.3.2">ktime_get</a>
+</ul>
 </ul>
 </ul>
 </ul>
@@ -45,6 +50,17 @@ void __sec_debug_task_log(int cpu, struct task_struct *task)
     strcpy(psec_debug_log-&gt;task[cpu][i].comm, task-&gt;comm);
     psec_debug_log-&gt;task[cpu][i].pid = task-&gt;pid;
 }
+</pre>
+
+<h3 id="toc_0.0.3">time</h3>
+<h4 id="toc_0.0.3.1">local_clock</h4>
+<pre>
+u64 local_clock(void)
+</pre>
+
+<h4 id="toc_0.0.3.2">ktime_get</h4>
+<pre>
+ktime_t ktime_get(void)
 </pre>
 
 </body>

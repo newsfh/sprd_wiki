@@ -37,6 +37,9 @@
 |FIXADDR_START</BR>FIXADDR_TOP</BR>FIXADDR_SIZE</BR>[arch/arm/include/asm/fixmap.h]|fixed virtual addresses|#define FIXADDR_START          0xfff00000UL</BR>#define FIXADDR_TOP            0xfffe0000UL</BR>#define FIXADDR_SIZE           (FIXADDR_TOP - FIXADDR_START)|
 |PKMAP_BASE</BR>[arch/arm/include/asm/highmen.h]| |0XBFE00000</BR>#define PKMAP_BASE               (PAGE_OFFSET - PMD_SIZE)|
 
+=== 内存管理架构图 ===
+{{local:images/linux_kernel_memory_management_arch.jpg}}
+
 == SLUB分配器 ==
 === 模型 ===
 {{local:images/slub_1.jpg}}
@@ -623,6 +626,7 @@ kmem_cacheslab有两种管理方式：
 
 ----
 == 参考资料 ==
+[[http://www.cnblogs.com/zhaoyl/p/3695517.html|Linux内存管理原理]]</BR>
 [[http://www.cnblogs.com/wang_yb/archive/2013/05/23/3095907.html|《Linux内核设计与实现》读书笔记（十二）- 内存管理]]</BR>
 [[http://blog.csdn.net/crazyjiang/article/details/7903772|linux kernel内存映射实例分析]]</BR>
 [[http://ilinuxkernel.com/?p=1013|Linux内核高端内存]]</BR>

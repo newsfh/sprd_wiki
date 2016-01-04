@@ -29,3 +29,15 @@ void __sec_debug_task_log(int cpu, struct task_struct *task)
     psec_debug_log->task[cpu][i].pid = task->pid;
 }
 }}}
+
+=== time ===
+==== local_clock ====
+{{{
+u64 local_clock(void)
+}}}
+
+==== ktime_get ====
+{{{
+ktime_t ktime_get(void)
+}}}
+

@@ -13,6 +13,8 @@
 <li><a href="#toc_0.0.1">/proc/&lt;pid&gt;/节点代码</a>
 <li><a href="#toc_0.0.2">trace</a>
 <li><a href="#toc_0.0.3">zImage的生成和加载</a>
+<li><a href="#toc_0.0.4">获取寄存器</a>
+<li><a href="#toc_0.0.5">linux内核中打印栈回溯信息 - dump_stack()函数分析</a>
 </ul>
 </ul>
 </ul>
@@ -33,6 +35,22 @@ tid_base_stuff
 <p>
 <a href="http://blog.csdn.net/challen537/article/details/36010165">zImage的生成和加载</a><BR>
 <a href="http://bbs.pediy.com/showthread.php?p=1389472&amp;mode=linear">boot.img逆向分析</a><BR>
+</p>
+
+<h3 id="toc_0.0.4">获取寄存器</h3>
+<pre>
+static inline struct thread_info *current_thread_info(void) __attribute_const__;
+
+static inline struct thread_info *current_thread_info(void)
+{
+	register unsigned long sp asm ("sp");
+	return (struct thread_info *)(sp &amp; ~(THREAD_SIZE - 1));
+}
+</pre>
+
+<h3 id="toc_0.0.5">linux内核中打印栈回溯信息 - dump_stack()函数分析</h3>
+<p>
+<a href="http://m.blog.csdn.net/blog/jasonchen_gbd/45585133">linux内核中打印栈回溯信息 - dump_stack()函数分析</a><BR>
 </p>
 
 </body>

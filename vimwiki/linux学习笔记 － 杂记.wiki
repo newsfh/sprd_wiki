@@ -13,3 +13,17 @@ tid_base_stuff
 [[http://blog.csdn.net/challen537/article/details/36010165|zImage的生成和加载]]<BR>
 [[http://bbs.pediy.com/showthread.php?p=1389472&mode=linear|boot.img逆向分析]]<BR>
 
+=== 获取寄存器 ===
+{{{
+static inline struct thread_info *current_thread_info(void) __attribute_const__;
+
+static inline struct thread_info *current_thread_info(void)
+{
+	register unsigned long sp asm ("sp");
+	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
+}
+}}}
+
+=== linux内核中打印栈回溯信息 - dump_stack()函数分析 ===
+[[http://m.blog.csdn.net/blog/jasonchen_gbd/45585133|linux内核中打印栈回溯信息 - dump_stack()函数分析]]<BR>
+

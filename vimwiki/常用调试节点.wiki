@@ -205,6 +205,12 @@ cat utilization_gp/utilization_gp_pp/utilization_pp 查看GPU当前的负载
 === other ===
 ==== /sys/class/backlight/sprd_backlight/ ====
 ==== /sys/class/thermal/thermal_zone1 ====
+==== /sys/class/rtc/rtc0/wakealarm ====
+{{{
+rtc的文件节点，开启一个20s的定时器
+echo 0 > /sys/class/rtc/rtc0/wakealarm
+echo +20 > /sys/class/rtc/rtc0/wakealarm
+}}}
 
 ----
 === 资料 ===

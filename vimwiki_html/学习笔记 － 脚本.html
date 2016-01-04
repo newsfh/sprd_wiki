@@ -38,6 +38,7 @@
 <li><a href="#toc_0.0.2.5">cat &lt;&lt; EOF</a>
 <li><a href="#toc_0.0.2.6">删除行尾空行</a>
 <li><a href="#toc_0.0.2.7">输出重定向</a>
+<li><a href="#toc_0.0.2.8">实现定时器</a>
 </ul>
 <li><a href="#toc_0.0.3">script</a>
 <ul>
@@ -1927,6 +1928,54 @@ tr -d '\r'
 
 假如想要正常输出和错误信息都不显示，则要把标准输出和标准错误都重定向到/dev/null， 例如：
 # ls 1&gt;/dev/null 2&gt;/dev/null
+</pre>
+
+<h4 id="toc_0.0.2.8">实现定时器</h4>
+<pre>
+#!/bin/bash	
+#Delaytime=0
+
+function AlarmHandler()
+{
+	echo "Get SIGALAM"
+	KillSubProcs
+	exit 14
+}
+
+function KillSubProcs()
+{
+	#kill cbm
+	echo "it's time out,kill cbm here"
+	if [ $? -eq 0 ];then
+		echo "Sub-processes killed."
+	fi
+}
+
+function SetTimer()
+{
+	Delaytime=$1
+	echo $Delaytime
+	if [ $Delaytime -ne 0 ]; then
+		sleep $Delaytime &amp;&amp; kill -s 14 $$ &amp;
+		#CHPROCIDS="$CHPROCIDS $!"
+		TIMERPROC=$!
+	fi
+}
+
+function UnsetTimer()
+{
+	echo "Start to unset timer"
+	kill $TIMERPROC
+}
+
+trap AlarmHandler 14
+SetTimer 30
+#CHPROCIDS="$CHPROCIDS $!"
+#wait $!
+sleep 40
+UnsetTimer
+echo "ALL Done."
+exit 0
 </pre>
 
 <hr />

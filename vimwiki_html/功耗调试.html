@@ -12,6 +12,7 @@
 <ul>
 <li><a href="#toc_0.0.1">注意点</a>
 <li><a href="#toc_0.0.2">影响功耗的点</a>
+<li><a href="#toc_0.0.3">at+syssleep</a>
 </ul>
 </ul>
 </ul>
@@ -50,6 +51,67 @@ GPU/GSP
 </pre>
 
 </ol>
+
+<hr />
+<h3 id="toc_0.0.3">at+syssleep</h3>
+<ul>
+<li>
+如何强制CP下电
+<pre>
+1. CP有子系统，刚其下电
+2. SLEEP_CTRL寄存器有VCP1_FORCE_DEEP_SLEEP，将其置位后，整个CP就会进入SLEEP状态
+3. 由于是强制将CP进入sleep的，pin不会进入deep状态，所以需要将pin设成跟AP关联
+
+sample code：
+    int i;
+    for (i = 0x20; i &lt;= 0x02e4; i+=4)
+        sci_glb_write(CTL_PIN_BASE+i, BIT(13), BIT(13) | BIT(14) | BIT(15) | BIT(16) | BIT(17));
+    
+    sci_glb_write(REG_PMU_APB_PD_CP0_ARM9_0_CFG,
+        BIT_PD_CP0_ARM9_0_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP0_ARM9_1_CFG,
+        BIT_PD_CP0_ARM9_1_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP0_HU3GE_CFG,
+        BIT_PD_CP0_HU3GE_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP0_GSM_0_CFG,
+        BIT_PD_CP0_GSM_0_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP0_GSM_1_CFG,
+        BIT_PD_CP0_GSM_1_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP0_TD_CFG,
+        BIT_PD_CP0_TD_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP0_CEVA_0_CFG,
+        BIT_PD_CP0_CEVA_0_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP0_CEVA_1_CFG,
+        BIT_PD_CP0_CEVA_1_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    
+    sci_glb_write(REG_PMU_APB_PD_CP1_CA5_CFG, 
+        BIT_PD_CP1_CA5_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP1_LTE_P1_CFG,
+        BIT_PD_CP1_LTE_P1_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP1_LTE_P2_CFG,
+        BIT_PD_CP1_LTE_P2_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP1_CEVA_CFG,
+        BIT_PD_CP1_CEVA_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    sci_glb_write(REG_PMU_APB_PD_CP1_COMWRAP_CFG,
+        BIT_PD_CP1_COMWRAP_FORCE_SHUTDOWN, BIT(24) | BIT(25));
+    
+    sci_glb_write(REG_PMU_APB_SLEEP_CTRL, 
+        BIT_VCP1_FORCE_DEEP_SLEEP,
+        BIT_VCP1_FORCE_DEEP_SLEEP);
+</pre>
+
+</ul>
+
+<ul>
+<li>
+AP侧实现
+<pre>
+http://review.source.spreadtrum.com/gerrit/#/c/234360/
+http://review.source.spreadtrum.com/gerrit/#/c/234361/
+http://review.source.spreadtrum.com/gerrit/#/c/234363/
+</pre>
+
+</ul>
 
 </body>
 </html>

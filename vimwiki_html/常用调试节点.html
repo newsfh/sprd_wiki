@@ -51,6 +51,7 @@
 <ul>
 <li><a href="#toc_0.0.7.1">/sys/class/backlight/sprd_backlight/</a>
 <li><a href="#toc_0.0.7.2">/sys/class/thermal/thermal_zone1</a>
+<li><a href="#toc_0.0.7.3">/sys/class/rtc/rtc0/wakealarm</a>
 </ul>
 <li><a href="#toc_0.0.8">资料</a>
 </ul>
@@ -281,6 +282,12 @@ cat utilization_gp/utilization_gp_pp/utilization_pp 查看GPU当前的负载
 <h3 id="toc_0.0.7">other</h3>
 <h4 id="toc_0.0.7.1">/sys/class/backlight/sprd_backlight/</h4>
 <h4 id="toc_0.0.7.2">/sys/class/thermal/thermal_zone1</h4>
+<h4 id="toc_0.0.7.3">/sys/class/rtc/rtc0/wakealarm</h4>
+<pre>
+rtc的文件节点，开启一个20s的定时器
+echo 0 &gt; /sys/class/rtc/rtc0/wakealarm
+echo +20 &gt; /sys/class/rtc/rtc0/wakealarm
+</pre>
 
 <hr />
 <h3 id="toc_0.0.8">资料</h3>

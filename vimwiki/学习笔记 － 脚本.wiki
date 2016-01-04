@@ -1331,6 +1331,54 @@ tr -d '\r'
 # ls 1>/dev/null 2>/dev/null
 }}}
 
+==== 实现定时器 ====
+{{{
+#!/bin/bash	
+#Delaytime=0
+
+function AlarmHandler()
+{
+	echo "Get SIGALAM"
+	KillSubProcs
+	exit 14
+}
+
+function KillSubProcs()
+{
+	#kill cbm
+	echo "it's time out,kill cbm here"
+	if [ $? -eq 0 ];then
+		echo "Sub-processes killed."
+	fi
+}
+
+function SetTimer()
+{
+	Delaytime=$1
+	echo $Delaytime
+	if [ $Delaytime -ne 0 ]; then
+		sleep $Delaytime && kill -s 14 $$ &
+		#CHPROCIDS="$CHPROCIDS $!"
+		TIMERPROC=$!
+	fi
+}
+
+function UnsetTimer()
+{
+	echo "Start to unset timer"
+	kill $TIMERPROC
+}
+
+trap AlarmHandler 14
+SetTimer 30
+#CHPROCIDS="$CHPROCIDS $!"
+#wait $!
+sleep 40
+UnsetTimer
+echo "ALL Done."
+exit 0
+}}}
+
 ----
 === script ===
 ==== 脚本与C语言的比较 ====
