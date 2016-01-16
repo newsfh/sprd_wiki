@@ -1,0 +1,44 @@
+%toc 目录
+
+----
+=== 流程 ===
+==== 如何获取和释放spinlock ====
+{{{
+NotToken状态下，读寄存器后，会获得spinlock，并返回0；写寄存器没有任何影响
+Token状态下，读寄存器，会返回1；写UnlockToken值，会解锁，写其他值，没有任何影响
+}}}
+{{local:images/hwspinlock_token_status.png}}<BR>
+
+{{{
+1、拿锁需要关中断
+2、拿不到锁，会一直尝试拿锁
+3、由于在NotToken状态下读寄存器就会拿锁，有可能被误读导致其他核想拿锁时失败
+}}}
+{{local:images/hwspinlock_workflow.png}}<BR>
+
+----
+=== 全局变量 ===
+==== hwlocks ====
+{{{
+已分配的spinlock，可以看到对应的寄存器
+}}}
+
+==== local_hwlocks_status ====
+{{{
+是否握着spinlock
+}}}
+==== id ====
+{{{
+/* hwspinlock id */
+#define HWLOCK_ADI					(0)
+#define HWLOCK_GLB					(1)
+#define HWLOCK_AGPIO				(2)
+#define HWLOCK_AEIC					(3)
+#define HWLOCK_ADC					(4)
+#define HWLOCK_EFUSE				(8)
+}}}
+
+----
+=== 相关文件 ===
+| kernel/include/soc/sprd/arch_lock.h         | 头文件  |
+| kernel/drivers/hwspinlock/sprd_hwspinlock.c | 实现文件  |

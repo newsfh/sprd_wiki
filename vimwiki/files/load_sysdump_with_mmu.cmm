@@ -1,0 +1,59 @@
+        WINCLEAR INFOS  
+        AREA.CREATE INFOS 80. 2000.
+        WinPOS 0,0,,,,, INFOS  
+        AREA.VIEW INFOS  
+        AREA.CLEAR INFOS  
+        AREA.SELECT INFOS  
+
+
+
+
+print "----------------------------"
+print "Please choose vmlinux file:"
+	dialog.file "*\vmlinux"
+	ENTRY &vmlinux_file
+print "  &vmlinux_file"
+
+
+
+print "----------------------------"
+print "Please choose sysdump file:"
+	&dump_path=os.file.path(&vmlinux_file)
+	cd &dump_path
+	dialog.file *.lst
+	ENTRY &dump_file
+print "  &dump_file"
+
+
+
+print "----------------------------"
+print "Please choose sysdump size:"
+	&dump_file_size=os.file.size(&dump_file)
+print "  &dump_file_size"
+
+
+
+print "----------------------------"
+print "d.load.binary &dump_file 0x80000000 /noclear"
+		d.load.binary &dump_file 0x80000000 /noclear
+print "d.load.elf &vmlinux_file /nocode"
+		d.load.elf &vmlinux_file /nocode
+print "system.option mmuspaces on"
+		system.option mmuspaces on
+print "MMU.FORMAT LINUXSWAP3 swapper_pg_dir 0xC0000000++(&dump_file_size-1) 0x80000000"
+		MMU.FORMAT LINUXSWAP3 swapper_pg_dir 0xC0000000++(&dump_file_size-1) 0x80000000
+print "TRANSlation.Create 0xC0000000--0xefffffff 0x80000000"
+		TRANSlation.Create 0xC0000000--0xefffffff 0x80000000
+print "TRANSlation.COMMON 0xBF000000--0xFFFFFFFF"
+		TRANSlation.COMMON 0xBF000000--0xFFFFFFFF        				; common area for kernel and processes
+print "TRANSlation.TableWalk ON"
+		TRANSlation.TableWalk ON                             			; debugger uses a table walk to decode virtual addresses
+print "TRANSlation.ON"
+		TRANSlation.ON                                      			; switch on debugger(!) address translation
+print "PER.S C15:0x1 	%LONG 0x10C53C7D"
+		PER.S C15:0x1 	%LONG 0x10C53C7D								; SCTLR
+
+
+; Then set pgd table into MMU with command "PER.Set C15:0x2 %LONG 0xXXXXXX6A".
+; 0xXXXXXX is the first 6 of task pgd, the last 2 should be 0x6A
+

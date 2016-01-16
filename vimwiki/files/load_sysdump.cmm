@@ -1,0 +1,34 @@
+        WINCLEAR INFOS  
+        AREA.CREATE INFOS 80. 2000.
+        WinPOS 0,0,,,,, INFOS  
+        AREA.VIEW INFOS  
+        AREA.CLEAR INFOS  
+        AREA.SELECT INFOS  
+
+
+
+
+print "----------------------------"
+print "Please choose vmlinux file:"
+	dialog.file "*\vmlinux"
+	ENTRY &vmlinux_file
+print "  &vmlinux_file"
+
+
+
+print "----------------------------"
+print "Please choose sysdump file:"
+	&dump_path=os.file.path(&vmlinux_file)
+	cd &dump_path
+	dialog.file *.lst
+	ENTRY &dump_file
+print "  &dump_file"
+
+
+
+
+print "----------------------------"
+print "d.load.binary &dump_file 0xc0000000 /noclear"
+		d.load.binary &dump_file 0xc0000000 /noclear
+print "d.load.elf &vmlinux_file /nocode"
+		d.load.elf &vmlinux_file /nocode

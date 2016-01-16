@@ -203,6 +203,7 @@ DATA.SET eahb:0x30040028 %LE %LONG 0x0
 {{{
 从DDR中取long长度的值
 &d=data.long(eahb:0x80000000)
+&d=data.long(D:0xc0000000)			// D作为一种类型，必须要加
 }}}
  * v.value
 {{{
@@ -214,6 +215,51 @@ DATA.SET eahb:0x30040028 %LE %LONG 0x0
 取出表达式里的字符
 v.string(task_ptr->comm)
 }}}
+ * dialog.file
+{{{
+弹出对话框选择文件
+dialog.file *.lst
+entry &dump_file
+}}}
+ * os.file
+{{{
+os.file.path
+os.file.name
+os.file.size
+
+&dump_file_name=os.file.name(&dump_file)
+}}}
+
+* memory classes
+{{local:images/trace32_memory_classes.PNG}}
+
+=== 实例 ===
+* 加载sysdump
+{{{
+trace32处理数据和指令，都是从CPU的角度来考量的
+加载数据时，如果mmu没打开，那加载数据就按照CPU要访问的地址来加载，所以，我们把sysdump加载0xc0000000的地址
+但这样做，只对低896M一一映射的数据有效，对于那些高端地址和用户段的数据，就没法访问了
+如果要调试那些数据，需要将MMU打开，将数据加载到物理地址处，但这样又会涉及到页表的加载，及每个task需要的页表都不同
+
+1. 简单的调试kernel代码(load_sysdump.cmm)
+	d.load.binary <sysdump> 0xc0000000 /noclear
+	d.load.elf vmlinux /nocode
+
+2. 调试虚拟地址(load_sysdump_with_mmu.cmm)
+	d.load.binary &dump_file 0x80000000 /noclear                    ; 这里加载到物理地址处
+	d.load.elf &vmlinux_file /nocode
+	system.option mmuspaces on                                      ; 打开trace32的debug mmu
+	MMU.FORMAT LINUXSWAP3 swapper_pg_dir 0xC0000000++(&dump_file_size-1) 0x80000000
+	TRANSlation.Create 0xC0000000--0xefffffff 0x80000000
+	TRANSlation.COMMON 0xBF000000--0xFFFFFFFF                       ; common area for kernel and processes
+	TRANSlation.TableWalk ON                                        ; debugger uses a table walk to decode virtual addresses
+	TRANSlation.ON                                                  ; switch on debugger(!) address translation
+	PER.S C15:0x1   %LONG 0x10C53C7D                                ; SCTLR，打开CPU的MMU功能
+；然后，通过"PER.Set C15:0x2 %LONG 0xXXXXXX6A"命令设置task的页表
+；或者通过菜单cpu -> Peripherals -> Memory Management Unit -> TTBR0
+；其中前6位0xXXXXXX是task页表的前6位(注，需要转换成物理地址)，后2位0x6A是寄存器配置
+；task页表可以通过查找task_struct->mm->pgd来找到
+}}}
 
 ----
 == 附件 ==
@@ -222,6 +268,8 @@ v.string(task_ptr->comm)
 [[local:files/foreach_thread.cmm|foreach_thread.cmm]]</BR>
 [[local:files/addr_page.cmm|addr_page.cmm]]</BR>
 [[local:files/is_mem_freed.cmm|is_mem_freed.cmm]]</BR>
+[[local:files/load_sysdump.cmm|load_sysdump.cmm]]</BR>
+[[local:files/load_sysdump_with_mmu.cmm|load_sysdump_with_mmu.cmm]]</BR>
 
 == 资料 ==
 [[http://www.lauterbach.com/frames.html?home.html|lauterbach主页]]<BR>

@@ -498,7 +498,8 @@ ENDPROC(add_busmon)
 {{local:images/dump_callstack_from_sp.PNG}}
 
 === 通过FP推调用栈 ===
-{{local:images/dump_callstack_from_fp.PNG}}
+{{local:images/dump_callstack_from_fp.PNG}}<BR>
+{{local:images/linux_FP_stack.png}}
 
 === 通过thread_info的cpu_context看task栈 ===
 {{{
