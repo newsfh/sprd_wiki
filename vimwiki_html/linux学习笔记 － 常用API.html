@@ -17,17 +17,30 @@
 <li><a href="#toc_0.0.3.1">local_clock</a>
 <li><a href="#toc_0.0.3.2">ktime_get</a>
 </ul>
+<li><a href="#toc_0.0.4">内存分配</a>
+<ul>
+<li><a href="#toc_0.0.4.1">页分配</a>
+<li><a href="#toc_0.0.4.2">slab分配器</a>
+<ul>
+<li><a href="#toc_0.0.4.2.1">通用cache</a>
+<li><a href="#toc_0.0.4.2.2">专用 cache</a>
+</ul>
+<li><a href="#toc_0.0.4.3">非连续内存分配</a>
+<li><a href="#toc_0.0.4.4">基于DMA 分配</a>
+<li><a href="#toc_0.0.4.5">直接映射分配</a>
+</ul>
 </ul>
 </ul>
 </ul>
 </div>
-<hr />
 
+<hr />
 <h3 id="toc_0.0.1">smp_processor_id()</h3>
 <pre>
 获取当前在哪个CPU上
 </pre>
 
+<hr />
 <h3 id="toc_0.0.2">ioremap_nocache</h3>
 <pre>
 phys_addr_t phy_sec_debug_log_struct = 0x86A00000;
@@ -52,6 +65,7 @@ void __sec_debug_task_log(int cpu, struct task_struct *task)
 }
 </pre>
 
+<hr />
 <h3 id="toc_0.0.3">time</h3>
 <h4 id="toc_0.0.3.1">local_clock</h4>
 <pre>
@@ -62,6 +76,263 @@ u64 local_clock(void)
 <pre>
 ktime_t ktime_get(void)
 </pre>
+
+<hr />
+<h3 id="toc_0.0.4">内存分配</h3>
+<h4 id="toc_0.0.4.1">页分配</h4>
+<ul>
+<li>
+分配、释放页（使用地址指针）
+
+<ul>
+<li>
+get_zeroed_page
+<pre>
+unsigned long get_zeroed_page(gfp_t gfp_mask);
+
+返回一个指向新页的指针并且用零填充了该页.
+</pre>
+
+<li>
+__get_free_page
+<pre>
+unsigned long __get_free_page(gfp_t gfp);
+
+类似于get_zeroed_page, 但是没有清零该页.
+</pre>
+
+<li>
+__get_free_pages
+<pre>
+unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order);
+
+分配并返回一个指向一个内存区第一个字节的指针, 内存区可能是几个(物理上连续)页长但是没有清零。
+Order：为幂指数，即它指定分配多少个页，比如order为0，表示分配2的0次幂即1页。
+gfp_mask：和kmalloc的flags相同
+分配可能失败，因而调用者必须处理失败。
+</pre>
+
+<li>
+free_page/free_pages
+<pre>
+void free_page(unsigned long addr);
+void free_pages(unsigned long addr,unsigned long order);
+
+这两个函数用于释放页，注意如果指定了order，则申请时和释放时必须使用相同的值。需要注意的是这里的api无法用于分配高端内存。
+</pre>
+
+</ul>
+</ul>
+
+<ul>
+<li>
+分配、释放页（使用page）
+
+<ul>
+<li>
+alloc_pages/alloc_page
+<pre>
+struct page* alloc_pages(gfp_t gfp_mask, unsigned int order)
+#define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0)
+
+这两个函数也用于分配页，但是它们返回的是一个指向page数据结构的指针，而不是页面的起始地址，需要用void* page_address(struct page *page)函数转换。
+gfp_mask类似于kmalloc的flags。order类似于__get_free_pages的order参数。
+</pre>
+
+<li>
+__free_page/__free_pages/free_hot_page/free_cold_page
+<pre>
+void __free_page(struct page *page);
+void __free_pages(struct page *page,unsigned int order);
+void free_hot_page(struct page *page);
+void free_cold_page(struct page *page);
+</pre>
+
+</ul>
+</ul>
+
+<h4 id="toc_0.0.4.2">slab分配器</h4>
+<h5 id="toc_0.0.4.2.1">通用cache</h5>
+<ul>
+<li>
+kmalloc/kfree
+<pre>
+void *kmalloc(size_t size, gfp_t flags);
+
+kmalloc 基于以下几种size的mem cache：32, 64, 128, 256, 512, 1,024, 2,048, 4,096,
+8,192, 16,384, 32,768, 65,536 和 131,072 bytes。
+其本质也是调用kmem_cache_alloc来分配object。所以kmalloc一次最大可分配的size为128KB。kmalloc分配速度很快，在分配时需注意gfp flag
+参数：在不interrupt上下文（ISR, softirq, tasklet）及不可睡眠上下文使用GFP_ATOMIC。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+krealloc/__krealloc
+<pre>
+void *krealloc(const void *p, size_t new_size, gfp_t flags);
+void *__krealloc(const void *p, size_t new_size, gfp_t flags);
+
+krealloc和__krealloc都是重新分配内存，且不改变原地址空间中的内容。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+kzalloc
+<pre>
+void *kzalloc(size_t size, gfp_t flags);
+
+与kmalloc类似，都是基于slab分配在物理上连续的实际的内存。但是kzalloc在分配了内存之后，将内存中的内容都初始化为0.
+</pre>
+
+</ul>
+
+<ul>
+<li>
+kcalloc
+<pre>
+void *kcalloc(size_t n, size_t size, gfp_t flags);
+
+kcalloc和kzalloc函数功能类似，都是基于slab分配在物理上连续的实际的内存，并且在分配了内存之后，又将内存中的内容清0.但是kcalloc是为一个数组分配空间，数组中的一个元素对应一个内存对象。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+kmemdup
+<pre>
+void *kmemdup(const void *src, size_t len, gfp_t gfp);
+
+该函数是根据给定的一段地址区间，再分配一个内存空间，将原地址空间的内容拷贝到新分配的内存空间中。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+ksize
+<pre>
+size_t ksize(const void *objp);
+
+该函数用于通过函数kmalloc/kmem_cache_alloc所分配的对象的实际内存的大小。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+kstrdup
+<pre>
+char *kstrdup(const char *s, gfp_t gfp);
+
+该函数的功能是为常量字符串s分配内存空间，并将该字符串拷贝到所分配的地址空间中。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+kstrndup
+<pre>
+char *kstrndup(const char *s, size_t max, gfp_t gfp);
+
+跟kstrdup函数类似，只是拷贝的字节个数可以设定。
+</pre>
+
+</ul>
+
+<h5 id="toc_0.0.4.2.2">专用 cache</h5>
+<ul>
+<li>
+kmem_cache_create/kmem_cache_destroy
+<pre>
+struct kmem_cache *
+kmem_cache_create(const char *name, size_t size, size_t align,
+		  unsigned long flags, void (*ctor)(void *));
+void kmem_cache_destroy(struct kmem_cache *s);
+
+slab object大小也有限制，一般情况下一个MAX_OBJ_ORDER是5，也就是32个页，128KB。
+</pre>
+
+</ul>
+
+<ul>
+<li>
+kmem_cache_alloc/kmem_cache_zalloc/kmem_cache_free
+<pre>
+void *kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags);
+void *kmem_cache_zalloc(struct kmem_cache *k, gfp_t flags);
+
+void kmem_cache_free(struct kmem_cache *cachep, void *objp);
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.4.3">非连续内存分配</h4>
+<ul>
+<li>
+vmalloc/vfree
+<pre>
+void *vmalloc(unsigned long size);
+void vfree(void * addr);
+
+vmalloc用于从虚拟内存空间分配一块连续的内存区，尽管这些页在物理内存中不连续 (使用alloc_page来获得每个页)，但是内核将它们作为一个连续的地址范围来看待。
+由vmalloc返回的地址必须经过页表才能找到真正的物理地址，因而如果内核部件需要使用真正的物理地址，则不能使用它来分配。
+
+vmalloc返回的是虚拟地址，但是实际上kmalloc和__get_free_pages及相关函数返回的也是虚拟地址，那么为什么vmalloc的效率很低，而其它两个不低呢?
+这是因为虽然kmalloc和__get_free_pages及相关函数虽然也返回虚拟地址，但是它们所返回的虚拟地址是不同的。
+vmalloc所返回的地址范围在VMALLOC_START和VMALLOC_END之间，对于这部分地址需要在使用时创建页表，并且这部分地址对应的物理地址可能是不连续的，必须通过页表来访问；
+而kmalloc和__get_free_pages返回的虚拟地址则属于常规的内核虚拟地址空间，这部分虚拟地址空间的特点在于它和真实的物理地址之间就只有一个偏移量的差异，也就是说它们和真实的物理地址之间是一一对应的。
+另一方面也容易看出虽然__get_free_pages和vmalloc都可以返回大块的内存，
+但是vmalloc返回的内存可能是由多个不连续的物理页组成的，而且需要建立页表(vmalloc分配过程中会在用alloc_page(s)之后用map_vm_area来建立页表)，
+而__get_free_pages则是返回连续的已经建立了页表的常规内存页。
+
+vmalloc不能在原子上下文使用，因为它要创建页表，因而需要使用kmalloc来为页表来分配内存空间，这个过程可能会休眠。
+</pre>
+
+</ul>
+
+<h4 id="toc_0.0.4.4">基于DMA 分配</h4>
+<pre>
+void * dma_alloc_coherent(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp);
+</pre>
+
+<h4 id="toc_0.0.4.5">直接映射分配</h4>
+<pre>
+在某些体系结构中，我们可以保留memory map段上的某一个区域，作为dma或其他设备的专有内存。
+这段内存并不在kernel buddy的控制之下（没有被放入mem_maps），你也无法从以上几种分配方式中得到
+这些内存。这个时候，你可以用ioremap和remap_pfn_range将这段内存直接映射到vm上。 
+</pre>
+
+<ul>
+<li>
+ioremap/iounmap
+<pre>
+#define ioremap(cookie,size)             __arm_ioremap((cookie), (size), MT_DEVICE)
+#define ioremap_nocache(cookie,size)     __arm_ioremap((cookie), (size), MT_DEVICE)
+#define ioremap_cached(cookie,size)      __arm_ioremap((cookie), (size), MT_DEVICE_CACHED)
+#define ioremap_wc(cookie,size)          __arm_ioremap((cookie), (size), MT_DEVICE_WC)
+#define iounmap                          __arm_iounmap
+
+void __iomem * __arm_ioremap(phys_addr_t phys_addr, size_t size, unsigned int mtype);
+void __arm_iounmap(volatile void __iomem *io_addr)
+</pre>
+
+</ul>
+
+<ul>
+<li>
+remap_pfn_range
+<pre>
+int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
+unsigned long pfn, unsigned long size, pgprot_t prot);
+</pre>
+
+</ul>
 
 </body>
 </html>

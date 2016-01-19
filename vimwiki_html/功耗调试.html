@@ -61,6 +61,7 @@ GPU/GSP
 1. CP有子系统，刚其下电
 2. SLEEP_CTRL寄存器有VCP1_FORCE_DEEP_SLEEP，将其置位后，整个CP就会进入SLEEP状态
 3. 由于是强制将CP进入sleep的，pin不会进入deep状态，所以需要将pin设成跟AP关联
+4. 最好把之前跟CP关联的寄存器都设为跟AP相关（pinmap/ldo/PLL）
 
 sample code：
     int i;

@@ -46,10 +46,11 @@ status：若0，调用前，若1，调用结束
 value：非0，必为write指令，若0，有可能为read
 }}}
 
-=== sprd_debug_last_regs_access ===
+=== sec_debug_last_regs_access ===
 {{{
 kernel/include/linux/regs_debug.h
 
+SharkLS:
 (struct sec_debug_regs_access*)0xc6bfff30
 
 status: 2=>写开始，1=>读开始，0=>结束
@@ -101,6 +102,14 @@ sprd_debug_log = $4 = {
 
 三星对应的sec_debug_log
 在SharkLS里，它是用ioremap的方式实现，实现文件在kernel/drivers/platform/sprd/sec_debug.c，地址固定在0x86a00000，可以用v.v (struct sched_log*)0xc6a00000
+}}}
+
+=== sec_debug_log ===
+{{{
+
+SharkLS:
+(struct sched_log*)0xc6a00000
+kernel/drivers/platform/sprd/sec_debug.c  
 }}}
 
 === sprd_sysdump_extra ===

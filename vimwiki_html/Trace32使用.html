@@ -23,6 +23,9 @@
 <ul>
 <li><a href="#toc_0.5.1">语法</a>
 <li><a href="#toc_0.5.2">实例</a>
+<ul>
+<li><a href="#toc_0.5.2.1">加载sysdump</a>
+</ul>
 </ul>
 <li><a href="#toc_0.6">附件</a>
 <li><a href="#toc_0.7">资料</a>
@@ -508,9 +511,7 @@ memory classes
 </p>
 
 <h3 id="toc_0.5.2">实例</h3>
-<ul>
-<li>
-加载sysdump
+<h4 id="toc_0.5.2.1">加载sysdump</h4>
 <pre>
 trace32处理数据和指令，都是从CPU的角度来考量的
 加载数据时，如果mmu没打开，那加载数据就按照CPU要访问的地址来加载，所以，我们把sysdump加载0xc0000000的地址
@@ -536,8 +537,6 @@ trace32处理数据和指令，都是从CPU的角度来考量的
 ；其中前6位0xXXXXXX是task页表的前6位(注，需要转换成物理地址)，后2位0x6A是寄存器配置
 ；task页表可以通过查找task_struct-&gt;mm-&gt;pgd来找到
 </pre>
-
-</ul>
 
 <hr />
 <h2 id="toc_0.6">附件</h2>

@@ -234,7 +234,7 @@ os.file.size
 {{local:images/trace32_memory_classes.PNG}}
 
 === 实例 ===
-* 加载sysdump
+==== 加载sysdump ====
 {{{
 trace32处理数据和指令，都是从CPU的角度来考量的
 加载数据时，如果mmu没打开，那加载数据就按照CPU要访问的地址来加载，所以，我们把sysdump加载0xc0000000的地址
