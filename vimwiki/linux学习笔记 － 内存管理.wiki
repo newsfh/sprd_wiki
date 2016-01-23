@@ -37,8 +37,21 @@
 |FIXADDR_START</BR>FIXADDR_TOP</BR>FIXADDR_SIZE</BR>[arch/arm/include/asm/fixmap.h]|fixed virtual addresses|#define FIXADDR_START          0xfff00000UL</BR>#define FIXADDR_TOP            0xfffe0000UL</BR>#define FIXADDR_SIZE           (FIXADDR_TOP - FIXADDR_START)|
 |PKMAP_BASE</BR>[arch/arm/include/asm/highmen.h]| |0XBFE00000</BR>#define PKMAP_BASE               (PAGE_OFFSET - PMD_SIZE)|
 
+== 内存组织 ==
 === 内存管理架构图 ===
 {{local:images/linux_kernel_memory_management_arch.jpg}}
+
+=== node-zone-page组织关系 ===
+{{local:images/linux_kernel_memory_node_zone_page.gif}}
+
+=== 内存分配关系 ===
+{{local:images/linux_kernel_memory_level.png}}
+
+=== buddy组织图 ===
+{{local:images/linux_kernel_memory_buddy.png}}
+
+=== swap水线 ===
+{{local:images/linux_kernel_memory_swapper.jpg}}
 
 == SLUB分配器 ==
 === 模型 ===
@@ -72,6 +85,243 @@
 === kmem_cache_create ===
 
 === 数据结构 ===
+==== pg_data_t ====
+{{{
+kernel/include/linux/mmzone.h
+
+typedef struct pglist_data {
+	struct zone node_zones[MAX_NR_ZONES];                       // 包含了结点中各内存域的数据结构
+	struct zonelist node_zonelists[MAX_ZONELISTS];              // 指定备用结点及其内存域列表以便当前结点没有可用空间时在备用结点分配内存
+	int nr_zones;                                               // 不同内存域的数目
+#ifdef CONFIG_FLAT_NODE_MEM_MAP	/* means !SPARSEMEM */
+	struct page *node_mem_map;                                  // 指向page实例数组的指针，用于描述结点的所有物理内存页，包含了结点中所有的内存域的页
+#ifdef CONFIG_MEMCG
+	struct page_cgroup *node_page_cgroup;
+#endif
+#endif
+#ifndef CONFIG_NO_BOOTMEM
+	struct bootmem_data *bdata;                                 // 指向自举内存分配器数据结构的实例
+#endif
+#ifdef CONFIG_MEMORY_HOTPLUG
+	/*
+	 * Must be held any time you expect node_start_pfn, node_present_pages
+	 * or node_spanned_pages stay constant.  Holding this will also
+	 * guarantee that any pfn_valid() stays that way.
+	 *
+	 * Nests above zone->lock and zone->size_seqlock.
+	 */
+	spinlock_t node_size_lock;
+#endif
+	unsigned long node_start_pfn;                               // 该NUMA结点第一个页帧的逻辑编号
+	unsigned long node_present_pages;                           // 结点中页帧的数目
+	unsigned long node_spanned_pages;                           // 该结点以页帧为单位计算的长度，包括空洞
+	int node_id;                                                // 全局结点ID，系统中的NUMA结点都从0开始编号
+	nodemask_t reclaim_nodes;	/* Nodes allowed to reclaim from */
+	wait_queue_head_t kswapd_wait;                              // 交换守护进程的等待队列，在将页帧换出结点时会用到
+	wait_queue_head_t pfmemalloc_wait;
+	struct task_struct *kswapd;	/* Protected by lock_memory_hotplug() */
+	int kswapd_max_order;                                       // 用于页交换子系统
+	enum zone_type classzone_idx;
+#ifdef CONFIG_NUMA_BALANCING
+	/*
+	 * Lock serializing the per destination node AutoNUMA memory
+	 * migration rate limiting data.
+	 */
+	spinlock_t numabalancing_migrate_lock;
+
+	/* Rate limiting time interval */
+	unsigned long numabalancing_migrate_next_window;
+
+	/* Number of pages migrated during the rate limiting time interval */
+	unsigned long numabalancing_migrate_nr_pages;
+#endif
+} pg_data_t;
+}}}
+
+==== zone ====
+{{{
+struct zone {
+	/* Fields commonly accessed by the page allocator */
+
+	/* zone watermarks, access with *_wmark_pages(zone) macros */
+	unsigned long watermark[NR_WMARK];                          // 内存域水印，通过宏 *_wmark_pages(zone) 访问
+
+	/*
+	 * When free pages are below this point, additional steps are taken
+	 * when reading the number of free pages to avoid per-cpu counter
+	 * drift allowing watermarks to be breached
+	 */
+	unsigned long percpu_drift_mark;
+
+	/*
+	 * We don't know if the memory that we're going to allocate will be freeable
+	 * or/and it will be released eventually, so to avoid totally wasting several
+	 * GB of ram we must reserve some of the lower zone memory (otherwise we risk
+	 * to run OOM on the lower zones despite there's tons of freeable ram
+	 * on the higher zones). This array is recalculated at runtime if the
+	 * sysctl_lowmem_reserve_ratio sysctl changes.
+	 */
+	unsigned long		lowmem_reserve[MAX_NR_ZONES];           // 数组分别为各种内存域指定了若干页，用于一些无论如何都不能失败的关键性内存分配
+
+	/*
+	 * This is a per-zone reserve of pages that should not be
+	 * considered dirtyable memory.
+	 */
+	unsigned long		dirty_balance_reserve;
+
+#ifdef CONFIG_NUMA
+	int node;
+	/*
+	 * zone reclaim becomes active if more unmapped pages exist.
+	 */
+	unsigned long		min_unmapped_pages;
+	unsigned long		min_slab_pages;
+#endif
+	struct per_cpu_pageset __percpu *pageset;                   // 用于实现每个cpu的热/冷页帧列表
+	/*
+	 * free areas of different sizes
+	 */
+	spinlock_t		lock;
+#if defined CONFIG_COMPACTION || defined CONFIG_CMA
+	/* Set to true when the PG_migrate_skip bits should be cleared */
+	bool			compact_blockskip_flush;
+
+	/* pfns where compaction scanners should start */
+	unsigned long		compact_cached_free_pfn;
+	unsigned long		compact_cached_migrate_pfn;
+#endif
+#ifdef CONFIG_MEMORY_HOTPLUG
+	/* see spanned/present_pages for more description */
+	seqlock_t		span_seqlock;
+#endif
+#ifdef CONFIG_CMA
+	bool			cma_alloc;
+#endif
+	struct free_area	free_area[MAX_ORDER];                   // 同名数据结构的数组，用于实现伙伴系统。每个数组元素都是表示某种固定长度的一些连续内存区
+
+#ifndef CONFIG_SPARSEMEM
+	/*
+	 * Flags for a pageblock_nr_pages block. See pageblock-flags.h.
+	 * In SPARSEMEM, this map is stored in struct mem_section
+	 */
+	unsigned long		*pageblock_flags;
+#endif /* CONFIG_SPARSEMEM */
+
+#ifdef CONFIG_COMPACTION
+	/*
+	 * On compaction failure, 1<<compact_defer_shift compactions
+	 * are skipped before trying again. The number attempted since
+	 * last failure is tracked with compact_considered.
+	 */
+	unsigned int		compact_considered;
+	unsigned int		compact_defer_shift;
+	int			compact_order_failed;
+#endif
+
+	ZONE_PADDING(_pad1_)
+
+	/* Fields commonly accessed by the page reclaim scanner */
+	spinlock_t		lru_lock;
+	struct lruvec		lruvec;
+
+	unsigned long		pages_scanned;	   /* since last reclaim */     // 指定了上次换出一页以来，有多少页未能成功扫描
+	unsigned long		flags;		   /* zone flags, see below */      // 描述内存域的当前状态
+
+	/* Zone statistics */
+	atomic_long_t		vm_stat[NR_VM_ZONE_STAT_ITEMS];         // 维护了大量有关该内存域的统计信息
+
+	/*
+	 * The target ratio of ACTIVE_ANON to INACTIVE_ANON pages on
+	 * this zone's LRU.  Maintained by the pageout code.
+	 */
+	unsigned int inactive_ratio;
+
+
+	ZONE_PADDING(_pad2_)
+	/* Rarely used or read-mostly fields */
+
+	/*
+	 * wait_table		-- the array holding the hash table
+	 * wait_table_hash_nr_entries	-- the size of the hash table array
+	 * wait_table_bits	-- wait_table_size == (1 << wait_table_bits)
+	 *
+	 * The purpose of all these is to keep track of the people
+	 * waiting for a page to become available and make them
+	 * runnable again when possible. The trouble is that this
+	 * consumes a lot of space, especially when so few things
+	 * wait on pages at a given time. So instead of using
+	 * per-page waitqueues, we use a waitqueue hash table.
+	 *
+	 * The bucket discipline is to sleep on the same queue when
+	 * colliding and wake all in that wait queue when removing.
+	 * When something wakes, it must check to be sure its page is
+	 * truly available, a la thundering herd. The cost of a
+	 * collision is great, but given the expected load of the
+	 * table, they should be so rare as to be outweighed by the
+	 * benefits from the saved space.
+	 *
+	 * __wait_on_page_locked() and unlock_page() in mm/filemap.c, are the
+	 * primary users of these fields, and in mm/page_alloc.c
+	 * free_area_init_core() performs the initialization of them.
+	 */
+	wait_queue_head_t	* wait_table;
+	unsigned long		wait_table_hash_nr_entries;
+	unsigned long		wait_table_bits;
+
+	/*
+	 * Discontig memory support fields.
+	 */
+	struct pglist_data	*zone_pgdat;
+	/* zone_start_pfn == zone_start_paddr >> PAGE_SHIFT */
+	unsigned long		zone_start_pfn;
+
+	/*
+	 * spanned_pages is the total pages spanned by the zone, including
+	 * holes, which is calculated as:
+	 * 	spanned_pages = zone_end_pfn - zone_start_pfn;
+	 *
+	 * present_pages is physical pages existing within the zone, which
+	 * is calculated as:
+	 *	present_pages = spanned_pages - absent_pages(pages in holes);
+	 *
+	 * managed_pages is present pages managed by the buddy system, which
+	 * is calculated as (reserved_pages includes pages allocated by the
+	 * bootmem allocator):
+	 *	managed_pages = present_pages - reserved_pages;
+	 *
+	 * So present_pages may be used by memory hotplug or memory power
+	 * management logic to figure out unmanaged pages by checking
+	 * (present_pages - managed_pages). And managed_pages should be used
+	 * by page allocator and vm scanner to calculate all kinds of watermarks
+	 * and thresholds.
+	 *
+	 * Locking rules:
+	 *
+	 * zone_start_pfn and spanned_pages are protected by span_seqlock.
+	 * It is a seqlock because it has to be read outside of zone->lock,
+	 * and it is done in the main allocator path.  But, it is written
+	 * quite infrequently.
+	 *
+	 * The span_seq lock is declared along with zone->lock because it is
+	 * frequently read in proximity to zone->lock.  It's good to
+	 * give them a chance of being in the same cacheline.
+	 *
+	 * Write access to present_pages and managed_pages at runtime should
+	 * be protected by lock_memory_hotplug()/unlock_memory_hotplug().
+	 * Any reader who can't tolerant drift of present_pages and
+	 * managed_pages should hold memory hotplug lock to get a stable value.
+	 */
+	unsigned long		spanned_pages;
+	unsigned long		present_pages;
+	unsigned long		managed_pages;
+
+	/*
+	 * rarely used fields:
+	 */
+	const char		*name;
+} ____cacheline_internodealigned_in_smp;
+}}}
+
 ==== page ====
 {{{
 kernel/include/linux/mm_types.h
@@ -297,29 +547,29 @@ struct page {
 72 * SPARSEMEM_EXTREME with !SPARSEMEM_VMEMMAP).
 73 */
 74enum pageflags {
-75	PG_locked,		/* Page is locked. Don't touch. */
-76	PG_error,
-77	PG_referenced,
-78	PG_uptodate,
-79	PG_dirty,
-80	PG_lru,
-81	PG_active,
-82	PG_slab,
+75	PG_locked,		/* Page is locked. Don't touch. */                  // 页被锁定。例如，在磁盘I/O操作中涉及的页
+76	PG_error,                                                           // 在传输页时发生I/O错误
+77	PG_referenced,                                                      // 刚刚访问过的页
+78	PG_uptodate,                                                        // 在完成读操作后置位，除非发生磁盘I/O错误
+79	PG_dirty,                                                           // 页已经被修改
+80	PG_lru,                                                             // 页在活动或非活动页链表中
+81	PG_active,                                                          // 页在活动页链表中
+82	PG_slab,                                                            // 包含在slab中的页框
 83	PG_owner_priv_1,	/* Owner use. If pagecache, fs may use*/
 84	PG_arch_1,
-85	PG_reserved,
-86	PG_private,		/* If pagecache, has fs-private data */
+85	PG_reserved,                                                        // 页框留给内核代码或没有使用
+86	PG_private,		/* If pagecache, has fs-private data */             // 页描述符的private字段存放了有意义的数据
 87	PG_private_2,		/* If pagecache, has fs aux data */
-88	PG_writeback,		/* Page is under writeback */
+88	PG_writeback,		/* Page is under writeback */                   // 正在使用writepage方法将页写到磁盘上
 89#ifdef CONFIG_PAGEFLAGS_EXTENDED
 90	PG_head,		/* A head page */
 91	PG_tail,		/* A tail page */
 92#else
-93	PG_compound,		/* A compound page */
+93	PG_compound,		/* A compound page */                           // 通过扩展分页机制处理页框
 94#endif
-95	PG_swapcache,		/* Swap page: swp_entry_t in private */
-96	PG_mappedtodisk,	/* Has blocks allocated on-disk */
-97	PG_reclaim,		/* To be reclaimed asap */
+95	PG_swapcache,		/* Swap page: swp_entry_t in private */         // 页属于对换高速缓存
+96	PG_mappedtodisk,	/* Has blocks allocated on-disk */              // 页框中的所有数据对应于磁盘上分配的块
+97	PG_reclaim,		/* To be reclaimed asap */                          // 为回收内存对页已经做了写入磁盘的标记
 98	PG_swapbacked,		/* Page is backed by RAM/swap */
 99	PG_unevictable,		/* Page is "unevictable"  */
 100#ifdef CONFIG_MMU
@@ -485,13 +735,14 @@ LIST_HEAD(vmap_area_list);
 
 == 调试经验 ==
 === 全局变量 ===
-|*变量名*|*作用*|
-|high_memory|直接映射的物理地址末尾对应的线性地址保存在high_memory变量中|
-|mem_map|struct page，所有物理内存页，可以通过((vir_add-vir_offset)>>12)来定位kernel线性地址所在页</BR>数组中每个元素和物理内存页面一一对应,整个数组就代表着系统中的全部物理页面。</BR>如系统中有76G物理内存,则物理内存页面数为76*1024*1024k/4K= 19922944个页面,mem_map[ ]数组大小19922944|
-|slab_caches|kmem_cache链表头|
-|kmem_cache|存kmem_cache对象|
-|kmalloc_caches| |
-|swapper_pg_dir|内核全局页目录，地址为0xc0004000~0xc0008000|
+| *变量名*                        | *作用*                                                                                                                                                                                                                                                                                                                                                                                                   |
+| high_memory                     | 直接映射的物理地址末尾对应的线性地址保存在high_memory变量中                                                                                                                                                                                                                                                                                                                                              |
+| mem_map                         | struct page，所有物理内存页，可以通过((vir_add-vir_offset)>>12)来定位kernel线性地址所在页</BR>数组中每个元素和物理内存页面一一对应,整个数组就代表着系统中的全部物理页面。</BR>如系统中有76G物理内存,则物理内存页面数为76*1024*1024k/4K= 19922944个页面,mem_map[ ]数组大小19922944 |
+| slab_caches                     | kmem_cache链表头                                                                                                                                                                                                                                                                                                                                                                                         |
+| kmem_cache                      | 存kmem_cache对象                                                                                                                                                                                                                                                                                                                                                                                         |
+| kmalloc_caches                  |                                                                                                                                                                                                                                                                                                                                                                                                          |
+| swapper_pg_dir                  | 内核全局页目录，地址为0xc0004000~0xc0008000                                                                                                                                                                                                                                                                                                                                                              |
+| min_low_pfn/max_low_pfn/max_pfn | pfn数                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 === 文件节点 ===
 * /d/memblock/reserve
@@ -623,6 +874,12 @@ kmem_cacheslab有两种管理方式：
 11：Fine page table，每个页大小为1K
 }}}
 {{local:images/vaddr_to_paddr.PNG}}
+
+=== 计算总内存大小 ===
+{{{
+contig_page_data.node_spanned_pages是总的page数量
+memory_size=contig_page_data.node_spanned_pages*4K
+}}}
 
 ----
 == 参考资料 ==

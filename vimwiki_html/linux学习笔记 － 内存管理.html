@@ -15,52 +15,62 @@
 <li><a href="#toc_0.1.1">Kernel Virtual Address Mapping</a>
 <li><a href="#toc_0.1.2">Decompressor Symbols</a>
 <li><a href="#toc_0.1.3">Kernel Symbols</a>
-<li><a href="#toc_0.1.4">内存管理架构图</a>
 </ul>
-<li><a href="#toc_0.2">SLUB分配器</a>
+<li><a href="#toc_0.2">内存组织</a>
 <ul>
-<li><a href="#toc_0.2.1">模型</a>
-<li><a href="#toc_0.2.2">核心数据结构关系</a>
+<li><a href="#toc_0.2.1">内存管理架构图</a>
+<li><a href="#toc_0.2.2">node-zone-page组织关系</a>
+<li><a href="#toc_0.2.3">内存分配关系</a>
+<li><a href="#toc_0.2.4">buddy组织图</a>
+<li><a href="#toc_0.2.5">swap水线</a>
 </ul>
-<li><a href="#toc_0.3">页表机制</a>
+<li><a href="#toc_0.3">SLUB分配器</a>
 <ul>
-<li><a href="#toc_0.3.1">页表通用框架</a>
-<li><a href="#toc_0.3.2">single-step page table walk</a>
-<li><a href="#toc_0.3.3">two-step page table walk</a>
-<li><a href="#toc_0.3.4">内核页表布局全图</a>
+<li><a href="#toc_0.3.1">模型</a>
+<li><a href="#toc_0.3.2">核心数据结构关系</a>
 </ul>
-<li><a href="#toc_0.4">代码阅读</a>
+<li><a href="#toc_0.4">页表机制</a>
 <ul>
-<li><a href="#toc_0.4.1">kmalloc/kfree</a>
+<li><a href="#toc_0.4.1">页表通用框架</a>
+<li><a href="#toc_0.4.2">single-step page table walk</a>
+<li><a href="#toc_0.4.3">two-step page table walk</a>
+<li><a href="#toc_0.4.4">内核页表布局全图</a>
+</ul>
+<li><a href="#toc_0.5">代码阅读</a>
 <ul>
-<li><a href="#toc_0.4.1.1">kmalloc</a>
-<li><a href="#toc_0.4.1.2">kfree</a>
-</ul>
-<li><a href="#toc_0.4.2">kmem_cache_create</a>
-<li><a href="#toc_0.4.3">数据结构</a>
+<li><a href="#toc_0.5.1">kmalloc/kfree</a>
 <ul>
-<li><a href="#toc_0.4.3.1">page</a>
-<li><a href="#toc_0.4.3.2">pageflags</a>
-<li><a href="#toc_0.4.3.3">kmem_cache</a>
-<li><a href="#toc_0.4.3.4">kmem_cache_cpu</a>
-<li><a href="#toc_0.4.3.5">kmem_cache_node</a>
-<li><a href="#toc_0.4.3.6">vmap_area/vmap_area_list</a>
-<li><a href="#toc_0.4.3.7">vm_struct</a>
+<li><a href="#toc_0.5.1.1">kmalloc</a>
+<li><a href="#toc_0.5.1.2">kfree</a>
 </ul>
-</ul>
-<li><a href="#toc_0.5">调试经验</a>
+<li><a href="#toc_0.5.2">kmem_cache_create</a>
+<li><a href="#toc_0.5.3">数据结构</a>
 <ul>
-<li><a href="#toc_0.5.1">全局变量</a>
-<li><a href="#toc_0.5.2">文件节点</a>
-<li><a href="#toc_0.5.3">内存泄漏检测</a>
-<li><a href="#toc_0.5.4">内存越界检测</a>
-<li><a href="#toc_0.5.5">Native 的内存泄漏和越界</a>
-<li><a href="#toc_0.5.6">根据已分配内存地址找到slab</a>
-<li><a href="#toc_0.5.7">找到所有partial的页</a>
-<li><a href="#toc_0.5.8">查找kmem里的freelist</a>
-<li><a href="#toc_0.5.9">虚拟地址转物理地址</a>
+<li><a href="#toc_0.5.3.1">pg_data_t</a>
+<li><a href="#toc_0.5.3.2">zone</a>
+<li><a href="#toc_0.5.3.3">page</a>
+<li><a href="#toc_0.5.3.4">pageflags</a>
+<li><a href="#toc_0.5.3.5">kmem_cache</a>
+<li><a href="#toc_0.5.3.6">kmem_cache_cpu</a>
+<li><a href="#toc_0.5.3.7">kmem_cache_node</a>
+<li><a href="#toc_0.5.3.8">vmap_area/vmap_area_list</a>
+<li><a href="#toc_0.5.3.9">vm_struct</a>
 </ul>
-<li><a href="#toc_0.6">参考资料</a>
+</ul>
+<li><a href="#toc_0.6">调试经验</a>
+<ul>
+<li><a href="#toc_0.6.1">全局变量</a>
+<li><a href="#toc_0.6.2">文件节点</a>
+<li><a href="#toc_0.6.3">内存泄漏检测</a>
+<li><a href="#toc_0.6.4">内存越界检测</a>
+<li><a href="#toc_0.6.5">Native 的内存泄漏和越界</a>
+<li><a href="#toc_0.6.6">根据已分配内存地址找到slab</a>
+<li><a href="#toc_0.6.7">找到所有partial的页</a>
+<li><a href="#toc_0.6.8">查找kmem里的freelist</a>
+<li><a href="#toc_0.6.9">虚拟地址转物理地址</a>
+<li><a href="#toc_0.6.10">计算总内存大小</a>
+</ul>
+<li><a href="#toc_0.7">参考资料</a>
 </ul>
 </ul>
 </div>
@@ -375,24 +385,45 @@ PKMAP_BASE</BR>[arch/arm/include/asm/highmen.h]
 </tr>
 </table>
 
-<h3 id="toc_0.1.4">内存管理架构图</h3>
+<h2 id="toc_0.2">内存组织</h2>
+<h3 id="toc_0.2.1">内存管理架构图</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_kernel_memory_management_arch.jpg" />
 </p>
 
-<h2 id="toc_0.2">SLUB分配器</h2>
-<h3 id="toc_0.2.1">模型</h3>
+<h3 id="toc_0.2.2">node-zone-page组织关系</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_kernel_memory_node_zone_page.gif" />
+</p>
+
+<h3 id="toc_0.2.3">内存分配关系</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_kernel_memory_level.png" />
+</p>
+
+<h3 id="toc_0.2.4">buddy组织图</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_kernel_memory_buddy.png" />
+</p>
+
+<h3 id="toc_0.2.5">swap水线</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_kernel_memory_swapper.jpg" />
+</p>
+
+<h2 id="toc_0.3">SLUB分配器</h2>
+<h3 id="toc_0.3.1">模型</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/slub_1.jpg" />
 </p>
 
-<h3 id="toc_0.2.2">核心数据结构关系</h3>
+<h3 id="toc_0.3.2">核心数据结构关系</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/slub_struct.png" />
 </p>
 
-<h2 id="toc_0.3">页表机制</h2>
-<h3 id="toc_0.3.1">页表通用框架</h3>
+<h2 id="toc_0.4">页表机制</h2>
+<h3 id="toc_0.4.1">页表通用框架</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mmu_page_table.jpg" />
 </p>
@@ -406,31 +437,268 @@ page dir entry
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mmu_page_table_l1.png" />
 </p>
 
-<h3 id="toc_0.3.2">single-step page table walk</h3>
+<h3 id="toc_0.4.2">single-step page table walk</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/single-tep_page_table_walk.png" />
 </p>
 
-<h3 id="toc_0.3.3">two-step page table walk</h3>
+<h3 id="toc_0.4.3">two-step page table walk</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/two_step_page_table_walk.png" />
 </p>
 
-<h3 id="toc_0.3.4">内核页表布局全图</h3>
+<h3 id="toc_0.4.4">内核页表布局全图</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/pg_map.gif" />
 </p>
 
 
-<h2 id="toc_0.4">代码阅读</h2>
-<h3 id="toc_0.4.1">kmalloc/kfree</h3>
-<h4 id="toc_0.4.1.1">kmalloc</h4>
-<h4 id="toc_0.4.1.2">kfree</h4>
+<h2 id="toc_0.5">代码阅读</h2>
+<h3 id="toc_0.5.1">kmalloc/kfree</h3>
+<h4 id="toc_0.5.1.1">kmalloc</h4>
+<h4 id="toc_0.5.1.2">kfree</h4>
 
-<h3 id="toc_0.4.2">kmem_cache_create</h3>
+<h3 id="toc_0.5.2">kmem_cache_create</h3>
 
-<h3 id="toc_0.4.3">数据结构</h3>
-<h4 id="toc_0.4.3.1">page</h4>
+<h3 id="toc_0.5.3">数据结构</h3>
+<h4 id="toc_0.5.3.1">pg_data_t</h4>
+<pre>
+kernel/include/linux/mmzone.h
+
+typedef struct pglist_data {
+	struct zone node_zones[MAX_NR_ZONES];                       // 包含了结点中各内存域的数据结构
+	struct zonelist node_zonelists[MAX_ZONELISTS];              // 指定备用结点及其内存域列表以便当前结点没有可用空间时在备用结点分配内存
+	int nr_zones;                                               // 不同内存域的数目
+#ifdef CONFIG_FLAT_NODE_MEM_MAP	/* means !SPARSEMEM */
+	struct page *node_mem_map;                                  // 指向page实例数组的指针，用于描述结点的所有物理内存页，包含了结点中所有的内存域的页
+#ifdef CONFIG_MEMCG
+	struct page_cgroup *node_page_cgroup;
+#endif
+#endif
+#ifndef CONFIG_NO_BOOTMEM
+	struct bootmem_data *bdata;                                 // 指向自举内存分配器数据结构的实例
+#endif
+#ifdef CONFIG_MEMORY_HOTPLUG
+	/*
+	 * Must be held any time you expect node_start_pfn, node_present_pages
+	 * or node_spanned_pages stay constant.  Holding this will also
+	 * guarantee that any pfn_valid() stays that way.
+	 *
+	 * Nests above zone-&gt;lock and zone-&gt;size_seqlock.
+	 */
+	spinlock_t node_size_lock;
+#endif
+	unsigned long node_start_pfn;                               // 该NUMA结点第一个页帧的逻辑编号
+	unsigned long node_present_pages;                           // 结点中页帧的数目
+	unsigned long node_spanned_pages;                           // 该结点以页帧为单位计算的长度，包括空洞
+	int node_id;                                                // 全局结点ID，系统中的NUMA结点都从0开始编号
+	nodemask_t reclaim_nodes;	/* Nodes allowed to reclaim from */
+	wait_queue_head_t kswapd_wait;                              // 交换守护进程的等待队列，在将页帧换出结点时会用到
+	wait_queue_head_t pfmemalloc_wait;
+	struct task_struct *kswapd;	/* Protected by lock_memory_hotplug() */
+	int kswapd_max_order;                                       // 用于页交换子系统
+	enum zone_type classzone_idx;
+#ifdef CONFIG_NUMA_BALANCING
+	/*
+	 * Lock serializing the per destination node AutoNUMA memory
+	 * migration rate limiting data.
+	 */
+	spinlock_t numabalancing_migrate_lock;
+
+	/* Rate limiting time interval */
+	unsigned long numabalancing_migrate_next_window;
+
+	/* Number of pages migrated during the rate limiting time interval */
+	unsigned long numabalancing_migrate_nr_pages;
+#endif
+} pg_data_t;
+</pre>
+
+<h4 id="toc_0.5.3.2">zone</h4>
+<pre>
+struct zone {
+	/* Fields commonly accessed by the page allocator */
+
+	/* zone watermarks, access with *_wmark_pages(zone) macros */
+	unsigned long watermark[NR_WMARK];                          // 内存域水印，通过宏 *_wmark_pages(zone) 访问
+
+	/*
+	 * When free pages are below this point, additional steps are taken
+	 * when reading the number of free pages to avoid per-cpu counter
+	 * drift allowing watermarks to be breached
+	 */
+	unsigned long percpu_drift_mark;
+
+	/*
+	 * We don't know if the memory that we're going to allocate will be freeable
+	 * or/and it will be released eventually, so to avoid totally wasting several
+	 * GB of ram we must reserve some of the lower zone memory (otherwise we risk
+	 * to run OOM on the lower zones despite there's tons of freeable ram
+	 * on the higher zones). This array is recalculated at runtime if the
+	 * sysctl_lowmem_reserve_ratio sysctl changes.
+	 */
+	unsigned long		lowmem_reserve[MAX_NR_ZONES];           // 数组分别为各种内存域指定了若干页，用于一些无论如何都不能失败的关键性内存分配
+
+	/*
+	 * This is a per-zone reserve of pages that should not be
+	 * considered dirtyable memory.
+	 */
+	unsigned long		dirty_balance_reserve;
+
+#ifdef CONFIG_NUMA
+	int node;
+	/*
+	 * zone reclaim becomes active if more unmapped pages exist.
+	 */
+	unsigned long		min_unmapped_pages;
+	unsigned long		min_slab_pages;
+#endif
+	struct per_cpu_pageset __percpu *pageset;                   // 用于实现每个cpu的热/冷页帧列表
+	/*
+	 * free areas of different sizes
+	 */
+	spinlock_t		lock;
+#if defined CONFIG_COMPACTION || defined CONFIG_CMA
+	/* Set to true when the PG_migrate_skip bits should be cleared */
+	bool			compact_blockskip_flush;
+
+	/* pfns where compaction scanners should start */
+	unsigned long		compact_cached_free_pfn;
+	unsigned long		compact_cached_migrate_pfn;
+#endif
+#ifdef CONFIG_MEMORY_HOTPLUG
+	/* see spanned/present_pages for more description */
+	seqlock_t		span_seqlock;
+#endif
+#ifdef CONFIG_CMA
+	bool			cma_alloc;
+#endif
+	struct free_area	free_area[MAX_ORDER];                   // 同名数据结构的数组，用于实现伙伴系统。每个数组元素都是表示某种固定长度的一些连续内存区
+
+#ifndef CONFIG_SPARSEMEM
+	/*
+	 * Flags for a pageblock_nr_pages block. See pageblock-flags.h.
+	 * In SPARSEMEM, this map is stored in struct mem_section
+	 */
+	unsigned long		*pageblock_flags;
+#endif /* CONFIG_SPARSEMEM */
+
+#ifdef CONFIG_COMPACTION
+	/*
+	 * On compaction failure, 1&lt;&lt;compact_defer_shift compactions
+	 * are skipped before trying again. The number attempted since
+	 * last failure is tracked with compact_considered.
+	 */
+	unsigned int		compact_considered;
+	unsigned int		compact_defer_shift;
+	int			compact_order_failed;
+#endif
+
+	ZONE_PADDING(_pad1_)
+
+	/* Fields commonly accessed by the page reclaim scanner */
+	spinlock_t		lru_lock;
+	struct lruvec		lruvec;
+
+	unsigned long		pages_scanned;	   /* since last reclaim */     // 指定了上次换出一页以来，有多少页未能成功扫描
+	unsigned long		flags;		   /* zone flags, see below */      // 描述内存域的当前状态
+
+	/* Zone statistics */
+	atomic_long_t		vm_stat[NR_VM_ZONE_STAT_ITEMS];         // 维护了大量有关该内存域的统计信息
+
+	/*
+	 * The target ratio of ACTIVE_ANON to INACTIVE_ANON pages on
+	 * this zone's LRU.  Maintained by the pageout code.
+	 */
+	unsigned int inactive_ratio;
+
+
+	ZONE_PADDING(_pad2_)
+	/* Rarely used or read-mostly fields */
+
+	/*
+	 * wait_table		-- the array holding the hash table
+	 * wait_table_hash_nr_entries	-- the size of the hash table array
+	 * wait_table_bits	-- wait_table_size == (1 &lt;&lt; wait_table_bits)
+	 *
+	 * The purpose of all these is to keep track of the people
+	 * waiting for a page to become available and make them
+	 * runnable again when possible. The trouble is that this
+	 * consumes a lot of space, especially when so few things
+	 * wait on pages at a given time. So instead of using
+	 * per-page waitqueues, we use a waitqueue hash table.
+	 *
+	 * The bucket discipline is to sleep on the same queue when
+	 * colliding and wake all in that wait queue when removing.
+	 * When something wakes, it must check to be sure its page is
+	 * truly available, a la thundering herd. The cost of a
+	 * collision is great, but given the expected load of the
+	 * table, they should be so rare as to be outweighed by the
+	 * benefits from the saved space.
+	 *
+	 * __wait_on_page_locked() and unlock_page() in mm/filemap.c, are the
+	 * primary users of these fields, and in mm/page_alloc.c
+	 * free_area_init_core() performs the initialization of them.
+	 */
+	wait_queue_head_t	* wait_table;
+	unsigned long		wait_table_hash_nr_entries;
+	unsigned long		wait_table_bits;
+
+	/*
+	 * Discontig memory support fields.
+	 */
+	struct pglist_data	*zone_pgdat;
+	/* zone_start_pfn == zone_start_paddr &gt;&gt; PAGE_SHIFT */
+	unsigned long		zone_start_pfn;
+
+	/*
+	 * spanned_pages is the total pages spanned by the zone, including
+	 * holes, which is calculated as:
+	 * 	spanned_pages = zone_end_pfn - zone_start_pfn;
+	 *
+	 * present_pages is physical pages existing within the zone, which
+	 * is calculated as:
+	 *	present_pages = spanned_pages - absent_pages(pages in holes);
+	 *
+	 * managed_pages is present pages managed by the buddy system, which
+	 * is calculated as (reserved_pages includes pages allocated by the
+	 * bootmem allocator):
+	 *	managed_pages = present_pages - reserved_pages;
+	 *
+	 * So present_pages may be used by memory hotplug or memory power
+	 * management logic to figure out unmanaged pages by checking
+	 * (present_pages - managed_pages). And managed_pages should be used
+	 * by page allocator and vm scanner to calculate all kinds of watermarks
+	 * and thresholds.
+	 *
+	 * Locking rules:
+	 *
+	 * zone_start_pfn and spanned_pages are protected by span_seqlock.
+	 * It is a seqlock because it has to be read outside of zone-&gt;lock,
+	 * and it is done in the main allocator path.  But, it is written
+	 * quite infrequently.
+	 *
+	 * The span_seq lock is declared along with zone-&gt;lock because it is
+	 * frequently read in proximity to zone-&gt;lock.  It's good to
+	 * give them a chance of being in the same cacheline.
+	 *
+	 * Write access to present_pages and managed_pages at runtime should
+	 * be protected by lock_memory_hotplug()/unlock_memory_hotplug().
+	 * Any reader who can't tolerant drift of present_pages and
+	 * managed_pages should hold memory hotplug lock to get a stable value.
+	 */
+	unsigned long		spanned_pages;
+	unsigned long		present_pages;
+	unsigned long		managed_pages;
+
+	/*
+	 * rarely used fields:
+	 */
+	const char		*name;
+} ____cacheline_internodealigned_in_smp;
+</pre>
+
+<h4 id="toc_0.5.3.3">page</h4>
 <pre>
 kernel/include/linux/mm_types.h
 
@@ -592,7 +860,7 @@ struct page {
 }
 </pre>
 
-<h4 id="toc_0.4.3.2">pageflags</h4>
+<h4 id="toc_0.5.3.4">pageflags</h4>
 <pre>
 可以通过pageflag_names这个全局变量看
 
@@ -655,29 +923,29 @@ struct page {
 72 * SPARSEMEM_EXTREME with !SPARSEMEM_VMEMMAP).
 73 */
 74enum pageflags {
-75	PG_locked,		/* Page is locked. Don't touch. */
-76	PG_error,
-77	PG_referenced,
-78	PG_uptodate,
-79	PG_dirty,
-80	PG_lru,
-81	PG_active,
-82	PG_slab,
+75	PG_locked,		/* Page is locked. Don't touch. */                  // 页被锁定。例如，在磁盘I/O操作中涉及的页
+76	PG_error,                                                           // 在传输页时发生I/O错误
+77	PG_referenced,                                                      // 刚刚访问过的页
+78	PG_uptodate,                                                        // 在完成读操作后置位，除非发生磁盘I/O错误
+79	PG_dirty,                                                           // 页已经被修改
+80	PG_lru,                                                             // 页在活动或非活动页链表中
+81	PG_active,                                                          // 页在活动页链表中
+82	PG_slab,                                                            // 包含在slab中的页框
 83	PG_owner_priv_1,	/* Owner use. If pagecache, fs may use*/
 84	PG_arch_1,
-85	PG_reserved,
-86	PG_private,		/* If pagecache, has fs-private data */
+85	PG_reserved,                                                        // 页框留给内核代码或没有使用
+86	PG_private,		/* If pagecache, has fs-private data */             // 页描述符的private字段存放了有意义的数据
 87	PG_private_2,		/* If pagecache, has fs aux data */
-88	PG_writeback,		/* Page is under writeback */
+88	PG_writeback,		/* Page is under writeback */                   // 正在使用writepage方法将页写到磁盘上
 89#ifdef CONFIG_PAGEFLAGS_EXTENDED
 90	PG_head,		/* A head page */
 91	PG_tail,		/* A tail page */
 92#else
-93	PG_compound,		/* A compound page */
+93	PG_compound,		/* A compound page */                           // 通过扩展分页机制处理页框
 94#endif
-95	PG_swapcache,		/* Swap page: swp_entry_t in private */
-96	PG_mappedtodisk,	/* Has blocks allocated on-disk */
-97	PG_reclaim,		/* To be reclaimed asap */
+95	PG_swapcache,		/* Swap page: swp_entry_t in private */         // 页属于对换高速缓存
+96	PG_mappedtodisk,	/* Has blocks allocated on-disk */              // 页框中的所有数据对应于磁盘上分配的块
+97	PG_reclaim,		/* To be reclaimed asap */                          // 为回收内存对页已经做了写入磁盘的标记
 98	PG_swapbacked,		/* Page is backed by RAM/swap */
 99	PG_unevictable,		/* Page is "unevictable"  */
 100#ifdef CONFIG_MMU
@@ -712,7 +980,7 @@ struct page {
 129};
 </pre>
 
-<h4 id="toc_0.4.3.3">kmem_cache</h4>
+<h4 id="toc_0.5.3.5">kmem_cache</h4>
 <pre>
 kernel/include/linux/slub_def.h
 
@@ -759,7 +1027,7 @@ struct kmem_cache {
 };
 </pre>
 
-<h4 id="toc_0.4.3.4">kmem_cache_cpu</h4>
+<h4 id="toc_0.5.3.6">kmem_cache_cpu</h4>
 <pre>
 kernel/include/linux/slub_def.h
 
@@ -774,7 +1042,7 @@ struct kmem_cache_cpu {
 };
 </pre>
 
-<h4 id="toc_0.4.3.5">kmem_cache_node</h4>
+<h4 id="toc_0.5.3.7">kmem_cache_node</h4>
 <pre>
 kernel/mm/slab.h
 
@@ -809,7 +1077,7 @@ struct kmem_cache_node {
 };
 </pre>
 
-<h4 id="toc_0.4.3.6">vmap_area/vmap_area_list</h4>
+<h4 id="toc_0.5.3.8">vmap_area/vmap_area_list</h4>
 <pre>
 kernel/mm/vmalloc.c
 
@@ -827,7 +1095,7 @@ LIST_HEAD(vmap_area_list);
 49};
 </pre>
 
-<h4 id="toc_0.4.3.7">vm_struct</h4>
+<h4 id="toc_0.5.3.9">vm_struct</h4>
 <pre>
 29struct vm_struct {
 30	struct vm_struct	*next;
@@ -841,8 +1109,8 @@ LIST_HEAD(vmap_area_list);
 38};
 </pre>
 
-<h2 id="toc_0.5">调试经验</h2>
-<h3 id="toc_0.5.1">全局变量</h3>
+<h2 id="toc_0.6">调试经验</h2>
+<h3 id="toc_0.6.1">全局变量</h3>
 <table>
 <tr>
 <td>
@@ -900,9 +1168,17 @@ swapper_pg_dir
 内核全局页目录，地址为0xc0004000~0xc0008000
 </td>
 </tr>
+<tr>
+<td>
+min_low_pfn/max_low_pfn/max_pfn
+</td>
+<td>
+pfn数
+</td>
+</tr>
 </table>
 
-<h3 id="toc_0.5.2">文件节点</h3>
+<h3 id="toc_0.6.2">文件节点</h3>
 <ul>
 <li>
 /d/memblock/reserve
@@ -918,7 +1194,7 @@ swapper_pg_dir
 
 </ul>
 
-<h3 id="toc_0.5.3">内存泄漏检测</h3>
+<h3 id="toc_0.6.3">内存泄漏检测</h3>
 <pre>
 内核配置：
 CONFIG_DEBUG_KMEMLEAK=y
@@ -954,7 +1230,7 @@ unreferenced object 0xd25f3cc0 (size 64):
     [&lt;ffffffff&gt;] 0xffffffff
 </pre>
 
-<h3 id="toc_0.5.4">内存越界检测</h3>
+<h3 id="toc_0.6.4">内存越界检测</h3>
 <pre>
 内核配置为使用 slub 作为内存分配器 ,slub 本身提供了检查越界的接口，如果 kernel 刚启动就要检查内存破坏，则需要编译的时候配置 CONFIG_SLUB_DEBUG_ON=y
 否则可以使用 slabinfo –d A 来打开检查功能，打开后， slub 会在内存后面加一些关键字， 释放的时候会检查是否被破坏，如果破坏了，check_bytes_and_report中print一个警告,
@@ -981,7 +1257,7 @@ static int check_bytes_and_report(struct kmem_cache *s, struct page *page,
 }
 </pre>
 
-<h3 id="toc_0.5.5">Native 的内存泄漏和越界</h3>
+<h3 id="toc_0.6.5">Native 的内存泄漏和越界</h3>
 <pre>
 Android的native内存泄漏可以用valgrind工具，但是这个工具在android里运行太慢，Android里的bionic库提供了内存泄漏的检测方法
 见 bionic/libc/bionic/malloc_debug_common.c 里的注释.
@@ -1004,12 +1280,12 @@ libc.debug.malloc     20   SDK 模拟器上检测内存用
 #vi system/build.prop 增加 libc.debug.malloc = 10 属性
 </pre>
 
-<h3 id="toc_0.5.6">根据已分配内存地址找到slab</h3>
+<h3 id="toc_0.6.6">根据已分配内存地址找到slab</h3>
 <p>
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mem_find_page.PNG" />
 </p>
 
-<h3 id="toc_0.5.7">找到所有partial的页</h3>
+<h3 id="toc_0.6.7">找到所有partial的页</h3>
 <pre>
 从slab_caches中得到kmem_cache
 kmem_cache-&gt;list是串起kmem_cache的链表，所以从slab_caches中得到链表值，就可以通过偏移得到kmem_cache
@@ -1020,7 +1296,7 @@ v.v (struct kmem_cache*)(0xABCDEFGH - 0xXY)
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/mem_partital_list.PNG" />
 </p>
 
-<h3 id="toc_0.5.8">查找kmem里的freelist</h3>
+<h3 id="toc_0.6.8">查找kmem里的freelist</h3>
 <pre>
 kmem_cacheslab有两种管理方式：
 1、cpu_slab
@@ -1036,7 +1312,7 @@ kmem_cacheslab有两种管理方式：
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/slab_freelist.PNG" />
 </p>
 
-<h3 id="toc_0.5.9">虚拟地址转物理地址</h3>
+<h3 id="toc_0.6.9">虚拟地址转物理地址</h3>
 <pre>
 每个进程都有自己的页目录，放在task_struct-&gt;mm.pgd
 高1G的地址空间给内核用，各进程间是共享的，用全局变量swapper_pg_dir(0xc0004000~0xc0008000)来保存信息，进程在fork时，会把这部分内容copy过去
@@ -1051,8 +1327,14 @@ kmem_cacheslab有两种管理方式：
 <img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/vaddr_to_paddr.PNG" />
 </p>
 
+<h3 id="toc_0.6.10">计算总内存大小</h3>
+<pre>
+contig_page_data.node_spanned_pages是总的page数量
+memory_size=contig_page_data.node_spanned_pages*4K
+</pre>
+
 <hr />
-<h2 id="toc_0.6">参考资料</h2>
+<h2 id="toc_0.7">参考资料</h2>
 <p>
 <a href="http://www.cnblogs.com/zhaoyl/p/3695517.html">Linux内存管理原理</a></BR>
 <a href="http://www.cnblogs.com/wang_yb/archive/2013/05/23/3095907.html">《Linux内核设计与实现》读书笔记（十二）- 内存管理</a></BR>

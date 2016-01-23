@@ -1951,3 +1951,17 @@ SPRD_visitor
 adb shell settings put global captive_portal_detection_enabled 0
 }}}
 
+=== REFOUT配置 ===
+{{{
+---RF_init_common
+  ----RF_init_common_T
+    ---Mipi_reg_num
+      ---Mipi_reg_init
+        ---mipi_reg_init[39]
+bit[0] : REFOUT1
+bit[1] : REFOUT2
+bit[2] : REFOUT3
+0 - open   
+1 - closed
+多开一个REFOUT，会多耗0.7mA
+}}}
