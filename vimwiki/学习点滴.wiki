@@ -1965,3 +1965,58 @@ bit[2] : REFOUT3
 1 - closed
 多开一个REFOUT，会多耗0.7mA
 }}}
+
+=== IOCTL消息定义 ===
+{{{
+--------------------------------------------------
+|    dir    |    size    |    type    |    nr    |
+--------------------------------------------------
+|<-   2   ->|<-   14   ->|<-   8    ->|<-  8   ->|
+
+
+(kernel/include/uapi/asm-generic/ioctl.h)
+
+#define _IOC(dir,type,nr,size) \
+	(((dir)  << _IOC_DIRSHIFT) | \
+	 ((type) << _IOC_TYPESHIFT) | \
+	 ((nr)   << _IOC_NRSHIFT) | \
+	 ((size) << _IOC_SIZESHIFT))
+
+#define _IO(type,nr)		_IOC(_IOC_NONE,(type),(nr),0)
+#define _IOR(type,nr,size)	_IOC(_IOC_READ,(type),(nr),(_IOC_TYPECHECK(size)))
+#define _IOW(type,nr,size)	_IOC(_IOC_WRITE,(type),(nr),(_IOC_TYPECHECK(size)))
+#define _IOWR(type,nr,size)	_IOC(_IOC_READ|_IOC_WRITE,(type),(nr),(_IOC_TYPECHECK(size)))
+
+
+# define _IOC_NONE	0U
+# define _IOC_WRITE	1U
+# define _IOC_READ	2U
+}}}
+
+=== 列出进程所有打开的文件 ===
+{{{
+/proc/<pid>/fd：该进程下所有打开的文件
+
+lsof显示所有进程打开的文件
+
+/d/dma_buf/bufinfo：dma_buf的使用情况，一般为ion分配
+}}}
+
+=== GED重启所进模式 ===
+{{{
+#define RECOVERY_MODE   0x77665502
+#define FASTBOOT_MODE   0x77665500
+#define NORMAL_MODE   0x77665503
+#define ALARM_MODE   0x77665504
+#define SLEEP_MODE   0x77665505
+#define WATCHDOG_REBOOT 0x77665506
+#define SPECIAL_MODE 0x77665507
+#define UNKNOW_REBOOT_MODE 0x77665508
+#define PANIC_REBOOT 0x77665509
+#define CALIBRATION_MODE 0x7766550a
+#define AUTODLOADER_REBOOT 0x77665510
+#define EXT_RSTN_REBOOT_MODE 0x77665511
+#define IQ_REBOOT_MODE 0x77665512
+#define FACTORYTEST_MODE 0x77665513
+}}}
+
