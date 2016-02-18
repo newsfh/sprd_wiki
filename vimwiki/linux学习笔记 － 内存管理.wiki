@@ -744,6 +744,7 @@ LIST_HEAD(vmap_area_list);
 | swapper_pg_dir                  | 内核全局页目录，地址为0xc0004000~0xc0008000                                                                                                                                                                                                                                              |
 | init_mm                         | 主内存描述符                                                                                                                                                                                                                                                                             |
 | min_low_pfn/max_low_pfn/max_pfn | pfn数                                                                                                                                                                                                                                                                                    |
+| contig_page_data                | 伙伴算法全局变量                                                                                                                                                                                                                                                                         |
 
 === 文件节点 ===
 * /d/memblock/reserve
