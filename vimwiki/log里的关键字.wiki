@@ -1,11 +1,14 @@
-* 上层
+%toc 目录
+
+=== log关键字 ===
+==== 上层 ====
  # SLOG
  # SLOGCP
  # NVITEM
  # MODEMD
  # ENGPC
 
-* kernel
+==== kernel ====
  # DFS
 {{{
 初始化不成功：
@@ -23,7 +26,7 @@ DFS请求：
 	printk("dfs_request, dfs(%d) succeeded!\n",freq);
 }}}
 
-* 编译时间
+=== 编译时间 ===
  * kernel
 {{{
 kernel build
@@ -33,7 +36,7 @@ kernel build
 ro.build.date=Fri Nov 13 05:32:43 CST 2015
 }}}
 
-* 亮灭屏
+=== 亮灭屏 ===
  * 灭屏
 {{{
 01-01 11:07:04.711 10484 10696 D PowerManagerService: [api] [s] goToSleep: 4 (uid: 1000 pid: 10484) eventTime = 10525584
@@ -50,7 +53,7 @@ ro.build.date=Fri Nov 13 05:32:43 CST 2015
 01-01 11:08:33.506 10484 10696 D PowerManagerService: [PWL] sb acquire: PowerManagerService.Display
 }}}
 
-* GPU绘制
+=== GPU绘制 ===
 {{{
 setprop debug.egl.trace 1
 stop
@@ -59,3 +62,16 @@ start
 重启后，灭屏后抓取main log
 adb logcat -v threadtime | grep glDraw | tee log.txt
 }}}
+
+=== kernel/main log时间对应 ===
+{{{
+1. alarm
+	alarm set by
+2. watchdog
+	!@Sync
+3. suspend
+	PM: suspend
+	suspend: exit suspend
+	request_suspend_state:
+}}}
+

@@ -615,6 +615,19 @@ v.v (struct thread_info*)(stack_ptr & 0xFFFFE000)
 }}}
 
 ----
+= device =
+== 全局变量 ==
+=== platform_bus ===
+{{{
+kernel/drivers/base/platform.c
+struct device platform_bus = {
+	.init_name	= "platform",
+};
+
+所有device的链表头
+}}}
+
+----
 = CPU =
 == 全局变量 ==
 === cpu_online_bits ===

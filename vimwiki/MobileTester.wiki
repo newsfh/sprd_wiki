@@ -1,9 +1,14 @@
+=== 使用 ===
 {{{
 插入USB，设备管理器出现“SCI General U2S(AT) (COMx)"和“SCI Vendor U2S(DIAG) (COMy)"
 如果端口没出来，可能是手机端没打开端口设置。按*#*#83781#*#*进入工程模式 => App Settings => Enable Vser Gset打勾
 打开MobileTester工具，Settings/Port选择COMy端口，Open下就可以测试
 }}}
+=== 出log ===
 {{{
 Channel.ini文件
 Level可以设置log
 }}}
+
+=== 修改uart波特率 ===
+{{local:images/uart_baudrate_in_mobiletester.png}}

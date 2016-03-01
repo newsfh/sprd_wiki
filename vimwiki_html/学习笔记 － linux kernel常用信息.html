@@ -48,75 +48,82 @@
 <li><a href="#toc_3.2.2">task_struct</a>
 </ul>
 </ul>
-<li><a href="#toc_4">CPU</a>
+<li><a href="#toc_4">device</a>
 <ul>
 <li><a href="#toc_4.1">全局变量</a>
 <ul>
-<li><a href="#toc_4.1.1">cpu_online_bits</a>
+<li><a href="#toc_4.1.1">platform_bus</a>
 </ul>
-<li><a href="#toc_4.2">数据结构</a>
 </ul>
-<li><a href="#toc_5">memory</a>
+<li><a href="#toc_5">CPU</a>
 <ul>
 <li><a href="#toc_5.1">全局变量</a>
 <ul>
-<li><a href="#toc_5.1.1">pageflag_names</a>
-<li><a href="#toc_5.1.2">high_memory</a>
-<li><a href="#toc_5.1.3">mem_map</a>
-<li><a href="#toc_5.1.4">slab_caches</a>
-<li><a href="#toc_5.1.5">kmem_cache</a>
-<li><a href="#toc_5.1.6">kmalloc_caches</a>
-<li><a href="#toc_5.1.7">contig_page_data</a>
+<li><a href="#toc_5.1.1">cpu_online_bits</a>
 </ul>
 <li><a href="#toc_5.2">数据结构</a>
-<ul>
-<li><a href="#toc_5.2.1">page</a>
-<li><a href="#toc_5.2.2">kmem_cache</a>
-<li><a href="#toc_5.2.3">kmem_cache_cpu</a>
-<li><a href="#toc_5.2.4">kmem_cache_node</a>
 </ul>
-</ul>
-<li><a href="#toc_6">worker</a>
+<li><a href="#toc_6">memory</a>
 <ul>
 <li><a href="#toc_6.1">全局变量</a>
 <ul>
-<li><a href="#toc_6.1.1">workqueues</a>
+<li><a href="#toc_6.1.1">pageflag_names</a>
+<li><a href="#toc_6.1.2">high_memory</a>
+<li><a href="#toc_6.1.3">mem_map</a>
+<li><a href="#toc_6.1.4">slab_caches</a>
+<li><a href="#toc_6.1.5">kmem_cache</a>
+<li><a href="#toc_6.1.6">kmalloc_caches</a>
+<li><a href="#toc_6.1.7">contig_page_data</a>
 </ul>
 <li><a href="#toc_6.2">数据结构</a>
 <ul>
-<li><a href="#toc_6.2.1">workqueue_struct</a>
-<li><a href="#toc_6.2.2">pool_workqueue</a>
-<li><a href="#toc_6.2.3">worker_pool</a>
-<li><a href="#toc_6.2.4">worker</a>
+<li><a href="#toc_6.2.1">page</a>
+<li><a href="#toc_6.2.2">kmem_cache</a>
+<li><a href="#toc_6.2.3">kmem_cache_cpu</a>
+<li><a href="#toc_6.2.4">kmem_cache_node</a>
 </ul>
 </ul>
-<li><a href="#toc_7">irq</a>
+<li><a href="#toc_7">worker</a>
 <ul>
 <li><a href="#toc_7.1">全局变量</a>
 <ul>
-<li><a href="#toc_7.1.1">irq_desc</a>
+<li><a href="#toc_7.1.1">workqueues</a>
+</ul>
+<li><a href="#toc_7.2">数据结构</a>
+<ul>
+<li><a href="#toc_7.2.1">workqueue_struct</a>
+<li><a href="#toc_7.2.2">pool_workqueue</a>
+<li><a href="#toc_7.2.3">worker_pool</a>
+<li><a href="#toc_7.2.4">worker</a>
 </ul>
 </ul>
-<li><a href="#toc_8">SIPC</a>
+<li><a href="#toc_8">irq</a>
 <ul>
 <li><a href="#toc_8.1">全局变量</a>
 <ul>
-<li><a href="#toc_8.1.1">mem_pool</a>
-<li><a href="#toc_8.1.2">smsg_ipcs</a>
-<li><a href="#toc_8.1.3">sbufs</a>
-</ul>
-<li><a href="#toc_8.2">数据结构</a>
-<ul>
-<li><a href="#toc_8.2.1">SIPC ID</a>
-<li><a href="#toc_8.2.2">SIPC channel</a>
-<li><a href="#toc_8.2.3">SMSG type</a>
+<li><a href="#toc_8.1.1">irq_desc</a>
 </ul>
 </ul>
-<li><a href="#toc_9">FB</a>
+<li><a href="#toc_9">SIPC</a>
 <ul>
 <li><a href="#toc_9.1">全局变量</a>
 <ul>
-<li><a href="#toc_9.1.1">registered_fb</a>
+<li><a href="#toc_9.1.1">mem_pool</a>
+<li><a href="#toc_9.1.2">smsg_ipcs</a>
+<li><a href="#toc_9.1.3">sbufs</a>
+</ul>
+<li><a href="#toc_9.2">数据结构</a>
+<ul>
+<li><a href="#toc_9.2.1">SIPC ID</a>
+<li><a href="#toc_9.2.2">SIPC channel</a>
+<li><a href="#toc_9.2.3">SMSG type</a>
+</ul>
+</ul>
+<li><a href="#toc_10">FB</a>
+<ul>
+<li><a href="#toc_10.1">全局变量</a>
+<ul>
+<li><a href="#toc_10.1.1">registered_fb</a>
 </ul>
 </ul>
 </ul>
@@ -737,9 +744,22 @@ v.v (struct thread_info*)(stack_ptr &amp; 0xFFFFE000)
 </pre>
 
 <hr />
-<h1 id="toc_4">CPU</h1>
+<h1 id="toc_4">device</h1>
 <h2 id="toc_4.1">全局变量</h2>
-<h3 id="toc_4.1.1">cpu_online_bits</h3>
+<h3 id="toc_4.1.1">platform_bus</h3>
+<pre>
+kernel/drivers/base/platform.c
+struct device platform_bus = {
+	.init_name	= "platform",
+};
+
+所有device的链表头
+</pre>
+
+<hr />
+<h1 id="toc_5">CPU</h1>
+<h2 id="toc_5.1">全局变量</h2>
+<h3 id="toc_5.1.1">cpu_online_bits</h3>
 <pre>
 kernel/kernel/cpu.c
 static DECLARE_BITMAP(cpu_online_bits, CONFIG_NR_CPUS) __read_mostly;
@@ -747,47 +767,47 @@ static DECLARE_BITMAP(cpu_online_bits, CONFIG_NR_CPUS) __read_mostly;
 看哪些cpu在线
 </pre>
 
-<h2 id="toc_4.2">数据结构</h2>
+<h2 id="toc_5.2">数据结构</h2>
 
 <hr />
-<h1 id="toc_5">memory</h1>
-<h2 id="toc_5.1">全局变量</h2>
-<h3 id="toc_5.1.1">pageflag_names</h3>
-<h3 id="toc_5.1.2">high_memory</h3>
-<h3 id="toc_5.1.3">mem_map</h3>
-<h3 id="toc_5.1.4">slab_caches</h3>
-<h3 id="toc_5.1.5">kmem_cache</h3>
-<h3 id="toc_5.1.6">kmalloc_caches</h3>
-<h3 id="toc_5.1.7">contig_page_data</h3>
+<h1 id="toc_6">memory</h1>
+<h2 id="toc_6.1">全局变量</h2>
+<h3 id="toc_6.1.1">pageflag_names</h3>
+<h3 id="toc_6.1.2">high_memory</h3>
+<h3 id="toc_6.1.3">mem_map</h3>
+<h3 id="toc_6.1.4">slab_caches</h3>
+<h3 id="toc_6.1.5">kmem_cache</h3>
+<h3 id="toc_6.1.6">kmalloc_caches</h3>
+<h3 id="toc_6.1.7">contig_page_data</h3>
 <p>
 <a href="linux学习笔记%20－%20内存管理.html">全局变量</a>
 </p>
 
-<h2 id="toc_5.2">数据结构</h2>
-<h3 id="toc_5.2.1">page</h3>
+<h2 id="toc_6.2">数据结构</h2>
+<h3 id="toc_6.2.1">page</h3>
 <p>
 <a href="linux学习笔记%20－%20内存管理.html">page</a>
 </p>
 
-<h3 id="toc_5.2.2">kmem_cache</h3>
+<h3 id="toc_6.2.2">kmem_cache</h3>
 <p>
 <a href="linux学习笔记%20－%20内存管理.html">kmem_cache</a>
 </p>
 
-<h3 id="toc_5.2.3">kmem_cache_cpu</h3>
+<h3 id="toc_6.2.3">kmem_cache_cpu</h3>
 <p>
 <a href="linux学习笔记%20－%20内存管理.html">kmem_cache_cpu</a>
 </p>
 
-<h3 id="toc_5.2.4">kmem_cache_node</h3>
+<h3 id="toc_6.2.4">kmem_cache_node</h3>
 <p>
 <a href="linux学习笔记%20－%20内存管理.html">kmem_cache_node</a>
 </p>
 
 <hr />
-<h1 id="toc_6">worker</h1>
-<h2 id="toc_6.1">全局变量</h2>
-<h3 id="toc_6.1.1">workqueues</h3>
+<h1 id="toc_7">worker</h1>
+<h2 id="toc_7.1">全局变量</h2>
+<h3 id="toc_7.1.1">workqueues</h3>
 <pre>
 /kernel/kernel/workqueue.c
 
@@ -795,9 +815,9 @@ static LIST_HEAD(workqueues);       /* PL: list of all workqueues */
 工作队列
 </pre>
 
-<h2 id="toc_6.2">数据结构</h2>
+<h2 id="toc_7.2">数据结构</h2>
 
-<h3 id="toc_6.2.1">workqueue_struct</h3>
+<h3 id="toc_7.2.1">workqueue_struct</h3>
 <pre>
 /kernel/kernel/workqueue.c
 
@@ -841,7 +861,7 @@ static LIST_HEAD(workqueues);       /* PL: list of all workqueues */
 268};
 </pre>
 
-<h3 id="toc_6.2.2">pool_workqueue</h3>
+<h3 id="toc_7.2.2">pool_workqueue</h3>
 <pre>
 /kernel/kernel/workqueue.c
 
@@ -876,7 +896,7 @@ static LIST_HEAD(workqueues);       /* PL: list of all workqueues */
 218} __aligned(1 &lt;&lt; WORK_STRUCT_FLAG_BITS);
 </pre>
 
-<h3 id="toc_6.2.3">worker_pool</h3>
+<h3 id="toc_7.2.3">worker_pool</h3>
 <pre>
 /kernel/kernel/workqueue.c
 
@@ -957,7 +977,7 @@ static LIST_HEAD(workqueues);       /* PL: list of all workqueues */
 188} ____cacheline_aligned_in_smp;
 </pre>
 
-<h3 id="toc_6.2.4">worker</h3>
+<h3 id="toc_7.2.4">worker</h3>
 <pre>
 /kernel/kernel/workqueue_internal.h
 
@@ -1003,9 +1023,9 @@ static LIST_HEAD(workqueues);       /* PL: list of all workqueues */
 </pre>
 
 <hr />
-<h1 id="toc_7">irq</h1>
-<h2 id="toc_7.1">全局变量</h2>
-<h3 id="toc_7.1.1">irq_desc</h3>
+<h1 id="toc_8">irq</h1>
+<h2 id="toc_8.1">全局变量</h2>
+<h3 id="toc_8.1.1">irq_desc</h3>
 <pre>
 kernel/kernel/irq/irqdesc.c
 
@@ -1014,9 +1034,9 @@ irq中断信息
 </pre>
 
 <hr />
-<h1 id="toc_8">SIPC</h1>
-<h2 id="toc_8.1">全局变量</h2>
-<h3 id="toc_8.1.1">mem_pool</h3>
+<h1 id="toc_9">SIPC</h1>
+<h2 id="toc_9.1">全局变量</h2>
+<h3 id="toc_9.1.1">mem_pool</h3>
 <pre>
 kernel/drivers/sipc/smem.c
 
@@ -1026,7 +1046,7 @@ smem池
 成员变量smem_head放着已分配的smem，可以用(struct smem_record*)list_node来看内容
 </pre>
 
-<h3 id="toc_8.1.2">smsg_ipcs</h3>
+<h3 id="toc_9.1.2">smsg_ipcs</h3>
 <pre>
 kernel/drivers/sipc/smsg.c
 
@@ -1034,7 +1054,7 @@ static struct smsg_ipc *smsg_ipcs[SIPC_ID_NR];
 smsg信息，按通道来看smsg
 </pre>
 
-<h3 id="toc_8.1.3">sbufs</h3>
+<h3 id="toc_9.1.3">sbufs</h3>
 <pre>
 kernel/drivers/sipc/sbuf.c
 
@@ -1044,8 +1064,8 @@ sbuf里的内容
 现有32个双向通道，即有64个通道，逢单为AP-&gt;CP，逢双为CP-&gt;AP
 </pre>
 
-<h2 id="toc_8.2">数据结构</h2>
-<h3 id="toc_8.2.1">SIPC ID</h3>
+<h2 id="toc_9.2">数据结构</h2>
+<h3 id="toc_9.2.1">SIPC ID</h3>
 <pre>
 29/* sipc processor ID definition */
 30enum {
@@ -1060,7 +1080,7 @@ sbuf里的内容
 39};
 </pre>
 
-<h3 id="toc_8.2.2">SIPC channel</h3>
+<h3 id="toc_9.2.2">SIPC channel</h3>
 <pre>
 49/* smsg channel definition */
 50enum {
@@ -1086,7 +1106,7 @@ sbuf里的内容
 70};
 </pre>
 
-<h3 id="toc_8.2.3">SMSG type</h3>
+<h3 id="toc_9.2.3">SMSG type</h3>
 <pre>
 72/* smsg type definition */
 73enum {
@@ -1108,9 +1128,9 @@ sbuf里的内容
 </pre>
 
 <hr />
-<h1 id="toc_9">FB</h1>
-<h2 id="toc_9.1">全局变量</h2>
-<h3 id="toc_9.1.1">registered_fb</h3>
+<h1 id="toc_10">FB</h1>
+<h2 id="toc_10.1">全局变量</h2>
+<h3 id="toc_10.1.1">registered_fb</h3>
 <pre>
 registered_fb[0].fix.smem_start is the address for framebuffer.
 It's phycial address, should transform to virtual address.

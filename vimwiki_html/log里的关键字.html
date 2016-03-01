@@ -7,10 +7,25 @@
 </head>
 <body>
 
+<h1>目录</h1>
+<div class="toc">
 <ul>
-<li>
-上层
+<li><a href="#toc_0.0.1">log关键字</a>
+<ul>
+<li><a href="#toc_0.0.1.1">上层</a>
+<li><a href="#toc_0.0.1.2">kernel</a>
+</ul>
+<li><a href="#toc_0.0.2">编译时间</a>
+<li><a href="#toc_0.0.3">亮灭屏</a>
+<li><a href="#toc_0.0.4">GPU绘制</a>
+<li><a href="#toc_0.0.5">kernel/main log时间对应</a>
+</ul>
+</ul>
+</ul>
+</div>
 
+<h3 id="toc_0.0.1">log关键字</h3>
+<h4 id="toc_0.0.1.1">上层</h4>
 <ol>
 <li>
 SLOG
@@ -28,12 +43,8 @@ MODEMD
 ENGPC
 
 </ol>
-</ul>
 
-<ul>
-<li>
-kernel
-
+<h4 id="toc_0.0.1.2">kernel</h4>
 <ol>
 <li>
 DFS
@@ -54,12 +65,8 @@ DFS请求：
 </pre>
 
 </ol>
-</ul>
 
-<ul>
-<li>
-编译时间
-
+<h3 id="toc_0.0.2">编译时间</h3>
 <ul>
 <li>
 kernel
@@ -74,12 +81,8 @@ ro.build.date=Fri Nov 13 05:32:43 CST 2015
 </pre>
 
 </ul>
-</ul>
 
-<ul>
-<li>
-亮灭屏
-
+<h3 id="toc_0.0.3">亮灭屏</h3>
 <ul>
 <li>
 灭屏
@@ -101,11 +104,8 @@ ro.build.date=Fri Nov 13 05:32:43 CST 2015
 </pre>
 
 </ul>
-</ul>
 
-<ul>
-<li>
-GPU绘制
+<h3 id="toc_0.0.4">GPU绘制</h3>
 <pre>
 setprop debug.egl.trace 1
 stop
@@ -115,7 +115,17 @@ start
 adb logcat -v threadtime | grep glDraw | tee log.txt
 </pre>
 
-</ul>
+<h3 id="toc_0.0.5">kernel/main log时间对应</h3>
+<pre>
+1. alarm
+	alarm set by
+2. watchdog
+	!@Sync
+3. suspend
+	PM: suspend
+	suspend: exit suspend
+	request_suspend_state:
+</pre>
 
 </body>
 </html>
