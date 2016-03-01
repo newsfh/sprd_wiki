@@ -2020,3 +2020,8 @@ lsof显示所有进程打开的文件
 #define FACTORYTEST_MODE 0x77665513
 }}}
 
+=== init.rc解析 ===  
+{{{
+	http://blog.csdn.net/flydream0/article/details/7458332
+}}}
+
