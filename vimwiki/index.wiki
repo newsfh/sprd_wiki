@@ -29,6 +29,7 @@
 [[学习笔记 － bus monitor]]</BR>
 [[学习笔记 － 7s reset]]</BR>
 [[学习笔记 － DDR]]</BR>
+[[学习笔记 － EMMC]]</BR>
 [[学习笔记 － thermal]]</BR>
 [[学习笔记 － MUIC & SUB PMIC]]</BR>
 [[学习笔记 － FGU]]<BR>

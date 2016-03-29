@@ -1,0 +1,50 @@
+%toc 目录
+
+----
+=== 杂 ===
+==== 类型 ====
+{{{
+sdhci0: t卡
+sdhci1: wifi
+sdhci2: 缺省
+sdhci3: emmc
+}}}
+
+==== u-boot read/write EMMC ====
+{{{
+u-boot里读写EMMC：
+int do_fs_file_read(char *mpart, char *filenm, void *buf, int len)
+
+int do_raw_data_write(char *part, u32 updsz, u32 size, u32 off, char *buf)
+int do_raw_data_read(char *part, u32 size, u32 off, char *buf)
+// part：分区名
+// updsz：total size
+// size：write/read size
+// off：offset
+// buf：write/read buffer
+}}}
+
+==== 设置频率 ====
+{{{
+dts:
+sdio3: sdio@20600000{
+	...
+	clocks = <&clk_emmc>, <&clk_384m>;
+	base_clk = <384000000>;
+	...
+}
+这两个clock之间的关系：
+clocks的时钟频率来自于clock_plan
+div=base_clk/48
+dst_clk=clocks/div=clocks/base_clk*48
+所以，这里的emmc频率为48M
+
+如何验证：
+用cat /d/clk/clk_summary，查到clk_emmc频率
+	clk_emmc                 1           1            384000000
+再看0x2060002c（EMMC）值，bit8-15为div值，计算方式为(n+1)*2
+	shell@scx35l_sharkls_j3lte:/d/clk # lookat 0x2060002c                          
+	0x080c0307
+所以，这里的频率为384/8=48M
+}}}
+

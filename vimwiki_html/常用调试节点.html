@@ -52,6 +52,7 @@
 <li><a href="#toc_0.0.7.1">/sys/class/backlight/sprd_backlight/</a>
 <li><a href="#toc_0.0.7.2">/sys/class/thermal/thermal_zone1</a>
 <li><a href="#toc_0.0.7.3">/sys/class/rtc/rtc0/wakealarm</a>
+<li><a href="#toc_0.0.7.4">/sys/devices/70100000.uart/uart_conf</a>
 </ul>
 <li><a href="#toc_0.0.8">资料</a>
 </ul>
@@ -287,6 +288,13 @@ cat utilization_gp/utilization_gp_pp/utilization_pp 查看GPU当前的负载
 rtc的文件节点，开启一个20s的定时器
 echo 0 &gt; /sys/class/rtc/rtc0/wakealarm
 echo +20 &gt; /sys/class/rtc/rtc0/wakealarm
+</pre>
+<h4 id="toc_0.0.7.4">/sys/devices/70100000.uart/uart_conf</h4>
+<pre>
+uart信息
+1: 打印uart配置
+2: enable uart的打印
+3: disable uart的打印
 </pre>
 
 <hr />

@@ -211,6 +211,13 @@ rtc的文件节点，开启一个20s的定时器
 echo 0 > /sys/class/rtc/rtc0/wakealarm
 echo +20 > /sys/class/rtc/rtc0/wakealarm
 }}}
+==== /sys/devices/70100000.uart/uart_conf ====
+{{{
+uart信息
+1: 打印uart配置
+2: enable uart的打印
+3: disable uart的打印
+}}}
 
 ----
 === 资料 ===

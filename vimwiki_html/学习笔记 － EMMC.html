@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>学习笔记 － EMMC</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">杂</a>
+<ul>
+<li><a href="#toc_0.0.1.1">类型</a>
+<li><a href="#toc_0.0.1.2">u-boot read/write EMMC</a>
+<li><a href="#toc_0.0.1.3">设置频率</a>
+</ul>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">杂</h3>
+<h4 id="toc_0.0.1.1">类型</h4>
+<pre>
+sdhci0: t卡
+sdhci1: wifi
+sdhci2: 缺省
+sdhci3: emmc
+</pre>
+
+<h4 id="toc_0.0.1.2">u-boot read/write EMMC</h4>
+<pre>
+u-boot里读写EMMC：
+int do_fs_file_read(char *mpart, char *filenm, void *buf, int len)
+
+int do_raw_data_write(char *part, u32 updsz, u32 size, u32 off, char *buf)
+int do_raw_data_read(char *part, u32 size, u32 off, char *buf)
+// part：分区名
+// updsz：total size
+// size：write/read size
+// off：offset
+// buf：write/read buffer
+</pre>
+
+<h4 id="toc_0.0.1.3">设置频率</h4>
+<pre>
+dts:
+sdio3: sdio@20600000{
+	...
+	clocks = &lt;&amp;clk_emmc&gt;, &lt;&amp;clk_384m&gt;;
+	base_clk = &lt;384000000&gt;;
+	...
+}
+这两个clock之间的关系：
+clocks的时钟频率来自于clock_plan
+div=base_clk/48
+dst_clk=clocks/div=clocks/base_clk*48
+所以，这里的emmc频率为48M
+
+如何验证：
+用cat /d/clk/clk_summary，查到clk_emmc频率
+	clk_emmc                 1           1            384000000
+再看0x2060002c（EMMC）值，bit8-15为div值，计算方式为(n+1)*2
+	shell@scx35l_sharkls_j3lte:/d/clk # lookat 0x2060002c                          
+	0x080c0307
+所以，这里的频率为384/8=48M
+</pre>
+
+</body>
+</html>

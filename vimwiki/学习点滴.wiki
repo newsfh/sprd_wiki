@@ -2025,3 +2025,8 @@ lsof显示所有进程打开的文件
 	http://blog.csdn.net/flydream0/article/details/7458332
 }}}
 
+=== input消息处理文件 ===
+{{{
+frameworks/native/services/inputflinger
+}}}
+
