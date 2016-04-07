@@ -41,7 +41,7 @@
 
 <h4 id="toc_0.0.1.2">Measure LDO</h4>
 <pre>
-DCDCCORE, DCDCMEM, DCDCGEN, VDD18, VDD28
+DCDCCORE, DCDCARM, DCDCMEM, DCDCGEN, VDD18, VDD28
 </pre>
 
 <hr />
@@ -122,6 +122,7 @@ memory info for each process
 <li>
 Prepare Mode
 <pre>
+1.
 d.dump edap:0x80030084    check PC on core0
 edap:0x80032084           core1
 edap:0x80034084           core2
@@ -138,6 +139,10 @@ check which stage it is running now.
 check whether pc is moving or not.
 if stopping, maybe bus locks up
 if moving, maybe DDR issue
+
+2.
+d.dump eahb:0x300003fc
+check whether DDR port is busy, if some port is always 1, it means that the port is blocked
 </pre>
 
 </ul>
