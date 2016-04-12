@@ -1,0 +1,17 @@
+set line /dev/ttyUSB0        #配置dbug串口
+set speed 115200            #配置dbug uart速率
+set carrier-watch off         #
+set handshake none 
+set flow-control none      # 配置硬件流控  
+robust
+set file type bin 
+set file name lit 
+set rec pack 1000
+set send pack 10000
+set windows 5
+set protocol xmodem 
+set protocol zmodem
+set session-log TIMESTAMPED-TEXT # 配置log重定向格式 
+log session                    #将log写入文件session中，此文件位于~/session
+connect                          #自动链接串口，如果不写这条命令，需在进入ckermit 命令行后输入 c 或 connect
+

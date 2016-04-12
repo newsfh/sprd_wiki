@@ -13,6 +13,13 @@ putty启动
 配置参数
 }}}
 # minicom
+# kermit
+{{{
+sudo apt-get install ckermit
+vi .kermrc
+sudo kermit
+}}}
+
 === 注意事项 ===
 {{{
 stop slog
@@ -27,3 +34,5 @@ stop slog used for kernel log only output to screen, no need to send to slog, th
 
 === 附件 ===
 [[local:files/gcom|gcom]]</BR>
+[[local:files/.kermrc|.kermrc]]</BR>
+
