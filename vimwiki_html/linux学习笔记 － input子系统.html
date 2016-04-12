@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>linux学习笔记 － input子系统</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<h1>目录</h1>
+<div class="toc">
+<ul>
+<li><a href="#toc_0.0.1">数据结构</a>
+<li><a href="#toc_0.0.2">全局变量</a>
+<ul>
+<li><a href="#toc_0.0.2.1">input_dev_list</a>
+<li><a href="#toc_0.0.2.2">input_handle_list</a>
+</ul>
+<li><a href="#toc_0.0.3">调试</a>
+<ul>
+<li><a href="#toc_0.0.3.1">getevent</a>
+<li><a href="#toc_0.0.3.2">cmm脚本</a>
+</ul>
+<li><a href="#toc_0.0.4">使用方法</a>
+<ul>
+<li><a href="#toc_0.0.4.1">创建</a>
+<li><a href="#toc_0.0.4.2">发消息</a>
+</ul>
+<li><a href="#toc_0.0.5">相关文件</a>
+</ul>
+</ul>
+</ul>
+</div>
+
+<hr />
+<h3 id="toc_0.0.1">数据结构</h3>
+<pre>
+struct input_dev {
+	const char *name;
+	const char *phys;
+	const char *uniq;
+	struct input_id id;
+
+	unsigned long propbit[BITS_TO_LONGS(INPUT_PROP_CNT)];
+
+	unsigned long evbit[BITS_TO_LONGS(EV_CNT)];
+	unsigned long keybit[BITS_TO_LONGS(KEY_CNT)];
+	unsigned long relbit[BITS_TO_LONGS(REL_CNT)];
+	unsigned long absbit[BITS_TO_LONGS(ABS_CNT)];
+	unsigned long mscbit[BITS_TO_LONGS(MSC_CNT)];
+	unsigned long ledbit[BITS_TO_LONGS(LED_CNT)];
+	unsigned long sndbit[BITS_TO_LONGS(SND_CNT)];
+	unsigned long ffbit[BITS_TO_LONGS(FF_CNT)];
+	unsigned long swbit[BITS_TO_LONGS(SW_CNT)];
+
+	unsigned int hint_events_per_packet;
+
+	unsigned int keycodemax;
+	unsigned int keycodesize;
+	void *keycode;
+
+	int (*setkeycode)(struct input_dev *dev,
+			  const struct input_keymap_entry *ke,
+			  unsigned int *old_keycode);
+	int (*getkeycode)(struct input_dev *dev,
+			  struct input_keymap_entry *ke);
+
+	struct ff_device *ff;
+
+	unsigned int repeat_key;
+	struct timer_list timer;
+
+	int rep[REP_CNT];
+
+	struct input_mt *mt;
+
+	struct input_absinfo *absinfo;
+
+	unsigned long key[BITS_TO_LONGS(KEY_CNT)];
+	unsigned long led[BITS_TO_LONGS(LED_CNT)];
+	unsigned long snd[BITS_TO_LONGS(SND_CNT)];
+	unsigned long sw[BITS_TO_LONGS(SW_CNT)];
+
+	int (*open)(struct input_dev *dev);
+	void (*close)(struct input_dev *dev);
+	int (*flush)(struct input_dev *dev, struct file *file);
+	int (*event)(struct input_dev *dev, unsigned int type, unsigned int code, int value);
+
+	struct input_handle __rcu *grab;
+
+	spinlock_t event_lock;
+	struct mutex mutex;
+
+	unsigned int users;
+	bool going_away;
+
+	struct device dev;
+
+	struct list_head	h_list;                                // input_handle_list用的node
+	struct list_head	node;                                  // input_dev_list用的node
+
+	unsigned int num_vals;                                     // 当前个数，看是否有消息发送
+	unsigned int max_vals;                                     // 最大个数
+	struct input_value *vals;                                  // 发送的值,可以看里面是什么键值
+
+	bool devres_managed;
+};
+</pre>
+
+<hr />
+<h3 id="toc_0.0.2">全局变量</h3>
+<h4 id="toc_0.0.2.1">input_dev_list</h4>
+<pre>
+所有input dev的链表，其用的是input_dev-&gt;node来串联起来的
+</pre>
+
+<h4 id="toc_0.0.2.2">input_handle_list</h4>
+<pre>
+</pre>
+
+<hr />
+<h3 id="toc_0.0.3">调试</h3>
+<h4 id="toc_0.0.3.1">getevent</h4>
+<pre>
+getevent -lt /dev/input/event1
+</pre>
+
+<h4 id="toc_0.0.3.2">cmm脚本</h4>
+<pre>
+列举所有input设备
+</pre>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/enum_input_dev.cmm">enum_input_dev.cmm</a></BR>
+</p>
+
+<hr />
+<h3 id="toc_0.0.4">使用方法</h3>
+<h4 id="toc_0.0.4.1">创建</h4>
+<pre>
+struct input_dev *input_dev;
+input_dev = input_allocate_device();
+
+input_dev-&gt;name = "sci-keypad";
+input_dev-&gt;phys = "sci-key/input0";
+input_dev-&gt;dev.parent = &amp;pdev-&gt;dev;
+input_set_drvdata(input_dev, sci_kpd);
+input_dev-&gt;id.bustype = BUS_HOST;
+input_dev-&gt;id.vendor = 0x0001;
+input_dev-&gt;id.product = 0x0001;
+input_dev-&gt;id.version = 0x0100;
+input_dev-&gt;keycode = &amp;sci_kpd[1];
+input_dev-&gt;keycodesize = sizeof(unsigned short);
+input_dev-&gt;keycodemax = keycodemax;
+
+__set_bit(KEY_POWER, input_dev-&gt;keybit);
+__set_bit(EV_KEY, input_dev-&gt;evbit);
+
+input_register_device(input_dev);
+......
+</pre>
+
+<h4 id="toc_0.0.4.2">发消息</h4>
+<pre>
+input_report_key(sci_kpd-&gt;input_dev, key, 1);
+input_sync(sci_kpd-&gt;input_dev);
+</pre>
+
+<hr />
+<h3 id="toc_0.0.5">相关文件</h3>
+<pre>
+kernel/include/linux/input.h                                   // input接口定义
+kernel/include/uapi/linux/input.h                              // 键盘键值等枚举值定义
+</pre>
+
+</body>
+</html>

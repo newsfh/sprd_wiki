@@ -1,0 +1,140 @@
+%toc 目录
+
+----
+=== 数据结构 ===
+{{{
+struct input_dev {
+	const char *name;
+	const char *phys;
+	const char *uniq;
+	struct input_id id;
+
+	unsigned long propbit[BITS_TO_LONGS(INPUT_PROP_CNT)];
+
+	unsigned long evbit[BITS_TO_LONGS(EV_CNT)];
+	unsigned long keybit[BITS_TO_LONGS(KEY_CNT)];
+	unsigned long relbit[BITS_TO_LONGS(REL_CNT)];
+	unsigned long absbit[BITS_TO_LONGS(ABS_CNT)];
+	unsigned long mscbit[BITS_TO_LONGS(MSC_CNT)];
+	unsigned long ledbit[BITS_TO_LONGS(LED_CNT)];
+	unsigned long sndbit[BITS_TO_LONGS(SND_CNT)];
+	unsigned long ffbit[BITS_TO_LONGS(FF_CNT)];
+	unsigned long swbit[BITS_TO_LONGS(SW_CNT)];
+
+	unsigned int hint_events_per_packet;
+
+	unsigned int keycodemax;
+	unsigned int keycodesize;
+	void *keycode;
+
+	int (*setkeycode)(struct input_dev *dev,
+			  const struct input_keymap_entry *ke,
+			  unsigned int *old_keycode);
+	int (*getkeycode)(struct input_dev *dev,
+			  struct input_keymap_entry *ke);
+
+	struct ff_device *ff;
+
+	unsigned int repeat_key;
+	struct timer_list timer;
+
+	int rep[REP_CNT];
+
+	struct input_mt *mt;
+
+	struct input_absinfo *absinfo;
+
+	unsigned long key[BITS_TO_LONGS(KEY_CNT)];
+	unsigned long led[BITS_TO_LONGS(LED_CNT)];
+	unsigned long snd[BITS_TO_LONGS(SND_CNT)];
+	unsigned long sw[BITS_TO_LONGS(SW_CNT)];
+
+	int (*open)(struct input_dev *dev);
+	void (*close)(struct input_dev *dev);
+	int (*flush)(struct input_dev *dev, struct file *file);
+	int (*event)(struct input_dev *dev, unsigned int type, unsigned int code, int value);
+
+	struct input_handle __rcu *grab;
+
+	spinlock_t event_lock;
+	struct mutex mutex;
+
+	unsigned int users;
+	bool going_away;
+
+	struct device dev;
+
+	struct list_head	h_list;                                // input_handle_list用的node
+	struct list_head	node;                                  // input_dev_list用的node
+
+	unsigned int num_vals;                                     // 当前个数，看是否有消息发送
+	unsigned int max_vals;                                     // 最大个数
+	struct input_value *vals;                                  // 发送的值,可以看里面是什么键值
+
+	bool devres_managed;
+};
+}}}
+
+----
+=== 全局变量 ===
+==== input_dev_list ====
+{{{
+所有input dev的链表，其用的是input_dev->node来串联起来的
+}}}
+
+==== input_handle_list ====
+{{{
+}}}
+
+----
+=== 调试 ===
+==== getevent ====
+{{{
+getevent -lt /dev/input/event1
+}}}
+
+==== cmm脚本 ====
+{{{
+列举所有input设备
+}}}
+[[local:files/enum_input_dev.cmm|enum_input_dev.cmm]]</BR>
+
+----
+=== 使用方法 ===
+==== 创建 ====
+{{{
+struct input_dev *input_dev;
+input_dev = input_allocate_device();
+
+input_dev->name = "sci-keypad";
+input_dev->phys = "sci-key/input0";
+input_dev->dev.parent = &pdev->dev;
+input_set_drvdata(input_dev, sci_kpd);
+input_dev->id.bustype = BUS_HOST;
+input_dev->id.vendor = 0x0001;
+input_dev->id.product = 0x0001;
+input_dev->id.version = 0x0100;
+input_dev->keycode = &sci_kpd[1];
+input_dev->keycodesize = sizeof(unsigned short);
+input_dev->keycodemax = keycodemax;
+
+__set_bit(KEY_POWER, input_dev->keybit);
+__set_bit(EV_KEY, input_dev->evbit);
+
+input_register_device(input_dev);
+......
+}}}
+
+==== 发消息 ====
+{{{
+input_report_key(sci_kpd->input_dev, key, 1);
+input_sync(sci_kpd->input_dev);
+}}}
+
+----
+=== 相关文件 ===
+{{{
+kernel/include/linux/input.h                                   // input接口定义
+kernel/include/uapi/linux/input.h                              // 键盘键值等枚举值定义
+}}}
+

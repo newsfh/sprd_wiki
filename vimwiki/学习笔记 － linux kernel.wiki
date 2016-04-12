@@ -3,6 +3,7 @@
 [[linux学习笔记 － 内存管理]]</BR>
 [[linux学习笔记 － 时钟管理]]</BR>
 [[linux学习笔记 － 中断系统]]</BR>
+[[linux学习笔记 － input子系统]]</BR>
 [[linux学习笔记 － 同步机制]]</BR>
 [[linux学习笔记 － governor]]</BR>
 [[linux学习笔记 － 系统调用]]<BR>

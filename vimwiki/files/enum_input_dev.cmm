@@ -1,0 +1,46 @@
+        WINCLEAR INFOS  
+        AREA.CREATE INFOS 80. 1000.
+        WinPOS 0,0,,,,, INFOS  
+        AREA.VIEW INFOS  
+        AREA.CLEAR INFOS  
+        AREA.SELECT INFOS  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; TRAVERSE_TASK		--  遍历所有task
+; PrintTaskInfo		--  在遍历task过程，打印task里的信息
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+&LIST_OFFSET=v.value(&((struct input_dev*)0)->node)
+&LIST_HEAD=v.value(&input_dev_list)
+
+&i=0
+GOSUB TRAVERSE_LIST
+print "OK"
+enddo
+
+TRAVERSE_LIST:
+	&list_cur=v.value(((struct list_head*)&LIST_HEAD)->next)
+
+	while &list_cur!=&LIST_HEAD&&&list_cur!=0&&&list_cur!=0xffffffff&&&i<10000.
+	(
+		&i=&i+1.
+
+		GOSUB PRINT_DEVICE &list_cur
+
+		&list_cur=v.value(((struct list_head*)&list_cur)->next)
+	)
+
+	print "====================="
+	print &list_cur
+
+	RETURN
+; END TRAVERSE_LIST
+
+PRINT_DEVICE:
+	ENTRY &list_cur
+	
+	&input_dev=(&list_cur-&LIST_OFFSET)
+
+	print &i " : " &input_dev " : " v.string(((struct input_dev*)&input_dev)->name)
+	RETURN
+; END PRINT_DEVICE
