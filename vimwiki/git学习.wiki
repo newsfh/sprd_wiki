@@ -142,6 +142,11 @@ git config --global core.quotepath false
 git revert c011eb3c20ba6fb38cc94fe5a8dda366a3990c61
 }}}
 
+* 修改默认编辑器
+{{{
+git config --global core.editor vi
+}}}
+
 ----
 == 遇到的问题 ==
 * repo sync
