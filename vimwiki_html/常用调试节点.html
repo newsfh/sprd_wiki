@@ -39,22 +39,28 @@
 <li><a href="#toc_0.0.4.4">/proc/slabinfo</a>
 <li><a href="#toc_0.0.4.5">/dev/block/platform/sdio_emmc</a>
 </ul>
-<li><a href="#toc_0.0.5">gpu</a>
-<li><a href="#toc_0.0.6">sprd_debug</a>
+<li><a href="#toc_0.0.5">power</a>
 <ul>
-<li><a href="#toc_0.0.6.1">/d/sprd_debug/cpu/cpu_usage</a>
-<li><a href="#toc_0.0.6.2">/d/sprd_debug/io/last_regs</a>
-<li><a href="#toc_0.0.6.3">/d/sprd_debug/irq/irqlog</a>
-<li><a href="#toc_0.0.6.4">/d/sprd_debug/sche/schedlog</a>
+<li><a href="#toc_0.0.5.1">/sys/power/wake_lock</a>
+<li><a href="#toc_0.0.5.2">/sys/power/wake_unlock</a>
+<li><a href="#toc_0.0.5.3">/proc/wakelocks</a>
 </ul>
-<li><a href="#toc_0.0.7">other</a>
+<li><a href="#toc_0.0.6">gpu</a>
+<li><a href="#toc_0.0.7">sprd_debug</a>
 <ul>
-<li><a href="#toc_0.0.7.1">/sys/class/backlight/sprd_backlight/</a>
-<li><a href="#toc_0.0.7.2">/sys/class/thermal/thermal_zone1</a>
-<li><a href="#toc_0.0.7.3">/sys/class/rtc/rtc0/wakealarm</a>
-<li><a href="#toc_0.0.7.4">/sys/devices/70100000.uart/uart_conf</a>
+<li><a href="#toc_0.0.7.1">/d/sprd_debug/cpu/cpu_usage</a>
+<li><a href="#toc_0.0.7.2">/d/sprd_debug/io/last_regs</a>
+<li><a href="#toc_0.0.7.3">/d/sprd_debug/irq/irqlog</a>
+<li><a href="#toc_0.0.7.4">/d/sprd_debug/sche/schedlog</a>
 </ul>
-<li><a href="#toc_0.0.8">资料</a>
+<li><a href="#toc_0.0.8">other</a>
+<ul>
+<li><a href="#toc_0.0.8.1">/sys/class/backlight/sprd_backlight/</a>
+<li><a href="#toc_0.0.8.2">/sys/class/thermal/thermal_zone1</a>
+<li><a href="#toc_0.0.8.3">/sys/class/rtc/rtc0/wakealarm</a>
+<li><a href="#toc_0.0.8.4">/sys/devices/70100000.uart/uart_conf</a>
+</ul>
+<li><a href="#toc_0.0.9">资料</a>
 </ul>
 </ul>
 </ul>
@@ -183,7 +189,16 @@ echo "c" &gt; /proc/sysrq-trigger		模拟panic
 <h4 id="toc_0.0.4.5">/dev/block/platform/sdio_emmc</h4>
 
 <hr />
-<h3 id="toc_0.0.5">gpu</h3>
+<h3 id="toc_0.0.5">power</h3>
+<h4 id="toc_0.0.5.1">/sys/power/wake_lock</h4>
+<h4 id="toc_0.0.5.2">/sys/power/wake_unlock</h4>
+<h4 id="toc_0.0.5.3">/proc/wakelocks</h4>
+<pre>
+所有wake_lock锁
+</pre>
+
+<hr />
+<h3 id="toc_0.0.6">gpu</h3>
 <ul>
 <li>
 Android4.4 / Android5.1--Utgard
@@ -273,23 +288,23 @@ cat utilization_gp/utilization_gp_pp/utilization_pp 查看GPU当前的负载
 </ul>
 
 <hr />
-<h3 id="toc_0.0.6">sprd_debug</h3>
-<h4 id="toc_0.0.6.1">/d/sprd_debug/cpu/cpu_usage</h4>
-<h4 id="toc_0.0.6.2">/d/sprd_debug/io/last_regs</h4>
-<h4 id="toc_0.0.6.3">/d/sprd_debug/irq/irqlog</h4>
-<h4 id="toc_0.0.6.4">/d/sprd_debug/sche/schedlog</h4>
+<h3 id="toc_0.0.7">sprd_debug</h3>
+<h4 id="toc_0.0.7.1">/d/sprd_debug/cpu/cpu_usage</h4>
+<h4 id="toc_0.0.7.2">/d/sprd_debug/io/last_regs</h4>
+<h4 id="toc_0.0.7.3">/d/sprd_debug/irq/irqlog</h4>
+<h4 id="toc_0.0.7.4">/d/sprd_debug/sche/schedlog</h4>
 
 <hr />
-<h3 id="toc_0.0.7">other</h3>
-<h4 id="toc_0.0.7.1">/sys/class/backlight/sprd_backlight/</h4>
-<h4 id="toc_0.0.7.2">/sys/class/thermal/thermal_zone1</h4>
-<h4 id="toc_0.0.7.3">/sys/class/rtc/rtc0/wakealarm</h4>
+<h3 id="toc_0.0.8">other</h3>
+<h4 id="toc_0.0.8.1">/sys/class/backlight/sprd_backlight/</h4>
+<h4 id="toc_0.0.8.2">/sys/class/thermal/thermal_zone1</h4>
+<h4 id="toc_0.0.8.3">/sys/class/rtc/rtc0/wakealarm</h4>
 <pre>
 rtc的文件节点，开启一个20s的定时器
 echo 0 &gt; /sys/class/rtc/rtc0/wakealarm
 echo +20 &gt; /sys/class/rtc/rtc0/wakealarm
 </pre>
-<h4 id="toc_0.0.7.4">/sys/devices/70100000.uart/uart_conf</h4>
+<h4 id="toc_0.0.8.4">/sys/devices/70100000.uart/uart_conf</h4>
 <pre>
 uart信息
 1: 打印uart配置
@@ -298,7 +313,7 @@ uart信息
 </pre>
 
 <hr />
-<h3 id="toc_0.0.8">资料</h3>
+<h3 id="toc_0.0.9">资料</h3>
 <p>
 <a href="http://blog.csdn.net/adaptiver/article/details/6891666">proc下文件(buddyinfo/vmallocinfo...)</a><BR>
 <a href="http://bbs.chinaunix.net/thread-2002769-1-1.html">proc文件系统详解</a><BR>

@@ -123,6 +123,15 @@ echo "c" > /proc/sysrq-trigger		模拟panic
 ==== /dev/block/platform/sdio_emmc ====
 
 ----
+=== power ===
+==== /sys/power/wake_lock ====
+==== /sys/power/wake_unlock ====
+==== /proc/wakelocks ====
+{{{
+所有wake_lock锁
+}}}
+
+----
 === gpu ===
 * Android4.4 / Android5.1--Utgard
 {{{

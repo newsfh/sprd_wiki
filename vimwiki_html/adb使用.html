@@ -14,6 +14,7 @@
 <li><a href="#toc_0.2">adb logcat</a>
 <li><a href="#toc_0.3">adb kernel log</a>
 <li><a href="#toc_0.4">adb install</a>
+<li><a href="#toc_0.5">安装</a>
 </ul>
 </ul>
 </div>
@@ -76,6 +77,16 @@
 <h2 id="toc_0.4">adb install</h2>
 <pre>
 1. sudo adb install /home/D-disk/haiwu/software/com.glbenchmark.glbenchmark25-1.apk
+</pre>
+
+<h2 id="toc_0.5">安装</h2>
+<pre>
+工具链下载 ： sudo apt-get install android-tools-adb
+
+如果adb无法识别：
+lsusb找到机器所对应的id，如
+Bus 001 Device 008: ID 1782:5d24 Spreadtrum Communications Inc.
+在.android目录里，如果有adb_usb.ini，则在它里面新建一项，将0x1782加进去，否则新建文件
 </pre>
 
 <ul>
