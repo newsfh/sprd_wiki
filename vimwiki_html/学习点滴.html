@@ -2053,5 +2053,27 @@ lsof显示所有进程打开的文件
 frameworks/native/services/inputflinger
 </pre>
 
+<h3 id="toc_0.0.156">把uart切给CP出log</h3>
+<pre>
+Cp改动：
+NV_REF_PARAMETER_下面的 com_debug
+改成 0x0 CP从uart0输出log
+波特率可以改NV 的 com_debug_band_rate 改成2000000
+ 
+ 
+ap改动：ap需要根据具体的项目来确定改法
+ 
+--- a/board/spreadtrum/sharkls_j3lte/pinmap_hw00.h
++++ b/board/spreadtrum/sharkls_j3lte/pinmap_hw00.h
+@@ -17,7 +17,7 @@
+static pinmap_t pinmap_hw00[]={
+{REG_PIN_CTRL0,0x08000000},
+{REG_PIN_CTRL1,0x0},
+-{REG_PIN_CTRL2,0x002ad000}, // uart0-&gt;bt'uart;  uart1-&gt;ap'uart0; uart2-&gt;cp1'uart1(lte dsp uart); uart3-&gt;arm7'uart0; uart4-&gt;cp0 uart1(td dsp uart),
++{REG_PIN_CTRL2,0x00285480}, // uart0-&gt;bt'uart;  uart1-&gt;ap'uart0; uart2-&gt;cp1'uart1(lte dsp uart); uart3-&gt;arm7'uart0; uart4-&gt;cp0 uart1(td dsp uart),
+ 
+寄存器0x402a008 的值      改成 0x285480 修改pinmap映射到uart0
+</pre>
+
 </body>
 </html>
