@@ -16,7 +16,11 @@
 <li><a href="#toc_0.0.1.2">control sys node</a>
 <li><a href="#toc_0.0.1.3">hotplug stage</a>
 </ul>
-<li><a href="#toc_0.0.2">附件</a>
+<li><a href="#toc_0.0.2">governor</a>
+<ul>
+<li><a href="#toc_0.0.2.1">governor延时</a>
+</ul>
+<li><a href="#toc_0.0.3">附件</a>
 </ul>
 </ul>
 </ul>
@@ -68,7 +72,27 @@ B.      cpu_down() -&gt; cpu_maps_update_begin() -- Hold Mutex "cpu_add_remove_l
 </pre>
 
 <hr />
-<h3 id="toc_0.0.2">附件</h3>
+<h3 id="toc_0.0.2">governor</h3>
+<h4 id="toc_0.0.2.1">governor延时</h4>
+<pre>
+kernel/drivers/platform/sprd/cpufreq-scx35.c
+
+boot_done全局变量用于延时，大此之前，governor不起作用
+它的值为#define DVFS_BOOT_TIME  (30 * HZ)，即sharkls上为30s
+
+static int sprd_cpufreq_target(struct cpufreq_policy *policy,
+	unsigned int target_freq,
+	unsigned int relation)
+{
+	if(time_before(jiffies, boot_done)){
+		return 0;
+	}
+	....
+}
+</pre>
+
+<hr />
+<h3 id="toc_0.0.3">附件</h3>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/dvfs.ppt">dvfs.ppt</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/Spreadtrum_Power_Management_SharkL.docx">Spreadtrum_Power_Management_SharkL.docx</a></BR>
