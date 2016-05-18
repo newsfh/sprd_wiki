@@ -377,3 +377,18 @@ Android中的system.img可能有是yaffs2或者ext的文件系统。
 }}}
 [[local:files/make_system_tool.tar.gz|make_system_tool.tar.gz]]</BR>
 
+----
+=== 替换art库 ===
+{{{
+把别家平台的art部分拿过来，替换展讯的库，看看效果。
+ 
+需要替换的内容有：
+system/lib/libart-compiler.so
+system/lib/libart-disassembler.so
+system/lib/libart.so
+system/bin/dex2oat
+ 
+$ adb shell 
+# rm -r /data/dalvik-cache/
+# reboot
+}}}

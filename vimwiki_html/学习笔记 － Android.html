@@ -13,6 +13,7 @@
 <li><a href="#toc_0.0.1">加载Android hw so库</a>
 <li><a href="#toc_0.0.2">coredump</a>
 <li><a href="#toc_0.0.3">system.img解压和打包</a>
+<li><a href="#toc_0.0.4">替换art库</a>
 </ul>
 </ul>
 </ul>
@@ -416,6 +417,22 @@ ext4 文件系统
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/make_system_tool.tar.gz">make_system_tool.tar.gz</a></BR>
 </p>
+
+<hr />
+<h3 id="toc_0.0.4">替换art库</h3>
+<pre>
+把别家平台的art部分拿过来，替换展讯的库，看看效果。
+ 
+需要替换的内容有：
+system/lib/libart-compiler.so
+system/lib/libart-disassembler.so
+system/lib/libart.so
+system/bin/dex2oat
+ 
+$ adb shell 
+# rm -r /data/dalvik-cache/
+# reboot
+</pre>
 
 </body>
 </html>
