@@ -15,6 +15,7 @@
 <li><a href="#toc_0.0.3">zImage的生成和加载</a>
 <li><a href="#toc_0.0.4">获取寄存器</a>
 <li><a href="#toc_0.0.5">linux内核中打印栈回溯信息 - dump_stack()函数分析</a>
+<li><a href="#toc_0.0.6">per_cpu</a>
 </ul>
 </ul>
 </ul>
@@ -51,6 +52,49 @@ static inline struct thread_info *current_thread_info(void)
 <h3 id="toc_0.0.5">linux内核中打印栈回溯信息 - dump_stack()函数分析</h3>
 <p>
 <a href="http://m.blog.csdn.net/blog/jasonchen_gbd/45585133">linux内核中打印栈回溯信息 - dump_stack()函数分析</a><BR>
+</p>
+
+<h3 id="toc_0.0.6">per_cpu</h3>
+<pre>
+per-cpu 变量的引入有效的解决了SMP系统中处理器对锁得竞争，每个cpu只需访问自己的本地变量。
+在系统编译阶段我们就手工的定义了一份所有的per-cpu变量，这些变量的定义是通过宏DEFINE_PER_CPU实现的：
+11 #define DEFINE_PER_CPU(type, name) \
+12 __attribute__((__section__(".data.percpu"))) __typeof__(type) per_cpu__##name
+从上面的代码我们可以看出，手工定义的所有per-cpu变量都是放在.data.percpu段的。
+注意上面的宏只是在SMP体系结构下才如此定义。如果不是SMP结构的计算机那么只是简单的把所有的per-cpu变量放到全局变量应该放到的地方。
+单CPU的per-cpu变量定义：
+27 #else /* ! SMP */
+28
+29 #define DEFINE_PER_CPU(type, name) \
+30 __typeof__(type) per_cpu__##name
+在了解了上述代码后，我们还必须弄清楚一点：单CPU的计算机中使用的per-cpu变量就是通过上述宏定义的放在全局数据区的per-cpu变量。
+而在SMP体系结构中，我们使用却不是放在.data.percpu段的变量，设想一下如果使用这个变量，那么应该哪个CPU使用呢？
+事实上，SMP下，每个cpu使用的都是在.data.percpu段中的这些per-cpu变量的副本，有几个cpu就创建几个这样的副本。
+在系统初始化期间，start_kernel()函数中调用setup_per_cpu_areas（）函数，用于为每个cpu的per-cpu变量副本分配空间，注意这时alloc内存分配器还没建立起来，该函数调用alloc_bootmem函数为初始化期间的这些变量副本分配物理空间。
+332 static void __init setup_per_cpu_areas(void)
+333 {
+334 unsigned long size, i;
+335 char *ptr;
+336
+337 /* Copy section for each CPU (we discard the original) */
+338 size = ALIGN(__per_cpu_end - __per_cpu_start, SMP_CACHE_BYTES);
+339 #ifdef CONFIG_MODULES
+340 if (size &lt; PERCPU_ENOUGH_ROOM)
+341 size = PERCPU_ENOUGH_ROOM;
+342 #endif
+343
+344 ptr = alloc_bootmem(size * NR_CPUS);
+345
+346 for (i = 0; i &lt; NR_CPUS; i++, ptr += size) {
+347 __per_cpu_offset[i] = ptr - __per_cpu_start;
+348 memcpy(ptr, __per_cpu_start, __per_cpu_end - __per_cpu_start);
+349 }
+350 }
+351 #endif /* !__GENERIC_PER_CPU */
+上述函数，在分配好每个cpu的per-cpu变量副本所占用的物理空间的同时，也对__per_cpu_offset[NR_CPUS]数组进行了初始化用于以后找到指定CPU的这些per-cpu变量副本。
+</pre>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/linux_kernel_misc_per_cpu.png" />
 </p>
 
 </body>

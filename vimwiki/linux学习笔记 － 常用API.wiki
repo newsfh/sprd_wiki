@@ -223,3 +223,9 @@ void __arm_iounmap(volatile void __iomem *io_addr)
 int remap_pfn_range(struct vm_area_struct *vma, unsigned long addr,
 unsigned long pfn, unsigned long size, pgprot_t prot);
 }}}
+
+----
+=== 进程指定到某CPU运行 ===
+{{{
+int sched_setaffinity (pid_t pid, size_t cpusetsize, const cpu_set_t *cpuset)
+}}}

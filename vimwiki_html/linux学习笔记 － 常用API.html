@@ -29,6 +29,7 @@
 <li><a href="#toc_0.0.4.4">基于DMA 分配</a>
 <li><a href="#toc_0.0.4.5">直接映射分配</a>
 </ul>
+<li><a href="#toc_0.0.5">进程指定到某CPU运行</a>
 </ul>
 </ul>
 </ul>
@@ -333,6 +334,12 @@ unsigned long pfn, unsigned long size, pgprot_t prot);
 </pre>
 
 </ul>
+
+<hr />
+<h3 id="toc_0.0.5">进程指定到某CPU运行</h3>
+<pre>
+int sched_setaffinity (pid_t pid, size_t cpusetsize, const cpu_set_t *cpuset)
+</pre>
 
 </body>
 </html>
