@@ -29,6 +29,7 @@
 <li><a href="#toc_0.0.4">debug</a>
 <ul>
 <li><a href="#toc_0.0.4.1">DDR不稳时可用的一些调试技巧</a>
+<li><a href="#toc_0.0.4.2">看DDR片选和size</a>
 </ul>
 <li><a href="#toc_0.0.5">附件</a>
 </ul>
@@ -276,6 +277,12 @@ DDR3：192MHZ(非TShark)/200MHZ/384MHZ(非TShark)/400MHZ/500MHZ/533MHZ/600MHZ(Sh
 1. 降频
 2、增压（dcdccore、dcdcmem）
 3、lowpower
+</pre>
+
+<h4 id="toc_0.0.4.2">看DDR片选和size</h4>
+<pre>
+lookat -l 3 0x1c00
+出来的值为片选数量，cs0的大小，cs1的大小(针对sharkls平台)
 </pre>
 
 <hr />
