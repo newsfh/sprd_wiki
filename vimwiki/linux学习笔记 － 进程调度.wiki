@@ -219,6 +219,139 @@ static struct worker *create_worker(struct worker_pool *pool)
 }
 }}}
 
+=== workqueue & tasklet ===
+==== 区分和使用中断顶半部与底半部的原因 ====
+* One of the main problems with interrupt handling is how to perform lengthy tasks within a handler. Often a substantial amount of work must be done in response to a device interrupt, but interrupt handlers need to finish up quickly and not keep interrupts blocked for long. These two needs (work and speed) conflict with each other, leaving the driver writer in a bit of a bind.
+* Linux (along with many other systems) resolves this problem by splitting the interrupt handler into two halves. The so-called top half is the routine that actually responds to the interrupt—the one you register with request_irq. The bottom half is a routine that is scheduled by the top half to be executed later, at a safer time. The big difference between the top-half handler and the bottom half is that all interrupts are enabled during execution of the bottom half—that’s why it runs at a safer time. In the typical scenario, the top half saves device data to a device-specific buffer, schedules its bottom half, and exits: this operation is very fast. The bottom half then performs whatever other work is required, such as awakening processes, starting up another I/O operation, and so on. This setup permits the top half to service a new interrupt while the bottom half is still working.
+* The Linux kernel has two different mechanisms that may be used to implement bottom-half processing. Tasklets are often the preferred mechanism for bottom-half processing; they are very fast, but all tasklet code must be atomic. The alternative to tasklets is workqueues, which may have a higher latency but that are allowed to sleep.
+
+==== tasklet机制 ====
+===== 原理 =====
+* 类似内核定时器 ，调度一个任务稍后执行。主要用于中断的底半部
+* Tasklet是一个数据结构, 它指导内核在稍后CPU空闲的时间（但不能指定确定时间），使用一个用户定义的参数，执行一个用户定义的函数
+* 由内核线程——软中断（ksoftirqd/0）调度执行。在tasklet内不能睡眠
+* 运行在调度它们的同一个 CPU 上
+
+===== tasklet使用的内核API =====
+* 头文件
+{{{
+include <linux/interrupt.h>
+}}}
+* 数据结构
+{{{
+struct tasklet_struct {
+    void (*func)(unsigned long);
+    unsigned long data;
+    其它字段
+};
+}}}
+* 完全初始化tasklet
+{{{
+void tasklet_init(struct tasklet_struct *t, void (*func)(ulong), ulong data);
+DECLARE_TASKLET(name, func, data);
+DECLARE_TASKLET_DISABLED(name, func, data);
+}}}
+* void tasklet_schedule(struct tasklet_struct *t);
+{{{
+将tasklet加入系统链表，即调度tasklet运行
+tasklet执行后会自动退出系统链表，如需再次执行，需再次加入系统链表
+}}}
+* void tasklet_hi_schedule(struct tasklet_struct *t);
+{{{
+以高优先级调度tasklet
+}}}
+* void tasklet_kill(struct tasklet_struct *t);
+{{{
+将tasklet退出系统链表
+}}}
+* void tasklet_disable(struct tasklet_struct *t);
+* void tasklet_enable(struct tasklet_struct *t);
+{{{
+tasklet在disable的状态下可以被tasklet_schedule，但该tasklet必须等到tasklet_enable后才能真正运行
+tasklet_enable的次数必须与tasklet_disable的次数相等
+}}}
+
+==== Workqueue机制 ====
+===== 原理 =====
+* 类似Tasklet，提交一个work到OS的特定workqueue——events/0上，以便稍后执行。主要用于中断的底半部
+* work是一个数据结构, 它指导内核在稍后的时间（但不能指定确定时间）或至少延迟一个确定的时间后，执行一个用户定义的函数（不能指定参数）
+* 由内核线程——events/0调度执行
+* 内核线程——events/0不处于atomic context
+* 缺省运行在调度它们的同一个 CPU 上
+
+===== Workqueue API =====
+* DECLARE_WORK(name, void (*function)(work_struct *))
+{{{
+编译时完全初始化一个work_struct
+}}}
+* INIT_WORK(struct work_struct *work, void (*function)(work_struct *))
+{{{
+完全初始化一个work_struct
+}}}
+* int schedule_work(struct work_struct *work)
+{{{
+将work提交给默认的kevent
+}}}
+* int schedule_delayed_work(struct work_struct *work, ulong delay)
+{{{
+将work提交给默认的kevent，但延后delay后调度
+}}}
+* int cancel_delayed_work(struct work_struct *work);
+{{{
+取消提交的work
+}}}
+* void flush_scheduled_work(void)
+{{{
+将kevent中的work全部取消
+}}}
+* struct workqueue_struct *create_workqueue(const char *name)
+* struct workqueue_struct *create_singlethread_workqueue(const char *name)
+{{{
+创建自己的workqueue，并与每个CPU（或单个CPU）绑定
+}}}
+* int queue_work(struct workqueue_struct *queue, struct work_struct *work)
+* int queue_delayed_work(struct workqueue_struct *queue, struct work_struct *work, ulong delay)
+{{{
+将work提交给queue
+}}}
+* void flush_workqueue(struct workqueue_struct *queue)
+{{{
+将queue中的work全部取消
+}}}
+* void destroy_workqueue(struct workqueue_struct *queue)
+{{{
+删除自己创建的queue
+}}}
+
+==== Tasklet与Workqueue的区别 ====
+|*Tasklet*|*Workqueue*|
+|处于atomic context，不能sleep|不处于atomic context，可以sleep|
+|运行在调度它们的同一个 CPU 上|默认运行在调度它们的同一个 CPU 上|
+|不能指定确定时间进行调度|不能指定确定时间进行调度或指定至少延迟一个确定的时间后调度|
+|只能提交给ksoftirqd/0|可以提交给events/0，也可以提交给自定义的workqueue|
+|tasklet函数带参数|work函数不带参数|
+
+==== 总结 ====
+{{{
+虽然workqueue运行在进程上下文中，但它是高优先级内核线程，所以只要它不主动让出CPU，操作系统也几乎不会（不是肯定不会）调度普通用户进程运行。
+tasklet运行在 中断上下文中，期间OS除了响应中断外，肯定不会进行进程调度。
+所以得出结论：
+必须立即进行紧急处理的极少量任务放在顶半部中。此时屏蔽了与自己同类型的中断，由于任务量极少，所以可以迅速不受打扰地处理完紧急任务；
+需要较少时间处理的中等数量的急迫任务放在tasklet中。此时不会屏蔽任何中断（包括与自己的顶半部同类型的中断），所以不影响顶半部对紧急任务的处理；同时又不会进行用户进程调度，从而保证了自己的急迫任务得以迅速完成；
+需要较多时间处理且并不急迫（允许被操作系统剥夺运行权）的大量任务放在workqueue中。此时操作系统会尽量快速处理完这个任务，但如果任务量太大，期间操作系统也有机会调度别的用户进程运行，从而保证了不会因为这个任务需要运行的时间太长而将其它用户进程饿死。
+可能引起睡眠的任务放在workqueue中。因为在workqueue中睡眠是安全的。
+tasklet不能用msleep，因为tasklet不能被调度出去。
+
+那么，什么情况下使用工作队列，什么情况下使用tasklet。
+如果推后执行的任务需要睡眠，那么就选择工作队列。
+如果推后执行的任务不需要睡眠，那么就选择tasklet。
+另外，如果需要用一个可以重新调度的实体来执行你的下半部处理，也应该使用工作队列。
+它是唯一能在进程上下文运行的下半部实现的机制，也只有它才可以睡眠。
+这意味着在需要获得大量的内存时、在需要获取信号量时，在需要执行阻塞式的I/O操作时，它都会非常有用。
+如果不需要用一个内核线程来推后执行工作，那么就考虑使用tasklet。
+}}}
+
+----
 === 调试经验 ===
 ==== T32中看数据概况 ====
 {{local:images/runqueue_runnable_task.PNG}}
