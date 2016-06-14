@@ -216,6 +216,12 @@ DDR3：192MHZ(非TShark)/200MHZ/384MHZ(非TShark)/400MHZ/500MHZ/533MHZ/600MHZ(Sh
 3、lowpower
 }}}
 
+==== 看DDR片选和size ====
+{{{
+lookat -l 3 0x1c00
+出来的值为片选数量，cs0的大小，cs1的大小(针对sharkls平台)
+}}}
+
 ----
 === 附件 ===
 [[local:files/ddr_debug.patch|ddr_debug.patch]]</BR>

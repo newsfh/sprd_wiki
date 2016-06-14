@@ -46,6 +46,26 @@ B.      cpu_down() -> cpu_maps_update_begin() -- Hold Mutex "cpu_add_remove_lock
 }}}
 
 ----
+=== governor ===
+==== governor延时 ====
+{{{
+kernel/drivers/platform/sprd/cpufreq-scx35.c
+
+boot_done全局变量用于延时，大此之前，governor不起作用
+它的值为#define DVFS_BOOT_TIME  (30 * HZ)，即sharkls上为30s
+
+static int sprd_cpufreq_target(struct cpufreq_policy *policy,
+	unsigned int target_freq,
+	unsigned int relation)
+{
+	if(time_before(jiffies, boot_done)){
+		return 0;
+	}
+	....
+}
+}}}
+
+----
 === 附件 ===
 [[local:files/dvfs.ppt|dvfs.ppt]]</BR>
 [[local:files/Spreadtrum_Power_Management_SharkL.docx|Spreadtrum_Power_Management_SharkL.docx]]</BR>

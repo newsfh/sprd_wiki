@@ -127,3 +127,23 @@ RightArrow：后一个事件
 ==== 资料 ====
  [[http://developer.android.com/tools/help/systrace.html|systrace]]<BR>
 
+----
+=== bootchart ===
+{{{
+记录开机时的系统信息
+}}}
+* 代码
+{{{
+system/core/init/bootchart.cpp
+}}}
+* 使用说明
+{{{
+1. 抓取开机信息
+adb shell 'echo 120 > /data/bootchart-start'
+2. 生成开机信息
+system/core/init/grab-bootchart.sh
+}}}
+* 参考资料
+{{{
+http://elinux.org/Using_Bootchart_on_Android
+}}}

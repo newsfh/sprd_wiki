@@ -29,6 +29,7 @@
 <ul>
 <li><a href="#toc_0.0.5.1">资料</a>
 </ul>
+<li><a href="#toc_0.0.6">bootchart</a>
 </ul>
 </ul>
 </ul>
@@ -190,6 +191,35 @@ RightArrow：后一个事件
 <p>
  <a href="http://developer.android.com/tools/help/systrace.html">systrace</a><BR>
 </p>
+
+<hr />
+<h3 id="toc_0.0.6">bootchart</h3>
+<pre>
+记录开机时的系统信息
+</pre>
+<ul>
+<li>
+代码
+<pre>
+system/core/init/bootchart.cpp
+</pre>
+
+<li>
+使用说明
+<pre>
+1. 抓取开机信息
+adb shell 'echo 120 &gt; /data/bootchart-start'
+2. 生成开机信息
+system/core/init/grab-bootchart.sh
+</pre>
+
+<li>
+参考资料
+<pre>
+http://elinux.org/Using_Bootchart_on_Android
+</pre>
+
+</ul>
 
 </body>
 </html>
