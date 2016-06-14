@@ -1,0 +1,181 @@
+%toc 目录
+
+=== 简介 ===
+{{{
+2.6内核上一个新的特性就是per-CPU变量。顾名思义，就是每个处理器上有此变量的一个副本。
+per-CPU的最大优点就是，对它的访问几乎不需要锁，因为每个CPU都在自己的副本上工作。
+tasklet、timer_list等机制都使用了per-CPU技术。
+}}}
+{{local:images/linux_detail_per_cpu_theory.png}}<BR>
+
+
+=== API使用 ===
+{{{
+注意，2.6内核是抢占式的。
+所以在访问per-CPU变量时，应使用特定的API来避免抢占，即避免它被切换到另一个CPU上被处理。
+
+per-CPU变量可以在编译时声明，也可以在系统运行时动态生成
+
+实例一：
+编译期间创建一个per-CPU变量：
+    DEFINE_PER_CPU(int,my_percpu); //声明一个变量
+    DEFINE_PER_CPU(int[3],my_percpu_array); //声明一个数组
+
+使用编译时生成的per-CPU变量：
+    ptr = get_cpu_var(my_percpu); //
+    使用ptr
+    put_cpu_var(my_percpu); //
+
+当然，也可以使用下列宏来访问特定CPU上的per-CPU变量
+    per_cpu(my_percpu, cpu_id); //
+ 
+per-CPU变量导出，供模块使用：
+    EXPORT_PER_CPU_SYMBOL(per_cpu_var);
+    EXPORT_PER_CPU_SYMBOL_GPL(per_cpu_var);
+
+
+实例二：
+动态分配per-CPU变量：
+    void *alloc_percpu(type);
+    void *__alloc_percpu(size_t size, size_t align);
+
+使用动态生成的per-CPU变量：
+    int cpu;
+    cpu = get_cpu();
+    ptr = per_cpu_ptr(my_percpu);
+    //使用ptr
+    put_cpu();
+}}}
+
+=== 实现 ===
+{{{
+使用上面的API为什么就能避免抢占问题呢，看看代码实现就知道了
+
+#define get_cpu_var(var) (*({ \
+    extern int simple_identifier_##var(void); \
+    preempt_disable(); \
+    &__get_cpu_var(var); }))
+#define put_cpu_var(var) preempt_enable()
+
+#define get_cpu() ({ preempt_disable(); smp_processor_id(); })
+#define put_cpu() preempt_enable()
+
+关键就在于 preempt_disable 和 preempt_enable 两个调用，分别是禁止抢占和开启抢占
+抢占相关的东东以后再看
+
+per-cpu 变量的引入有效的解决了SMP系统中处理器对锁得竞争，每个cpu只需访问自己的本地变量。
+本文阐述了per-cpu变量在2.6内核上的实现和相关操作。
+在系统编译阶段我们就手工的定义了一份所有的per-cpu变量，这些变量的定义是通过宏DEFINE_PER_CPU实现的：
+11 #define DEFINE_PER_CPU(type, name) \
+12 __attribute__((__section__(".data.percpu"))) __typeof__(type) per_cpu__##name
+从上面的代码我们可以看出，手工定义的所有per-cpu变量都是放在.data.percpu段的。
+注意上面的宏只是在SMP体系结构下才如此定义。
+如果不是SMP结构的计算机那么只是简单的把所有的per-cpu变量放到全局变量应该放到的地方。
+单CPU的per-cpu变量定义：
+27 #else /* ! SMP */
+28 
+29 #define DEFINE_PER_CPU(type, name) \
+30 __typeof__(type) per_cpu__##name
+在了解了上述代码后，我们还必须弄清楚一点：单CPU的计算机中使用的per-cpu变量就是通过上述宏定义的放在全局数据区的per-cpu变量。
+而在SMP体系结构中，我们使用却不是放在.data.percpu段的变量，设想一下如果使用这个变量，那么应该哪个CPU使用呢？
+事实上，SMP下，每个cpu使用的都是在.data.percpu段中的这些per-cpu变量的副本，有几个cpu就创建几个这样的副本。
+
+在系统初始化期间，start_kernel()函数中调用setup_per_cpu_areas（）函数，用于为每个cpu的per-cpu变量副本分配空间，
+注意 这时alloc内存分配器还没建立起来，该函数调用alloc_bootmem函数为初始化期间的这些变量副本分配物理空间。
+332 static void __init setup_per_cpu_areas(void)
+333 {
+334 unsigned long size, i;
+335 char *ptr;
+336 
+337 /* Copy section for each CPU (we discard the original) */
+338 size = ALIGN(__per_cpu_end - __per_cpu_start, SMP_CACHE_BYTES);
+339 #ifdef CONFIG_MODULES
+340 if (size < PERCPU_ENOUGH_ROOM)
+341 size = PERCPU_ENOUGH_ROOM;
+342 #endif
+343 
+344 ptr = alloc_bootmem(size * NR_CPUS);
+345 
+346 for (i = 0; i < NR_CPUS; i++, ptr += size) {
+347 __per_cpu_offset[i] = ptr - __per_cpu_start;
+348 memcpy(ptr, __per_cpu_start, __per_cpu_end - __per_cpu_start);
+349 }
+350 }
+351 #endif /* !__GENERIC_PER_CPU */
+上述函数，在分配好每个cpu的per-cpu变量副本所占用的物理空间的同时，也对__per_cpu_offset[NR_CPUS]数组进行了初始化用于以后找到指定CPU的这些per-cpu变量副本。
+ 
+15 #define per_cpu(var, cpu) (*RELOC_HIDE(&per_cpu__##var, __per_cpu_offset[cpu]))
+16 #define __get_cpu_var(var) per_cpu(var, smp_processor_id())
+这两个宏一个用于获得指定cpu的per-cpu变量，另一个用于获的本地cpu的per-cpu变量，可以自己分析一下。 
+}}}
+{{local:images/linux_detail_per_cpu_layout.jpg}}<BR>
+
+=== 管理 ===
+{{{
+Linux内核对percpu memory allocator使用了所谓chunk的实现方式，它实现了统一的静态per-cpu和动态per-cpu变量的实现
+（其实静态per-cpu变量的实 现不需要chunk，但是为了统一，也把它放到chunk的管理体系，就算是大一统吧）.
+
+chunk干什么事呢？chunk是一个管理数据结构，就称之为容器吧。看看具体的数据结构还是很有必要：
+struct pcpu_chunk {
+    struct list_head list; /* linked to pcpu_slot lists */
+    int free_size; /* free bytes in the chunk */
+    int contig_hint; /* max contiguous size hint */
+    void *base_addr; /* base address of this chunk */
+    int map_used; /* # of map entries used */
+    int map_alloc; /* # of map entries allocated */
+    int *map; /* allocation map */
+    void *data; /* chunk data */
+    bool immutable; /* no [de]population allowed */
+    unsigned long populated[]; /* populated bitmap */
+};
+list:用来把chunk链接起来形成链表。每一个链表又都放到pcpu_slot数组中，根据chunk中空闲空间的大小决定放到数组的哪个元素中。
+contig_hint:该chunk所管理的副本空间中空闲空间大小。
+base_addr:简单地说，副本空间首地址。副本空间也是由一个chunk来管，称之为first chunk中，副本空间中的dynamic空间用来给动态per-cpu变量使用
+map_used：为了对chunk所管理的副本空间分配情况的跟踪，用来表示可以管理的个数
+map_alloc:已经分配的小块个数，因为每个分配的小块都是给动态per-cpu使用的，所以其实是已经分配的变量的个数
+map:整数数组，用来表示副本空间分配情况。正数表示该空间空闲，负数就已经分配给一个变量了
+data:指向分配的页数据
+大体上就这些。
+
+动态分配一个per-cpu变量时，在pcpu_slot空间查找空闲空间可以满足需要的chunk，如果找不到这样的chunk，那么重新分配一个chunk，用kzalloc函数。
+对一个新的chunk都会调用pcpu_get_vm_areas分配VM空间地址：
+static struct pcpu_chunk *pcpu_create_chunk(void)
+{
+    struct pcpu_chunk *chunk;
+    struct vm_struct **vms;
+
+    chunk = pcpu_alloc_chunk();
+    if (!chunk)
+           return NULL;
+
+    vms = pcpu_get_vm_areas(pcpu_group_offsets, pcpu_group_sizes,
+                            pcpu_nr_groups, pcpu_atom_size, GFP_KERNEL);
+    if (!vms) {
+           pcpu_free_chunk(chunk);
+           return NULL;
+    }
+
+    chunk->data = vms;
+    chunk->base_addr = vms[0]->addr - pcpu_group_offsets[0];
+    return chunk;
+} 
+pcpu_group_offsets[0]对于非变态的系统都是0.
+
+所以，动态分配per-cpu变量时，先在chunk所管理的副本空间(在VM区中)，然后用到哪个页面就往那个对应的vm上提交物理页面。
+副本空间上实行小额分配，实际上就是有新变量分配，就在副本空间里头找，找到以后看这个vm处的地址有没有被映射到物理地址，没有就提交页面，否则不提 （都提了干吗还提交呢？！），
+判断vm处是否提交了物理页面用bit map跟踪，chunk的数据结构中的后两个成员用来干这事。
+
+OK，分配一个新变量之后，返回给你的是一个vm区中的地址，要让每个cpu访问到自己的vm区，得用内核自己定义的宏，
+其实核心思想就是用smp_get_processorid等来获得对应cpu变量在变量副本中的偏移地址，然后返回来了。
+
+要想验证上面说的对不对，可以在内核中打印出alloc_percpu返回的地址，是否在VM区。
+}}}
+
+=== 全局变量 ===
+{{{
+kernel/mm/percpu.c
+}}}
+
+| 变量名 | 用途 |
+| pcpu_slot | chunk list slots |
+
