@@ -1,0 +1,31 @@
+%toc 目录
+
+==== TW keystring ====
+| Keycode              | Name                 | Detial                                                                                                                                                                          |
+| *#1111#              | FTA SW VERSION       |                                                                                                                                                                                 |
+| *#2222#              | FTA HW VERSION       |                                                                                                                                                                                 |
+| *#1234#              | VERSION DISPLAY      | AP/CP/Model                                                                                                                                                                     |
+| *#12580*369#         | Main version         | AP/CP/RF Cal/HW Rev                                                                                                                                                             |
+| *#06#                | IMEI                 | IMEI number.                                                                                                                                                                    |
+| *#0228#              | BatteryStatus        |                                                                                                                                                                                 |
+| *#232337#            | BluetoothAddrViewer  |                                                                                                                                                                                 |
+| *#232338#            | WlanConfiguration    |                                                                                                                                                                                 |
+| *#0782#              | RTC timeRead         |                                                                                                                                                                                 |
+| *#0673#              | Melody test          | Speaker/Receiver/Headset/Receiver_Headset on/off test                                                                                                                           |
+| ＊#0*#               | Hardware module test | Red/Green/Blue/Receiver/Vibration/Dimming/Mega cam/Sensor/Touch/Sleep/Speaker/Sub key/Front cam/Black                                                                           |
+| *#2263#              | Band Selection       |                                                                                                                                                                                 |
+| *#7284#              | UART/USB path        |                                                                                                                                                                                 |
+| *#9900#              | sysdump              |                                                                                                                                                                                 |
+| *#197328640#         | Main menu            | Debug Screen/Version info/Common/Logging setting/Band Selection/Audio                                                                                                           |
+| *#737425#            | Info.                | Model/FCC ID/Rated/Manufacture/Serial Number/S/N/Manufacture Date                                                                                                               |
+| *#528#               | Sherlock             | Automatic Test(WIFI on/Off、Hotspot On/Off、Power On/Off、Suspend/Resume、Connection Aging、Wifi Scan、BT Scan、BT On/Off、SPP TP Test )/Wifi Debug Mode/TP Test/Multicast Test |
+| *#0283#              | Loopback Test        |                                                                                                                                                                                 |
+| ＊#232339#<BR>*#526# | WlanTest             |                                                                                                                                                                                 |
+
+==== GED keystring ====
+| Keycode           | Name          | Detial                                     |
+| ＊#＊#83781#＊#＊ | Engineer Mode | TELEPHONY/DEBUG&Log(CFT Info./Log setting) |
+| ＊#＊#83789#＊#＊ | MMI test      | 系统测试、单项测试、测试信息               |
+| *#06#             | IMEI          | IMEI number.                               |
+| ＊#＊#4636#＊#＊  | Test          | Mobile Info./Battery Info./WIFI Info.      |
+

@@ -4,5 +4,171 @@
 ==== arm7 deep后访问其iram ====
 {{{
 将0x402e0124设置为0，然后ap就可以访问arm7了
+但有个弊端，设置后arm7不响应任何中断
 }}}
 
+==== INTC中断 ====
+| GIC Num | INTC NO | Interrupt Controller | Interrupt Source      | Description       |
+| 127     | 31      | INT3(0x71700000)     | Reserved.             |                   |
+| 126     | 30      |                      | Int_req_zipenc        |                   |
+| 125     | 29      |                      | Int_req_zipdec        |                   |
+| 124     | 28      |                      | Int_req_ca7_wdg       |                   |
+| 123     | 27      |                      | Int_req_ap_wdg        |                   |
+| 122     | 26      |                      | Int_req_avs           |                   |
+| 121     | 25      |                      | Int_req_ap_tmr4       |                   |
+| 120     | 24      |                      | Int_req_ap_tmr3       |                   |
+| 119     | 23      |                      | Int_req_ap_tmr2       |                   |
+| 118     | 22      |                      | Int_req_ap_tmr1       |                   |
+| 117     | 21      |                      | ncntpsirq_o[3]        |                   |
+| 116     | 20      |                      | ncntpsirq_o[2]        |                   |
+| 115     | 19      |                      | ncntpsirq_o[1]        |                   |
+| 114     | 18      |                      | ncntpsirq_o[0]        |                   |
+| 113     | 17      |                      | ncntpnsirq_o[3]       |                   |
+| 112     | 16      |                      | ncntpnsirq_o[2]       |                   |
+| 111     | 15      |                      | ncntpnsirq_o[1]       |                   |
+| 110     | 14      |                      | ncntpnsirq_o[0]       |                   |
+| 109     | 13      |                      | ncnthpirq_o[3]        |                   |
+| 108     | 12      |                      | ncnthpirq_o[2]        |                   |
+| 107     | 11      |                      | ncnthpirq_o[1]        |                   |
+| 106     | 10      |                      | ncnthpirq_o[0]        |                   |
+| 105     | 9       |                      | ncntvirq_o[3]         |                   |
+| 104     | 8       |                      | ncntvirq_o[2]         |                   |
+| 103     | 7       |                      | ncntvirq_o[1]         |                   |
+| 102     | 6       |                      | ncntvirq_o[0]         |                   |
+| 101     | 5       |                      | ca7_commtx[3]         | ca7_commrx[3]     |
+| 100     | 4       |                      | ca7_commtx[2]         | ca7_commrx[2]     |
+| 99      | 3       |                      | ca7_commtx[1]         | ca7_commrx[1]     |
+| 98      | 2       |                      | ca7_commtx[0]         | ca7_commrx[0]     |
+| 97      | 1       |                      |                       |                   |
+| 96      | 0       |                      |                       |                   |
+| 95      | 31      | INTC2(0x71600000)    | npmuirq_o[3]          |                   |
+| 94      | 30      |                      | npmuirq_o[2]          |                   |
+| 93      | 29      |                      | npmuirq_o[1]          |                   |
+| 92      | 28      |                      | npmuirq_o[0]          |                   |
+| 91      | 27      |                      | nctiirq_o[3]          |                   |
+| 90      | 26      |                      | nctiirq_o[2]          |                   |
+| 89      | 25      |                      | nctiirq_o[1]          |                   |
+| 88      | 24      |                      | nctiirq_o[0]          |                   |
+| 87      | 23      |                      | int_req_ca7_axierr    |                   |
+| 86      | 22      |                      | int_req_pub_busmon    |                   |
+| 85      | 21      |                      |                       |                   |
+| 84      | 20      |                      | Int_req_cp1_wdg       |                   |
+| 83      | 19      |                      | Int_req_cp0_wdg       |                   |
+| 82      | 18      |                      |                       |                   |
+| 81      | 17      |                      |                       |                   |
+| 80      | 16      |                      |                       |                   |
+| 79      | 15      |                      |                       |                   |
+| 78      | 14      |                      |                       |                   |
+| 77      | 13      |                      |                       |                   |
+| 76      | 12      |                      |                       |                   |
+| 75      | 11      |                      |                       |                   |
+| 74      | 10      |                      |                       |                   |
+| 73      | 9       |                      |                       |                   |
+| 72      | 8       |                      |                       |                   |
+| 71      | 7       |                      |                       |                   |
+| 70      | 6       |                      | Int_req_aon_dma       |                   |
+| 69      | 5       |                      | Int_req_mbox_tar_ap   |                   |
+| 68      | 4       |                      | Int_req_mbox_src_ap   |                   |
+| 67      | 3       |                      | Int_req_djtag         |                   |
+| 66      | 2       |                      | int_req_drm           |                   |
+| 65      | 1       |                      |                       | Forbidden by INTC |
+| 64      | 0       |                      |                       | Forbidden by INTC |
+| 63      | 31      | INTC1(0x71500000)    | int_req_busmon2       |                   |
+| 62      | 30      |                      | int_req_busmon1       |                   |
+| 61      | 29      |                      | int_req_busmon0       |                   |
+| 60      | 28      |                      | int_req_emmc          |                   |
+| 59      | 27      |                      | int_req_sdio2         |                   |
+| 58      | 26      |                      | int_req_sdio1         |                   |
+| 57      | 25      |                      | int_req_sdio0         |                   |
+| 56      | 24      |                      | int_req_nfc           |                   |
+| 55      | 23      |                      | int_req_usb           |                   |
+| 54      | 22      |                      | int_req_hsic          |                   |
+| 53      | 21      |                      |                       |                   |
+| 52      | 20      |                      |                       |                   |
+| 51      | 19      |                      | int_req_gsp           |                   |
+| 50      | 18      |                      | int_req_dma           |                   |
+| 49      | 17      |                      | int_req_dsi[1]        |                   |
+| 48      | 16      |                      | int_req_dsi[0]        |                   |
+| 47      | 15      |                      |                       |                   |
+| 46      | 14      |                      | int_req_dispc         |                   |
+| 45      | 13      |                      | int_req_dcam          |                   |
+| 44      | 12      |                      | int_req_isp           |                   |
+| 43      | 11      |                      | int_req_vsp           |                   |
+| 42      | 10      |                      | int_req_jpg           |                   |
+| 41      | 9       |                      | int_req_csi2_r2       |                   |
+| 40      | 8       |                      | int_req_csi2_r1       |                   |
+| 39      | 7       |                      | int_req_gpu           |                   |
+| 38      | 6       |                      | int_req_ana           |                   |
+| 37      | 5       |                      | int_req_eic           |                   |
+| 36      | 4       |                      | int_req_kpd           |                   |
+| 35      | 3       |                      | int_req_gpio          |                   |
+| 34      | 2       |                      | int_req_aon_i2c       |                   |
+| 33      | 1       |                      |                       | Forbidden by INTC |
+| 32      | 0       |                      |                       | Forbidden by INTC |
+| 31      | 31      | INTC0(0x71400000)    | int_req_ap_syst       |                   |
+| 30      | 30      |                      | int_req_aon_syst      |                   |
+| 29      | 29      |                      | int_req_ap_tmr0       |                   |
+| 28      | 28      |                      | int_req_aon_tmr       |                   |
+| 27      | 27      |                      |                       |                   |
+| 26      | 26      |                      | int_req_thm           |                   |
+| 25      | 25      |                      | int_req_adi           |                   |
+| 24      | 24      |                      | int_req_vbc_ad23      |                   |
+| 23      | 23      |                      | int_req_vbc_ad01      |                   |
+| 22      | 22      |                      | int_req_vbc_da        |                   |
+| 21      | 21      |                      | int_req_vbc_afifo_err |                   |
+| 20      | 20      |                      | int_req_aud           |                   |
+| 19      | 19      |                      | int_req_iis3          |                   |
+| 18      | 18      |                      | int_req_iis2          |                   |
+| 17      | 17      |                      | int_req_iis1          |                   |
+| 16      | 16      |                      | int_req_iis0          |                   |
+| 15      | 15      |                      | int_req_i2c4          |                   |
+| 14      | 14      |                      | int_req_i2c3          |                   |
+| 13      | 13      |                      | int_req_i2c2          |                   |
+| 12      | 12      |                      | int_req_i2c1          |                   |
+| 11      | 11      |                      | int_req_i2c0          |                   |
+| 10      | 10      |                      | int_req_sim           |                   |
+| 9       | 9       |                      | int_req_spi2          |                   |
+| 8       | 8       |                      | int_req_spi1          |                   |
+| 7       | 7       |                      | int_req_spi0          |                   |
+| 6       | 6       |                      | int_req_uart4         |                   |
+| 5       | 5       |                      | int_req_uart3         |                   |
+| 4       | 4       |                      | int_req_uart2         |                   |
+| 3       | 3       |                      | int_req_uart1         |                   |
+| 2       | 2       |                      | int_req_uart0         |                   |
+| 1       | 1       |                      |                       | Forbidden by INTC |
+| 0       | 0       |                      |                       | Forbidden by INTC |
+
+==== AON INTC ====
+0x4020_0000
+| Interrupt Controller | Interrupt Source                                                                                                                                      | Description       |
+| 31                   | int_req_eic                                                                                                                                           |                   |
+| 30-13                |                                                                                                                                                       | 　Reserved        |
+| 12                   | Int_req_mbox_tar_ap                                                                                                                                   |                   |
+| 11                   | Int_req_mbox_tar_arm7                                                                                                                                 |                   |
+| 10                   | int_req_pub_busmon                                                                                                                                    |                   |
+| 9                    | int_req_avs<BR>int_req_thm                                                                                                                            |                   |
+| 8                    | int_req_ca7_wdg<BR>int_req_ap_wdg                                                                                                                     |                   |
+| 7                    | int_req_cp0_wdg<BR>int_req_cp1_wdg                                                                                                                    |                   |
+| 6                    | int_req_gpu                                                                                                                                           |                   |
+| 5                    | int_req_dcam<BR>int_req_isp<BR>int_req_vsp<BR>int_req_jpg<BR>int_req_csi2_r1<BR>int_req_csi2_r2                                                       |                   |
+| 4                    | int_req_aon_i2c<BR>int_req_aud<BR>int_req_adi<BR>int_req_ana<BR>int_req_kpd<BR>int_req_gpio<BR>int_req_lvds_trx<BR>int_req_mdar                       |                   |
+| 3                    | int_req_vbc_ad01<BR>int_req_vbc_ad23<BR>int_req_vbc_da<BR>int_req_vbc_afifo_err                                                                       |                   |
+| 2                    | int_req_ap_tmr0<BR>int_req_ap_tmr1<BR>int_req_ap_tmr2<BR>int_req_ap_tmr3<BR>int_req_ap_tmr4<BR>int_req_aon_tmr<BR>int_req_ap_syst<BR>int_req_aon_syst |                   |
+| 1                    |                                                                                                                                                       | Forbidden by INTC |
+| 0                    |                                                                                                                                                       | Forbidden by INTC |
+
+==== ANA INTC ====
+0x4003_8380
+| Interrupt Source                | Interrupt Controller | Description                                                                            |
+|                                 | [31:11]              | Reserved                                                                               |
+| DCDCOTP_INT_MASK_STATUS         | [10]                 | This interrupt is masked from DCDCOTP_INT_RAW_STATUS by DCDCOTP_INT_EN                 |
+|                                 | [9]                  | Reserved                                                                               |
+| THM_INT_MASK_STATUS             | [8]                  | This interrupt is masked from THM_INT_RAW_STATUS by THM_INT_EN                         |
+| AUD_PROTECT_INT_MASK_STATUS     | [7]                  | This interrupt is masked from AUD_PROTECT_INT_RAW_STATUS by AUD_PROTECT_INT_EN         |
+| AUD_HEAD_BUTTON_INT_MASK_STATUS | [6]                  | This interrupt is masked from AUD_HEAD_BUTTON_INT_RAW_STATUS by AUD_HEAD_BUTTON_INT_EN |
+| EIC_INT_MASK_STATUS             | [5]                  | This interrupt is masked from EIC_INT_RAW_STATUS by EIC_INT_EN                         |
+| FGU_INT_MASK_STATUS             | [4]                  | This interrupt is masked from FGU_INT_RAW_STATUS by FGU_INT_EN                         |
+| WDG_INT_MASK_STATUS             | [3]                  | This interrupt is masked from WDG_INT_RAW_STATUS by WDG_INT_EN                         |
+| RTC_INT_MASK_STATUS             | [2]                  | This interrupt is masked from RTC_INT_RAW_STATUS by RTC_INT_EN                         |
+| GPIO_INT_MASK_STATUS            | [1]                  | This interrupt is masked from GPIO_INT_RAW_STATUS by GPIO_INT_EN                       |
+| ADC_INT_MASK_STATUS             | [0]                  | This interrupt is masked from ADC_INT_RAW_STATUS by ADC_INT_EN                         |

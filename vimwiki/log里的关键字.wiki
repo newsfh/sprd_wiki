@@ -1,15 +1,13 @@
 %toc 目录
 
-=== log关键字 ===
-==== 上层 ====
+=== 上层模块名 ===
  # SLOG
  # SLOGCP
  # NVITEM
  # MODEMD
  # ENGPC
 
-==== kernel ====
- # DFS
+=== DFS ===
 {{{
 初始化不成功：
 搜关键字：scenario_dfs_init, open sipc channel failed
@@ -73,5 +71,16 @@ adb logcat -v threadtime | grep glDraw | tee log.txt
 	PM: suspend
 	suspend: exit suspend
 	request_suspend_state:
+}}}
+
+=== 睡眠关键字 ===
+{{{
+开始睡眠流程：（PM: suspend entry）
+<6>[ 3495.949279]  [1:   kworker/u8:5:12322] [c1] PM: suspend entry 2016-01-06 07:23:26.648615966 UTC
+
+结束睡眠流程：（PM: suspend exit）
+<6>[ 3496.204680]  [0:   kworker/u8:5:12322] [c0] PM: suspend exit 2016-01-06 07:23:26.904017578 UTC
+<6>[ 3496.204711]  [0:   kworker/u8:5:12322] [c0] suspend: exit suspend, ret = -16 (2016-01-06 07:23:26.904048095 UTC)
+ret值为0，表示睡眠成功，否则失败
 }}}
 
