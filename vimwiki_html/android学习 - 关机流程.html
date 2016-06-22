@@ -1,0 +1,698 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>android学习 - 关机流程</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
+<body>
+
+<pre>
+在PowerManager的API文档中，给出了一个关机/重启接口：
+
+public void reboot(String reason)
+对于这个接口的描述很简单，就是几句话。
+
+接口的作用就是重启设备，而且，就算重启成功了也没有返回值。
+需要包含REBOOT权限，也就是Android.permission.REBOOT
+唯一参数reason代表需要的特定重启模式，比如recovery，当然也可以为null。
+
+
+--------------------------------上层空间--------------------------------
+
+1.frameworks/base/core/java/android/os/PowerManager.java
+    /** 
+     * Reboot the device.  Will not return if the reboot is
+     * successful.  Requires the {@link android.Manifest.permission#REBOOT}
+     * permission.
+     *
+     * @param reason code to pass to the kernel (e.g., "recovery") to
+     *               request special boot modes, or null.
+     */
+    publicvoid reboot(String reason)  
+    {     
+    try {  
+            mService.reboot(reason);  
+        } catch (RemoteException e) {  
+        }     
+    }   
+
+mService为IPowerManager Binder接口服务。
+    /**
+     * {@hide}
+     */
+    public PowerManager(IPowerManager service, Handler handler)  
+    {  
+        mService = service;  
+        mHandler = handler;  
+    }  
+
+2.frameworks/base/core/java/android/os/IPowerManager.aidl
+    interface IPowerManager  
+    {  
+    ...  
+    void reboot(String reason);  
+    ...  
+    }  
+
+3.frameworks/base/services/java/com/android/server/PowerManagerService.java
+    /**  
+     * Reboot the device immediately, passing 'reason' (may be null)
+     * to the underlying __reboot system call.  Should not return.
+     */
+    publicvoid reboot(String reason)  
+    {      
+        mContext.enforceCallingOrSelfPermission(android.Manifest.permission.REBOOT, null);  
+    if (mHandler == null || !ActivityManagerNative.isSystemReady()) {  
+    thrownew IllegalStateException("Too early to call reboot()");  
+        }      
+    final String finalReason = reason;  
+        Runnable runnable = new Runnable() {  
+    publicvoid run() {  
+    synchronized (this) {  
+                    ShutdownThread.reboot(getUiContext(), finalReason, false);  
+                }      
+            }      
+        };     
+    // ShutdownThread must run on a looper capable of displaying the UI.
+        mHandler.post(runnable);  
+    // PowerManager.reboot() is documented not to return so just wait for the inevitable.
+    synchronized (runnable) {  
+    while (true) {  
+    try {  
+                    runnable.wait();  
+                } catch (InterruptedException e) {   
+                }      
+            }      
+        }      
+    }  
+
+
+4.frameworks/base/services/java/com/android/server/pm/ShutdownThread.java
+    /**
+     * Request a clean shutdown, waiting for subsystems to clean up their
+     * state etc.  Must be called from a Looper thread in which its UI
+     * is shown.
+     *
+     * @param context Context used to display the shutdown progress dialog.
+     * @param reason code to pass to the kernel (e.g. "recovery"), or null.
+     * @param confirm true if user confirmation is needed before shutting down.
+     */
+    publicstaticvoid reboot(final Context context, String reason, boolean confirm) {  
+        mReboot = true;  
+        mRebootSafeMode = false;  
+        mRebootReason = reason;  
+        shutdownInner(context, confirm);  
+    }  
+
+这里说明是需要重启，且不是安全模式，重启参数为传递下来的reason，shutdownInner的confirm参数是用来设置是否有确认提示框的，通过reboot接口调用重启是没有的，为false。
+
+重启的实现在run()中，因为ShutdownThread是Thread的扩展，所以run会自动运行。
+
+    /**
+     * Makes sure we handle the shutdown gracefully.
+     * Shuts off power regardless of radio and bluetooth state if the alloted time has passed.
+     */
+    publicvoid run() {  
+        BroadcastReceiver br = new BroadcastReceiver() {  
+    @Overridepublicvoid onReceive(Context context, Intent intent) {  
+    // We don't allow apps to cancel this, so ignore the result.
+                actionDone();  
+            }  
+        };  
+    /*
+         * Write a system property in case the system_server reboots before we
+         * get to the actual hardware restart. If that happens, we'll retry at
+         * the beginning of the SystemServer startup.
+         */
+        {     
+            String reason = (mReboot ? "1" : "0") + (mRebootReason != null ? mRebootReason : "");  
+            SystemProperties.set(SHUTDOWN_ACTION_PROPERTY, reason);  
+        }  
+    /*
+         * If we are rebooting into safe mode, write a system property
+         * indicating so.
+         */
+    if (mRebootSafeMode) {  
+            SystemProperties.set(REBOOT_SAFEMODE_PROPERTY, "1");  
+        }  
+        ...  
+        rebootOrShutdown(mReboot, mRebootReason);  
+    }   
+
+在重启前会将重启原因写入sys.shutdown.requested，如果没有则为空，如果是安全模式还会将persist.sys.safemode置1，
+之后会进行一些关机前的预处理，关闭ActivityManager以及MountService，最终调用rebootOrShutdown进行关机操作。
+
+    /**
+         * Do not call this directly. Use {@link #reboot(Context, String, boolean)}
+         * or {@link #shutdown(Context, boolean)} instead.
+         *
+         * @param reboot true to reboot or false to shutdown
+         * @param reason reason for reboot
+         */
+    publicstaticvoid rebootOrShutdown(boolean reboot, String reason) {  
+    if (reboot) {  
+                Log.i(TAG, "Rebooting, reason: " + reason);   
+    try {  
+                    PowerManagerService.lowLevelReboot(reason);  
+                } catch (Exception e) {  
+                    Log.e(TAG, "Reboot failed, will attempt shutdown instead", e);  
+                }   
+            } elseif (SHUTDOWN_VIBRATE_MS &gt; 0) {  
+    // vibrate before shutting down
+                Vibrator vibrator = new SystemVibrator();  
+    try {  
+                    vibrator.vibrate(SHUTDOWN_VIBRATE_MS);  
+                } catch (Exception e) {  
+    // Failure to vibrate shouldn't interrupt shutdown.  Just log it.
+                    Log.w(TAG, "Failed to vibrate during shutdown.", e);  
+                }     
+    // vibrator is asynchronous so we need to wait to avoid shutting down too soon.
+    try {  
+                    Thread.sleep(SHUTDOWN_VIBRATE_MS);  
+                } catch (InterruptedException unused) {  
+                }     
+            }     
+    // Shutdown power
+            Log.i(TAG, "Performing low-level shutdown...");  
+            PowerManagerService.lowLevelShutdown();  
+        }  
+    }  
+
+如果确认重启，则调用PowerManagerService的lowLevelReboot函数，参数就是传递下来的reason，稍后分析。如果不是重启，即mReboot=false,那就是需要关机了，在shutdown函数中就能够知道。
+
+    /**
+     * Request a clean shutdown, waiting for subsystems to clean up their
+     * state etc.  Must be called from a Looper thread in which its UI
+     * is shown.
+     *
+     * @param context Context used to display the shutdown progress dialog.
+     * @param confirm true if user confirmation is needed before shutting down.
+     */
+    publicstaticvoid shutdown(final Context context, boolean confirm) {  
+        mReboot = false;  
+        mRebootSafeMode = false;  
+        shutdownInner(context, confirm);  
+    }  
+
+关机的时候需要震动，就是这里了SHUTDOWN_VIBRATE_MS，默认的定义是500ms。
+但是在代码上看，无论如何，最后都会调用一下lowLevelShutdown函数，也就是关机。
+逻辑上，这里可能是个问题，但是实际中，如果重启操作能够调用成功的话，整个系统都重启了，后边的代码当然不可能执行到了。
+
+目光转回PowerManagerService
+4.frameworks/base/services/java/com/android/server/PowerManagerService.java
+    /**  
+     * Low-level function to reboot the device.
+     *
+     * @param reason code to pass to the kernel (e.g. "recovery"), or null.
+     * @throws IOException if reboot fails for some reason (eg, lack of
+     *         permission)
+     */
+    publicstaticvoid lowLevelReboot(String reason) throws IOException {  
+        nativeReboot(reason);  
+    }    
+    /**  
+     * Low-level function turn the device off immediately, without trying
+     * to be clean.  Most people should use
+     * {@link com.android.server.pm.internal.app.ShutdownThread} for a clean shutdown.
+     */
+    publicstaticvoid lowLevelShutdown() {  
+        nativeShutdown();  
+    }   
+
+
+很熟悉的字样native，是JNI调用了：
+    privatestaticnativevoid nativeShutdown();  
+    privatestaticnativevoid nativeReboot(String reason) throws IOException;  
+
+5.frameworks/base/services/jni/com_android_server_PowerManagerService.cpp
+    static JNINativeMethod gPowerManagerServiceMethods[] = {   
+    /* name, signature, funcPtr */
+        ...  
+        { "nativeShutdown", "()V",  
+                (void*) nativeShutdown },  
+        { "nativeReboot", "(Ljava/lang/String;)V",  
+                (void*) nativeReboot },  
+        ...  
+    };  
+
+这两个好哥俩的实现也是在一起的：
+    staticvoid nativeShutdown(JNIEnv *env, jobject clazz) {  
+        android_reboot(ANDROID_RB_POWEROFF, 0, 0);  
+    }  
+    staticvoid nativeReboot(JNIEnv *env, jobject clazz, jstring reason) {  
+    if (reason == NULL) {  
+            android_reboot(ANDROID_RB_RESTART, 0, 0);  
+        } else {  
+    constchar *chars = env-&gt;GetStringUTFChars(reason, NULL);  
+            android_reboot(ANDROID_RB_RESTART2, 0, (char *) chars);  
+            env-&gt;ReleaseStringUTFChars(reason, chars);  // In case it fails.
+        }  
+        jniThrowIOException(env, errno);  
+    }  
+
+可以看到无论是关机还是重启，都是调用android_reboot来实现的，只是参数不一样而已。
+
+6.system/core/libcutils/android_reboot.c
+    int android_reboot(int cmd, int flags, char *arg)  
+    {  
+    int ret = 0;  
+    int reason = -1;  
+    #ifdef RECOVERY_PRE_COMMAND
+    if (cmd == (int) ANDROID_RB_RESTART2) {  
+    if (arg &amp;&amp; strlen(arg) &gt; 0) {  
+    char cmd[PATH_MAX];  
+                sprintf(cmd, RECOVERY_PRE_COMMAND " %s", arg);  
+                system(cmd);  
+            }  
+        }  
+    #endif
+    if (!(flags &amp; ANDROID_RB_FLAG_NO_SYNC))  
+            sync();  
+    if (!(flags &amp; ANDROID_RB_FLAG_NO_REMOUNT_RO))  
+            remount_ro();  
+    switch (cmd) {  
+    case ANDROID_RB_RESTART:  
+                reason = RB_AUTOBOOT;  
+    break;  
+    case ANDROID_RB_POWEROFF:  
+                ret = reboot(RB_POWER_OFF);  
+    return ret;  
+    case ANDROID_RB_RESTART2:  
+    // REBOOT_MAGIC
+    break;  
+    default:  
+    return -1;  
+        }  
+    #ifdef RECOVERY_PRE_COMMAND_CLEAR_REASON
+        reason = RB_AUTOBOOT;  
+    #endif
+    if (reason != -1)  
+            ret = reboot(reason);  
+    else
+            ret = __reboot(LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2,  
+                               LINUX_REBOOT_CMD_RESTART2, arg);  
+    return ret;  
+    }  
+
+以reboot recovery为例，arg即为recovery,所在在第五步的时候会传入ANDROID_RB_RESTART2。到了android_reboot函数中，会看到这样的定义#ifdef RECOVERY_PRE_COMMAND，即属于重启前会执行的命令，如果定义了就会执行。
+
+下面也是做了一些关机重启前的预处理工作，sync()作用是将缓存中的信息写入磁盘，以免程序异常结束导致文件被损坏，linux系统关机前会做几次这样的动作；
+而remount_ro()作用是通过调用emergency_remount()强制将文件系统挂载为只读，不再允许任何写入操作，同时会通过检查/proc/mounts的设备状态来确认是否当前的所有写入工作已经完成，这个检查过程是阻塞操作。
+
+接下来才是对参数的解析处理：
+1）普通重启 ANDROID_RB_RESTART， reason = RB_AUTOBOOT；
+2）关机 ANDROID_RB_POWEROFF， 无需reason，直接调用reboot进行关机；
+3）带参数的特殊重启 ANDROID_RB_RESTART2， reason 将为默认值 -1
+
+这里又出现一个#ifdef RECOVERY_PRE_COMMAND_CLEAR_REASON，如果定义了它，则无论上层传下来的参数是什么样的，最终都只是普通重启而已。
+定义它的方式是在BoardConfig.mk中加入TARGET_RECOVERY_PRE_COMMAND_CLEAR_REASON := true，应该有厂商会喜欢这么做的，毕竟除了普通重启，都可能带给用户一定的风险。
+
+最后会对reason进行一个检测，那么通过上边的分析，其实只有带参数的特殊重启才会为-1,而不等于-1的情况中有普通重启和关机，而关机已经自行解决了……
+所以，不等于-1的情况到了这里也只有普通重启了。最终这里就是区分普通重启与特殊重启的地方了。这里再插入一个问题，其他的几个cmd都是什么值呢？答案在bionic/libc/include/sys/reboot.h中：
+
+    #define RB_AUTOBOOT     LINUX_REBOOT_CMD_RESTART
+    #define RB_HALT_SYSTEM  LINUX_REBOOT_CMD_HALT
+    #define RB_ENABLE_CAD   LINUX_REBOOT_CMD_CAD_ON
+    #define RB_DISABLE_CAD  LINUX_REBOOT_CMD_CAD_OFF
+    #define RB_POWER_OFF    LINUX_REBOOT_CMD_POWER_OFF
+
+而，LINUX_REBOOT_XXXX之类的在bionic/libc/kernel/common/linux/reboot.h中：
+    #define LINUX_REBOOT_MAGIC1 0xfee1dead
+    #define LINUX_REBOOT_MAGIC2 672274793
+    /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
+    #define LINUX_REBOOT_MAGIC2A 85072278
+    #define LINUX_REBOOT_MAGIC2B 369367448
+    #define LINUX_REBOOT_MAGIC2C 537993216
+    #define LINUX_REBOOT_CMD_RESTART 0x01234567
+    /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
+    #define LINUX_REBOOT_CMD_HALT 0xCDEF0123
+    #define LINUX_REBOOT_CMD_CAD_ON 0x89ABCDEF
+    #define LINUX_REBOOT_CMD_CAD_OFF 0x00000000
+    #define LINUX_REBOOT_CMD_POWER_OFF 0x4321FEDC
+    /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
+    #define LINUX_REBOOT_CMD_RESTART2 0xA1B2C3D4
+    #define LINUX_REBOOT_CMD_SW_SUSPEND 0xD000FCE2
+    #define LINUX_REBOOT_CMD_KEXEC 0x45584543
+
+至于为什么他们是这样奇怪的值这个问题，我只能说他们是magic number，魔法嘛，本来就是正常人不能够理解的，所以~~~放过他们吧，只要知道他们没有是-1的就OK啦。
+
+先来看reboot函数，按照往常的经验，reboot最终一定会调用到__reboot的。
+
+7.bionic/libc/unistd/reboot.c
+
+    int reboot (int  mode)   
+    {  
+    return __reboot( LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2, mode, NULL );  
+    }  
+
+Bingo！果然是这样，如此说来reboot(reason) -&gt; reboot(RB_AUTOBOOT) -&gt; __reboot( LINUX_REBOOT_MAGIC1, LINUX_REBOOT_MAGIC2, LINUX_REBOOT_CMD_RESTART, NULL )，要是直接这样写多好~~~免得绕这一层了。
+
+
+--------------------------------KERNEL域--------------------------------
+8.__reboot通过syscall来到内核
+这里用一些篇幅简要介绍syscall，以后遇到类似的东西更好追踪一些。
+第七步中的__reboot在arm架构的实现是这样的（bionic/libc/arch-arm/syscalls/__reboot.S）
+    ENTRY(__reboot)  
+        .save   {r4, r7}   
+        stmfd   sp!, {r4, r7}  
+        ldr     r7, =__NR_reboot  
+        swi     #0    
+        ldmfd   sp!, {r4, r7}  
+        movs    r0, r0  
+        bxpl    lr    
+        b       __set_syscall_errno  
+    END(__reboot)  
+
+可以看出来，这里将__reboot的实现映射到了__NR_reboot, 而在bionic/libc/sys/linux-syscalls.h能够找到：
+    #define __NR_reboot                       (__NR_SYSCALL_BASE + 88)  
+
+其被指定了一个固定的偏移量，在被调用的时候就是通过这个偏移量去内核中寻找对应的入口的，由此可见，内核中一定有着相同的定义，否则将不能成功调用。
+内核中对syscall偏移量的定义在内核源码中的arch/arm/include/asm/unistd.h，相关信息完全一致。
+
+已经找到了内核中的对应映射，那么下一步就要去找寻真正的实现函数了，在include/asm-generic/unistd.h中可以找到内核对__NR_reboot的syscall函数映射，即
+    /* kernel/sys.c */
+    #define __NR_setpriority 140
+    __SYSCALL(__NR_setpriority, sys_setpriority)  
+    #define __NR_getpriority 141
+    __SYSCALL(__NR_getpriority, sys_getpriority)  
+    #define __NR_reboot 142
+    __SYSCALL(__NR_reboot, sys_reboot)  
+
+同时，能够发现如此温馨的一幕，内核已经指引我们下一步该去哪里寻找sys_reboot，即kernel/sys.c。
+
+9.kernel/sys.c
+在进入这个文件前，我们先去include/linux/syscalls.h中查看一下sys_reboot的定义：
+    asmlinkage long sys_reboot(int magic1, int magic2, unsigned int cmd,  
+    void __user *arg);  
+
+与__reboot的调用参数一致。
+
+进入sys.c文件后，并没有找到名为sys_reboot的函数，而通过仔细查找，发现一个很有趣的函数，其定义为SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd, void __user *, arg)，对比__reboot的参数，能够符合。究竟是不是这个函数？
+
+同样在include/linux/syscalls.h文件中，能够找到这样几个定义：
+    #define SYSCALL_DEFINE1(name, ...) SYSCALL_DEFINEx(1, _##name, __VA_ARGS__)
+    #define SYSCALL_DEFINE2(name, ...) SYSCALL_DEFINEx(2, _##name, __VA_ARGS__)
+    #define SYSCALL_DEFINE3(name, ...) SYSCALL_DEFINEx(3, _##name, __VA_ARGS__)
+    #define SYSCALL_DEFINE4(name, ...) SYSCALL_DEFINEx(4, _##name, __VA_ARGS__)
+    #define SYSCALL_DEFINE5(name, ...) SYSCALL_DEFINEx(5, _##name, __VA_ARGS__)
+    #define SYSCALL_DEFINE6(name, ...) SYSCALL_DEFINEx(6, _##name, __VA_ARGS__)
+    ...  
+    #define SYSCALL_DEFINEx(x, sname, ...)              \
+        __SYSCALL_DEFINEx(x, sname, __VA_ARGS__)  
+    ...  
+    #define __SYSCALL_DEFINEx(x, name, ...)                 \
+        asmlinkage long sys##name(__SC_DECL##x(__VA_ARGS__))  
+
+
+整合后等价于：
+    #define SYSCALL_DEFINE4(name, ...) \
+        asmlinkage long sys##_name(__SC_DECL##4(__VA_ARGS__))  
+
+这样就不难看出，SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd, void __user *, arg)就是sys_reboot,也就是上层调用的__reboot的最终实现。函数实现如下：
+    /*
+     * Reboot system call: for obvious reasons only root may call it,
+     * and even root needs to set up some magic numbers in the registers
+     * so that some mistake won't make this reboot the whole machine.
+     * You can also set the meaning of the ctrl-alt-del-key here.
+     *
+     * reboot doesn't sync: do that yourself before calling this.
+     */
+    SYSCALL_DEFINE4(reboot, int, magic1, int, magic2, unsigned int, cmd,  
+    void __user *, arg)  
+    {  
+    char buffer[256];  
+    int ret = 0;  
+    /* We only trust the superuser with rebooting the system. */
+    if (!capable(CAP_SYS_BOOT))  
+    return -EPERM;  
+    /* For safety, we require "magic" arguments. */
+    if (magic1 != LINUX_REBOOT_MAGIC1 ||  
+            (magic2 != LINUX_REBOOT_MAGIC2 &amp;&amp;  
+                        magic2 != LINUX_REBOOT_MAGIC2A &amp;&amp;  
+                magic2 != LINUX_REBOOT_MAGIC2B &amp;&amp;  
+                        magic2 != LINUX_REBOOT_MAGIC2C))  
+    return -EINVAL;  
+    /* Instead of trying to make the power_off code look like
+         * halt when pm_power_off is not set do it the easy way.
+         */
+    if ((cmd == LINUX_REBOOT_CMD_POWER_OFF) &amp;&amp; !pm_power_off)  
+            cmd = LINUX_REBOOT_CMD_HALT;  
+        mutex_lock(&amp;reboot_mutex);  
+    switch (cmd) {  
+    case LINUX_REBOOT_CMD_RESTART:  
+            kernel_restart(NULL);  
+    break;  
+    case LINUX_REBOOT_CMD_CAD_ON:  
+            C_A_D = 1;  
+    break;  
+    case LINUX_REBOOT_CMD_CAD_OFF:  
+            C_A_D = 0;  
+    break;  
+    case LINUX_REBOOT_CMD_HALT:  
+            kernel_halt();  
+            do_exit(0);  
+            panic("cannot halt");  
+    case LINUX_REBOOT_CMD_POWER_OFF:  
+            kernel_power_off();  
+            do_exit(0);  
+    break;  
+    case LINUX_REBOOT_CMD_RESTART2:  
+    if (strncpy_from_user(&amp;buffer[0], arg, sizeof(buffer) - 1) &lt; 0) {  
+                ret = -EFAULT;  
+    break;  
+            }  
+            buffer[sizeof(buffer) - 1] = '\0';  
+            kernel_restart(buffer);  
+    break;  
+    #ifdef CONFIG_KEXEC
+    case LINUX_REBOOT_CMD_KEXEC:  
+            ret = kernel_kexec();  
+    break;  
+    #endif
+    #ifdef CONFIG_HIBERNATION
+    case LINUX_REBOOT_CMD_SW_SUSPEND:  
+            ret = hibernate();  
+    break;  
+    #endif
+    default:  
+            ret = -EINVAL;  
+    break;  
+        }  
+        mutex_unlock(&amp;reboot_mutex);  
+    return ret;  
+    }  
+
+在此函数中，首先会检测权限问题，只有超级用户才可以执行重启系统的操作：
+    /* We only trust the superuser with rebooting the system. */
+    if (!capable(CAP_SYS_BOOT))  
+    return -EPERM;  
+
+否则将返回权限错误。对应的权限列表在include/linux/capability.h中，重启操作为22.
+
+随后对magic number进行了校验：
+    /* For safety, we require "magic" arguments. */
+    if (magic1 != LINUX_REBOOT_MAGIC1 ||  
+        (magic2 != LINUX_REBOOT_MAGIC2 &amp;&amp;  
+                    magic2 != LINUX_REBOOT_MAGIC2A &amp;&amp;  
+            magic2 != LINUX_REBOOT_MAGIC2B &amp;&amp;  
+                    magic2 != LINUX_REBOOT_MAGIC2C))  
+    return -EINVAL;  
+
+如果数据传输过程中没有发生错误的话，这里也当然不会有问题，所以只是一个安全性校验，基本不会发生错误。
+
+之后有一个很有趣的检查，如果用户要求关机，而pm_power_off为空的话，就把用户的关机命令转换为挂起：
+    /* Instead of trying to make the power_off code look like
+     * halt when pm_power_off is not set do it the easy way.
+     */
+    if ((cmd == LINUX_REBOOT_CMD_POWER_OFF) &amp;&amp; !pm_power_off)  
+        cmd = LINUX_REBOOT_CMD_HALT;  
+
+在arch/arm/kernel/process.c中可以找到它的定义：
+    /*
+     * Function pointers to optional machine specific functions
+     */
+    void (*pm_power_off)(void);  
+    EXPORT_SYMBOL(pm_power_off);  
+
+好的，只是一个函数指针，而且做了全局操作，整个kernel都可以调用它。以高通msm7x30为例，在arch/arm/mach-msm/pm2.c中对这个函数指针进行了赋值：
+    pm_power_off = msm_pm_power_off;  
+
+msm_pm_power_off的具体实现就不再跟踪了，各家的都不一样，跟下去没有太大意义。现在只要知道，我分析的这个kernel是给了这个函数指针赋值的，所以不为空，关机命令将正常执行。
+
+接下来就是这个函数的正题了，对用户命令进行解析操作，同时这个过程是用reboot_mutex互斥锁来进行保护的，以保证同一时间只可能有一个解析过程，避免冲突。
+
+下边贴出所有关机重启相关的命令定义：
+    /*
+     * Commands accepted by the _reboot() system call.
+     *      
+     * RESTART     Restart system using default command and mode.
+     * HALT        Stop OS and give system control to ROM monitor, if any.
+     * CAD_ON      Ctrl-Alt-Del sequence causes RESTART command.
+     * CAD_OFF     Ctrl-Alt-Del sequence sends SIGINT to init task.
+     * POWER_OFF   Stop OS and remove all power from system, if possible.
+     * RESTART2    Restart system using given command string.
+     * SW_SUSPEND  Suspend system using software suspend if compiled in.
+     * KEXEC       Restart system using a previously loaded Linux kernel
+     */
+    #define LINUX_REBOOT_CMD_RESTART    0x01234567
+    #define LINUX_REBOOT_CMD_HALT       0xCDEF0123
+    #define LINUX_REBOOT_CMD_CAD_ON     0x89ABCDEF
+    #define LINUX_REBOOT_CMD_CAD_OFF    0x00000000 
+    #define LINUX_REBOOT_CMD_POWER_OFF  0x4321FEDC
+    #define LINUX_REBOOT_CMD_RESTART2   0xA1B2C3D4
+    #define LINUX_REBOOT_CMD_SW_SUSPEND 0xD000FCE2
+    #define LINUX_REBOOT_CMD_KEXEC      0x45584543
+
+注释中的说明很详细了，比较陌生的就是关于CAD，其实就是用来想用Ctrl+Alt+Del操作的；然后SW_SYSPEND是软件休眠；KEXEC就太高端了，属于内核的一个补丁，用来利用老内核重启，详细资料：http://www.ibm.com/developerworks/cn/linux/l-kexec/?ca=dwcn-newsletter-linux
+
+以上这些只有前六个命令被Android系统所使用，为什么这么说，可以去看bionic/libc/include/sys/reboot.h，上边已经贴出了。
+LINUX_REBOOT_CMD_HALT虽有定义，但是也没有发现Android系统中哪里有调用，有高手找到的话，希望能够告知一下。最终的最终，能够用到的就只有三个：
+RESTART
+POWER_OFF
+RESTART2
+
+10.最终实现
+
+重启调用的是kernel_restart，区别是参数是不是空，关机则调用kernel_power_off()，先看关机：
+    /**
+     *  kernel_power_off - power_off the system
+     *
+     *  Shutdown everything and perform a clean system power_off.
+     */
+    void kernel_power_off(void)  
+    {  
+        kernel_shutdown_prepare(SYSTEM_POWER_OFF);  
+    if (pm_power_off_prepare)  
+            pm_power_off_prepare();  
+        disable_nonboot_cpus();  
+        syscore_shutdown();  
+        printk(KERN_EMERG "Power down.\n");  
+        kmsg_dump(KMSG_DUMP_POWEROFF);  
+        machine_power_off();  
+    }  
+    EXPORT_SYMBOL_GPL(kernel_power_off);  
+
+最了一系列准备工作，最终调用machine_power_off()：
+    void machine_power_off(void)  
+    {     
+        machine_shutdown();  
+    if (pm_power_off)  
+            pm_power_off();  
+    }  
+
+之前找寻的pm_power_off在这里就有用处了，是关机的最后一步操作。关机完成，之后看下重启操作：
+    /**
+     *  kernel_restart - reboot the system
+     *  @cmd: pointer to buffer containing command to execute for restart
+     *      or %NULL
+     *
+     *  Shutdown everything and perform a clean reboot.
+     *  This is not safe to call in interrupt context.
+     */
+    void kernel_restart(char *cmd)  
+    {  
+        kernel_restart_prepare(cmd);  
+    if (!cmd)  
+            printk(KERN_EMERG "Restarting system.\n");  
+    else
+            printk(KERN_EMERG "Restarting system with command '%s'.\n", cmd);  
+        kmsg_dump(KMSG_DUMP_RESTART);  
+        machine_restart(cmd);  
+    }  
+    EXPORT_SYMBOL_GPL(kernel_restart);  
+
+同样的套路，也是会进行一些准备工作，之后调用machine_restart(cmd)， 如果是普通重启，那么中个cmd就为NULL，如果是特殊重启，那么这个cmd就是一层一层传递下来得那个arg了。
+
+    void machine_restart(char *cmd)  
+    {  
+        machine_shutdown();  
+        arm_pm_restart(reboot_mode, cmd);  
+    }  
+    ...  
+    void (*arm_pm_restart)(char str, constchar *cmd) = arm_machine_restart;  
+    EXPORT_SYMBOL_GPL(arm_pm_restart);  
+
+而还记得刚才的pm2.c吗？在那里同样对arm_pm_restart进行了指针赋值：
+    arm_pm_restart = msm_pm_restart;  
+
+赋值的函数为msm_pm_init， 其调用为
+    late_initcall_sync(msm_pm_init);  
+
+late_initcall_sync的启动优先级是最低的，为7。module_init其实是6的优先级，数字越大优先级越低。
+所以，这样推断的话，最终arm_pm_restart这个函数指针会指向msm_pm_restart。关于msm_pm_restart的具体实现也不细看了，跟前边说的一样，都是各家不一样，就几行代码：
+    staticvoid msm_pm_restart(char str, constchar *cmd)  
+    {         
+        msm_rpcrouter_close();  
+        msm_proc_comm(PCOM_RESET_CHIP, &amp;restart_reason, 0);  
+    for (;;)  
+            ;  
+    }   
+
+但是细心的朋友可能会发现这里有一个restart_reason，这个并不是传递下来的参数。事实上，这个值已经在之前kernel_restart_prepare(cmd)的时候就已经设置好了。
+
+    void kernel_restart_prepare(char *cmd)  
+    {     
+        blocking_notifier_call_chain(&amp;reboot_notifier_list, SYS_RESTART, cmd);  
+        system_state = SYSTEM_RESTART;  
+        usermodehelper_disable();  
+        device_shutdown();  
+        syscore_shutdown();  
+    }  
+
+就是blocking_notifier机制，这个操作在之前的shutdown关机操作中也有，且是同一个list，都是reboot_notifier_list。
+也很容易理解，就是将注册在reboot_notifier_list上的函数传入相关参数后执行，作为了解，看一下具体是怎么使用的：(arch/arm/mach-msm/pm2.c)
+    staticint msm_reboot_call  
+        (struct notifier_block *this, unsigned long code, void *_cmd)  
+    {     
+    if ((code == SYS_RESTART) &amp;&amp; _cmd) {  
+    char *cmd = _cmd;  
+    if (!strcmp(cmd, "bootloader")) {  
+                restart_reason = 0x77665500;  
+            } elseif (!strcmp(cmd, "recovery")) {  
+                restart_reason = 0x77665502;  
+            } elseif (!strcmp(cmd, "eraseflash")) {  
+                restart_reason = 0x776655EF;  
+            } elseif (!strncmp(cmd, "oem-", 4)) {  
+                unsigned code = simple_strtoul(cmd + 4, 0, 16) &amp; 0xff;  
+                restart_reason = 0x6f656d00 | code;  
+            } else {  
+                restart_reason = 0x77665501;   
+            }     
+        }         
+    return NOTIFY_DONE;  
+    }             
+    staticstruct notifier_block msm_reboot_notifier = {  
+        .notifier_call = msm_reboot_call,  
+    };  
+    ...  
+    staticint __init msm_pm_init(void)  
+    {  
+    ...  
+        register_reboot_notifier(&amp;msm_reboot_notifier);  
+    ...  
+    }  
+
+OK，万事大吉，在kernel_restart_prepare的时候msm_reboot_call会被首先调用，这个函数的作用就是根据用户命令给restart_reason赋值，从而在之后调用msm_pm_restart的时候使用。
+这里我们发现在reboot的时候可以带的参数不仅有recovery,bootloader，还有eraseflash和oem-???，字面上看应该是用来擦除ROM和解锁之类的操作了。
+
+
+关机怎么用？
+本文的分析是由Android给出的reboot接口开始的，但是分析来分析去，回头想一想会发现，Android给出的接口reboot就真的只能重启而已，不能进行关机操作，可以在跟踪这个流程的过程中会发现，确实是有存在关机的相关接口的。
+那么关机该怎么用呢？
+frameworks/base/services/java/com/android/serverBatteryService.java
+[java]view plaincopyprint?
+
+    privatefinalvoid shutdownIfNoPower() {  
+    // shut down gracefully if our battery is critically low and we are not powered.
+    // wait until the system has booted before attempting to display the shutdown dialog.
+    if (mBatteryLevel == 0 &amp;&amp; !isPowered() &amp;&amp; ActivityManagerNative.isSystemReady()) {  
+        Intent intent = new Intent(Intent.ACTION_REQUEST_SHUTDOWN);  
+        intent.putExtra(Intent.EXTRA_KEY_CONFIRM, false);  
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);  
+        mContext.startActivity(intent);  
+    }  
+</pre>
+
+</body>
+</html>
