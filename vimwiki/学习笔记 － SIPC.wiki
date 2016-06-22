@@ -16,24 +16,25 @@ one instance of SIPC between AP and CA5;
 one instance of SIPC between AP and ARM9_0;
 one instance of SIPC between CA5 and ARM9_1;
  
-To support DSDA, both of LTE and GGE modems keep active at the same time. Two modems have individual SIPC interfaces in AP , which makes it possible to create individual services for modem communications. 
+To support DSDA, both of LTE and GGE modems keep active at the same time.
+Two modems have individual SIPC interfaces in AP , which makes it possible to create individual services for modem communications. 
  
 The SIPC interfaces in user-land are,
 }}}
-|*MODULE*|*LTE*|*GGE*|*Comments*|
-|RIL	|/dev/stty_lte[0~31]	|/dev/stty_gge[0~31]	|RIL communication fifo|
-|DATA	|seth_lte[0~2]	|seth_gge[0~2]	|2G/3G data Ethernet|
-|SOUND	|/dev/snd/..[Cx]	|/dev/snd/..[Cx]	|Sound card of play/record in call mode|
-|DIAG	|/dev/slog_lte	|/dev/slog_gge	|Diag and Log communication|
-|LOOP	|/dev/spipe_lte0	|/dev/spipe_gge0	|Loopback pipe|
-|NV	|/dev/spipe_lte1	|/dev/spipe_gge1	|NV item data communications|
-|ASSERT	|/dev/spipe_lte2	|/dev/spipe_gge2	|Modem assert notification and feedback|
-|CHARGE	|/dev/spipe_lte3	|/dev/spipe_gge3	|Charge data communication|
-|AUDIO	|/dev/spipe_lte4	|/dev/spipe_gge4	|VOIP|
-|N/A	|/dev/spipe_lte5	|/dev/spipe_gge5	|Not used|
-|AUDIO	|/dev/spipe_lte6	|/dev/spipe_gge6	|Audio VBC switch notification|
-|N/A	|/dev/spipe_lte7	|/dev/spipe_gge7	|Not used|
-|REF	|/dev/spipe_lte8	|/dev/spipe_gge8	|Refnotify|
+| *MODULE* | *LTE*               | *GGE*               | *Comments*                             |
+| RIL      | /dev/stty_lte[0~31] | /dev/stty_gge[0~31] | RIL communication fifo                 |
+| DATA     | seth_lte[0~2]       | seth_gge[0~2]       | 2G/3G data Ethernet                    |
+| SOUND    | /dev/snd/..[Cx]     | /dev/snd/..[Cx]     | Sound card of play/record in call mode |
+| DIAG     | /dev/slog_lte       | /dev/slog_gge       | Diag and Log communication             |
+| LOOP     | /dev/spipe_lte0     | /dev/spipe_gge0     | Loopback pipe                          |
+| NV       | /dev/spipe_lte1     | /dev/spipe_gge1     | NV item data communications            |
+| ASSERT   | /dev/spipe_lte2     | /dev/spipe_gge2     | Modem assert notification and feedback |
+| CHARGE   | /dev/spipe_lte3     | /dev/spipe_gge3     | Charge data communication              |
+| AUDIO    | /dev/spipe_lte4     | /dev/spipe_gge4     | VOIP                                   |
+| N/A      | /dev/spipe_lte5     | /dev/spipe_gge5     | Not used                               |
+| AUDIO    | /dev/spipe_lte6     | /dev/spipe_gge6     | Audio VBC switch notification          |
+| N/A      | /dev/spipe_lte7     | /dev/spipe_gge7     | Not used                               |
+| REF      | /dev/spipe_lte8     | /dev/spipe_gge8     | Refnotify                              |
 
 ----
 == SMEM ==
@@ -50,14 +51,14 @@ CP给SBUF写数据不发SMSG也是非常正常的。（现在的代码是subf为
 {{{
 /* sipc processor ID definition */
 enum {
-/*0*/	SIPC_ID_AP = 0,		/* Application Processor */
-/*1*/	SIPC_ID_CPT,		/* TD processor */
-/*2*/	SIPC_ID_CPW,		/* WCDMA processor */
-/*3*/	SIPC_ID_WCN,		/* Wireless Connectivity */
-/*4*/	SIPC_ID_GGE, 		/* Gsm Gprs Edge processor */
-/*5*/	SIPC_ID_LTE, 		/* LTE processor */
-/*6*/	SIPC_ID_PMIC,
-/*7*/	SIPC_ID_NR,		/* total processor number */
+/*0*/    SIPC_ID_AP = 0,            /* Application Processor */
+/*1*/    SIPC_ID_CPT,               /* TD processor */
+/*2*/    SIPC_ID_CPW,               /* WCDMA processor */
+/*3*/    SIPC_ID_WCN,               /* Wireless Connectivity */
+/*4*/    SIPC_ID_GGE,               /* Gsm Gprs Edge processor */
+/*5*/    SIPC_ID_LTE,               /* LTE processor */
+/*6*/    SIPC_ID_PMIC,
+/*7*/    SIPC_ID_NR,                /* total processor number */
 };
 }}}
 
@@ -65,31 +66,31 @@ enum {
 {{{
 /* smsg channel definition */
 enum {
-/*0*/	SMSG_CH_CTRL = 0,	/* some emergency control */
-/*1*/	SMSG_CH_COMM,		/* general communication channel */
-/*2*/	SMSG_CH_RPC_AP,		/* RPC server channel in AP side */
-/*3*/	SMSG_CH_RPC_CP,		/* RPC server channel in CP side */
-/*4*/	SMSG_CH_PIPE,		/* general pipe channel */                       // nv
-/*5*/	SMSG_CH_PLOG,		/* pipe for debug log/dump */                    // log
-/*6*/	SMSG_CH_TTY,		/* virtual serial for telephony */               // at
-/*7*/	SMSG_CH_DATA0,		/* 2G/3G wirleless data */
-/*8*/	SMSG_CH_DATA1,		/* 2G/3G wirleless data */
-/*9*/	SMSG_CH_DATA2,		/* 2G/3G wirleless data */
-/*10*/	SMSG_CH_VBC,		/* audio conrol channel */
-/*11*/	SMSG_CH_PLAYBACK, 	/* audio playback channel */
-/*12*/	SMSG_CH_CAPTURE,	/* audio capture channel */
-/*13*/	SMSG_CH_MONITOR_AUDIO,	/* audio monitor channel */
-/*14*/	SMSG_CH_CTRL_VOIP,	/* audio voip conrol channel */
-/*15*/	SMSG_CH_PLAYBACK_VOIP, 	/* audio voip playback channel */
-/*16*/	SMSG_CH_CAPTURE_VOIP,	/* audio voip capture channel */
-/*17*/	SMSG_CH_MONITOR_VOIP,	/* audio voip monitor channel */
-/*18*/	SMSG_CH_DATA3,		/* 2G/3G wirleless data */
-/*19*/	SMSG_CH_DATA4,		/* 2G/3G wirleless data */
-/*20*/	SMSG_CH_DATA5,		/* 2G/3G wirleless data */
-/*21*/	SMSG_CH_DIAG,		/* pipe for debug log/dump */                    // diag
-/*22*/	SMSG_CH_PM_CTRL, 	/* power management control */
-/*23*/	SMSG_CH_DUAL_SIM_PLUG,	/* dual sim plug channel */
-/*24*/	SMSG_CH_NR,		/* total channel number */
+/*0*/    SMSG_CH_CTRL = 0,          /* some emergency control */
+/*1*/    SMSG_CH_COMM,              /* general communication channel */
+/*2*/    SMSG_CH_RPC_AP,            /* RPC server channel in AP side */
+/*3*/    SMSG_CH_RPC_CP,            /* RPC server channel in CP side */
+/*4*/    SMSG_CH_PIPE,              /* general pipe channel */                       // nv
+/*5*/    SMSG_CH_PLOG,              /* pipe for debug log/dump */                    // log
+/*6*/    SMSG_CH_TTY,               /* virtual serial for telephony */               // at
+/*7*/    SMSG_CH_DATA0,             /* 2G/3G wirleless data */
+/*8*/    SMSG_CH_DATA1,             /* 2G/3G wirleless data */
+/*9*/    SMSG_CH_DATA2,             /* 2G/3G wirleless data */
+/*10*/    SMSG_CH_VBC,              /* audio conrol channel */
+/*11*/    SMSG_CH_PLAYBACK,         /* audio playback channel */
+/*12*/    SMSG_CH_CAPTURE,          /* audio capture channel */
+/*13*/    SMSG_CH_MONITOR_AUDIO,    /* audio monitor channel */
+/*14*/    SMSG_CH_CTRL_VOIP,        /* audio voip conrol channel */
+/*15*/    SMSG_CH_PLAYBACK_VOIP,    /* audio voip playback channel */
+/*16*/    SMSG_CH_CAPTURE_VOIP,     /* audio voip capture channel */
+/*17*/    SMSG_CH_MONITOR_VOIP,     /* audio voip monitor channel */
+/*18*/    SMSG_CH_DATA3,            /* 2G/3G wirleless data */
+/*19*/    SMSG_CH_DATA4,            /* 2G/3G wirleless data */
+/*20*/    SMSG_CH_DATA5,            /* 2G/3G wirleless data */
+/*21*/    SMSG_CH_DIAG,             /* pipe for debug log/dump */                    // diag
+/*22*/    SMSG_CH_PM_CTRL,          /* power management control */
+/*23*/    SMSG_CH_DUAL_SIM_PLUG,    /* dual sim plug channel */
+/*24*/    SMSG_CH_NR,               /* total channel number */
 };
 }}}
 
@@ -97,29 +98,29 @@ enum {
 {{{
 /* smsg type definition */
 enum {
-/*0*/	SMSG_TYPE_NONE = 0,
-/*1*/	SMSG_TYPE_OPEN,		/* first msg to open a channel */
-/*2*/	SMSG_TYPE_CLOSE,	/* last msg to close a channel */
-/*3*/	SMSG_TYPE_DATA,		/* data, value=addr, no ack */
-/*4*/	SMSG_TYPE_EVENT,	/* event with value, no ack */
-/*5*/	SMSG_TYPE_CMD,		/* command, value=cmd */
-/*6*/	SMSG_TYPE_DONE,		/* return of command */
-/*7*/	SMSG_TYPE_SMEM_ALLOC,	/* allocate smem, flag=order */
-/*8*/	SMSG_TYPE_SMEM_FREE,	/* free smem, flag=order, value=addr */
-/*9*/	SMSG_TYPE_SMEM_DONE,	/* return of alloc/free smem */
-/*10*/	SMSG_TYPE_FUNC_CALL,	/* RPC func, value=addr */
-/*11*/	SMSG_TYPE_FUNC_RETURN,	/* return of RPC func */
-/*12*/	SMSG_TYPE_DIE,
-/*13*/	SMSG_TYPE_NR,		/* total type number */
+/*0*/    SMSG_TYPE_NONE = 0,
+/*1*/    SMSG_TYPE_OPEN,            /* first msg to open a channel */
+/*2*/    SMSG_TYPE_CLOSE,           /* last msg to close a channel */
+/*3*/    SMSG_TYPE_DATA,            /* data, value=addr, no ack */
+/*4*/    SMSG_TYPE_EVENT,           /* event with value, no ack */
+/*5*/    SMSG_TYPE_CMD,             /* command, value=cmd */
+/*6*/    SMSG_TYPE_DONE,            /* return of command */
+/*7*/    SMSG_TYPE_SMEM_ALLOC,      /* allocate smem, flag=order */
+/*8*/    SMSG_TYPE_SMEM_FREE,       /* free smem, flag=order, value=addr */
+/*9*/    SMSG_TYPE_SMEM_DONE,       /* return of alloc/free smem */
+/*10*/    SMSG_TYPE_FUNC_CALL,      /* RPC func, value=addr */
+/*11*/    SMSG_TYPE_FUNC_RETURN,    /* return of RPC func */
+/*12*/    SMSG_TYPE_DIE,
+/*13*/    SMSG_TYPE_NR,             /* total type number */
 };
 }}}
 
 === channel state ===
 {{{
-#define CHAN_STATE_UNUSED	0
-#define CHAN_STATE_WAITING 	1
-#define CHAN_STATE_OPENED	2
-#define CHAN_STATE_FREE 	3
+#define CHAN_STATE_UNUSED       0
+#define CHAN_STATE_WAITING      1
+#define CHAN_STATE_OPENED       2
+#define CHAN_STATE_FREE         3
 }}}
 
 == SBUF ==
@@ -132,82 +133,325 @@ enum {
 ==== write data ====
 {{{
 static ssize_t spool_write(struct file *filp,
-		const char __user *buf, size_t count, loff_t *ppos)
+        const char __user *buf, size_t count, loff_t *ppos)
 {
-	struct spool_sblock *sblock = filp->private_data;
-	int timeout = -1;
-	int ret = 0;
-	int wrsize = 0;
-	int pos = 0;
-	struct sblock blk = {0};
-	size_t len = count;
+    struct spool_sblock *sblock = filp->private_data;
+    int timeout = -1;
+    int ret = 0;
+    int wrsize = 0;
+    int pos = 0;
+    struct sblock blk = {0};
+    size_t len = count;
 
-	if(filp->f_flags & O_NONBLOCK){
-		timeout = 0;
-	}
+    if(filp->f_flags & O_NONBLOCK){
+        timeout = 0;
+    }
 
-	do{
-		if((ret = sblock_get(sblock->dst, sblock->channel, &blk, timeout)) < 0){
-			printk(KERN_WARNING "spool_write: failed to get block!\n");
-			return ret;
-		}
+    do{
+        if((ret = sblock_get(sblock->dst, sblock->channel, &blk, timeout)) < 0){
+            printk(KERN_WARNING "spool_write: failed to get block!\n");
+            return ret;
+        }
 
-		wrsize = (blk.length > len ? len : blk.length);
-		pr_debug("spool_write: blk_len %d, count %d, wsize %d\n", blk.length, len, wrsize);
-		if(copy_from_user(blk.addr, buf + pos, wrsize)){
-			printk(KERN_WARNING "spool_write: failed to copy from user!\n");
-			ret = -EFAULT;
-		}else{
-			blk.length = wrsize;
-			len -= wrsize;
-			pos += wrsize;
-		}
+        wrsize = (blk.length > len ? len : blk.length);
+        pr_debug("spool_write: blk_len %d, count %d, wsize %d\n", blk.length, len, wrsize);
+        if(copy_from_user(blk.addr, buf + pos, wrsize)){
+            printk(KERN_WARNING "spool_write: failed to copy from user!\n");
+            ret = -EFAULT;
+        }else{
+            blk.length = wrsize;
+            len -= wrsize;
+            pos += wrsize;
+        }
 
-		if(sblock_send(sblock->dst, sblock->channel, &blk)){
-			pr_debug("spool_write: failed to send block!");
-		}
+        if(sblock_send(sblock->dst, sblock->channel, &blk)){
+            pr_debug("spool_write: failed to send block!");
+        }
 
-		pr_debug("spool_write len= %u, ret= %d\n", len, ret);
-	}while(len > 0 && ret == 0);
+        pr_debug("spool_write len= %u, ret= %d\n", len, ret);
+    }while(len > 0 && ret == 0);
 
-	return count - len;
+    return count - len;
 }
 }}}
 
 ==== read data ====
 {{{
 static ssize_t spool_read(struct file *filp,
-		char __user *buf, size_t count, loff_t *ppos)
+        char __user *buf, size_t count, loff_t *ppos)
 {
-	struct spool_sblock *sblock = filp->private_data;
-	int timeout = -1;
-	int ret = 0;
-	int rdsize = 0;
-	struct sblock blk = {0};
+    struct spool_sblock *sblock = filp->private_data;
+    int timeout = -1;
+    int ret = 0;
+    int rdsize = 0;
+    struct sblock blk = {0};
 
-	if (filp->f_flags & O_NONBLOCK) {
-		timeout = 0;
-	}
+    if (filp->f_flags & O_NONBLOCK) {
+        timeout = 0;
+    }
 
-	if((ret = sblock_receive(sblock->dst, sblock->channel, &blk, timeout)) < 0){
-		pr_debug("spool_read: failed to receive block!\n");
-		return ret;
-	}
+    if((ret = sblock_receive(sblock->dst, sblock->channel, &blk, timeout)) < 0){
+        pr_debug("spool_read: failed to receive block!\n");
+        return ret;
+    }
 
-	rdsize = blk.length > count ? count : blk.length;
+    rdsize = blk.length > count ? count : blk.length;
 
-	if(copy_to_user(buf, blk.addr, rdsize)){
-		pr_debug("spool_read: failed to copy to user!\n");
-		ret = -EFAULT;
-	}else{
-		ret = rdsize;
-	}
+    if(copy_to_user(buf, blk.addr, rdsize)){
+        pr_debug("spool_read: failed to copy to user!\n");
+        ret = -EFAULT;
+    }else{
+        ret = rdsize;
+    }
 
-	if(sblock_release(sblock->dst, sblock->channel, &blk)){
-		pr_debug("failed to release block!\n");
-	}
+    if(sblock_release(sblock->dst, sblock->channel, &blk)){
+        pr_debug("failed to release block!\n");
+    }
 
-	return ret;
+    return ret;
+}
+}}}
+
+----
+== code解析 ==
+=== smsg_recv ===
+* 简介
+{{{
+smsg_recv等在rxwait这个event上
+这个event是在mbox收到中断后，调用相应sipc的中断处理函数，并把event唤醒
+mbox到唤醒event是同步过程，被唤醒的event处理函数在另外的task中，是异步过程
+收到的msg都会放到ch->caches中
+}}}
+* smsg_recv处理过程
+{{{
+int smsg_recv(uint8_t dst, struct smsg *msg, int timeout)
+{
+    struct smsg_ipc *ipc = smsg_ipcs[dst];
+    struct smsg_channel *ch;
+    uint32_t rd;
+    int rval = 0;
+
+    if (timeout == 0) {
+    } else if (timeout < 0) {
+    } else {
+        /* wait timeout */
+        rval = wait_event_interruptible_timeout(ch->rxwait,                     // 等在这个event中
+            (readl(ch->wrptr) != readl(ch->rdptr)) ||
+            (ipc->states[msg->channel] == CHAN_STATE_FREE), timeout);
+    }
+
+    /* read smsg from cache */
+    rd = readl(ch->rdptr) & (SMSG_CACHE_NR - 1);
+    memcpy(msg, &(ch->caches[rd]), sizeof(struct smsg));
+    writel(readl(ch->rdptr) + 1, ch->rdptr);
+
+    return rval;
+}
+}}}
+* event触发过程
+{{{
+irqreturn_t smsg_irq_handler(int irq, void *dev_id)
+{
+    while (readl(ipc->rxbuf_wrptr) != readl(ipc->rxbuf_rdptr)) {
+        rxpos = (readl(ipc->rxbuf_rdptr) & (ipc->rxbuf_size - 1)) *
+            sizeof (struct smsg) + ipc->rxbuf_addr;
+        msg = (struct smsg *)rxpos;
+
+        ch = ipc->channels[msg->channel];
+
+        if ((int)(readl(ch->wrptr) - readl(ch->rdptr)) >= SMSG_CACHE_NR) {
+        } else {
+            /* write smsg to cache */
+            wr = readl(ch->wrptr) & (SMSG_CACHE_NR - 1);
+            memcpy(&(ch->caches[wr]), msg, sizeof(struct smsg));                // msg会放到ch->caches中
+            writel(readl(ch->wrptr) + 1, ch->wrptr);
+        }
+
+        /* update smsg rdptr */
+        writel(readl(ipc->rxbuf_rdptr) + 1, ipc->rxbuf_rdptr);
+
+        wake_up_interruptible_all(&(ch->rxwait));                               // 这里唤醒event
+    }
+
+    wake_lock_timeout(&sipc_wake_lock, HZ / 2);                                 // 有消息后，会握住0.5的wake_lock锁
+
+    return IRQ_HANDLED;
+}
+
+static irqreturn_t mbox_recv_irqhandle(int irq_num, void *dev)
+{
+    irq_sts = __raw_readl((void __iomem *)(REGS_RECV_MBOX_BASE + MBOX_FIFO_STS));
+    irq_sts = irq_sts & 0x0000ff00;
+    __raw_writel(irq_sts, (void __iomem *)(REGS_RECV_MBOX_BASE + MBOX_IRQ_STS));
+
+
+    /* if many core send mail to this core in the same time, 
+       it may lost some interrupts,
+       so in hear used smsg wrptr to judge
+    */
+    for(target_id = 0; target_id < MBOX_NR; target_id++)
+    {
+        if(mbox_chns[target_id].mbox_priv_data)
+        {
+            ipc = (struct smsg_ipc*)(mbox_chns[target_id].mbox_priv_data);
+            if(readl(ipc->rxbuf_wrptr) != readl(ipc->rxbuf_rdptr))
+            {
+                priv_data = mbox_chns[target_id].mbox_priv_data;
+                mbox_chns[target_id].mbox_recv_irq_handler(irq_num, priv_data); // 调用相应sipc的中断处理函数
+            }
+        }
+    }
+
+    return IRQ_HANDLED;
+}
+}}}
+
+=== smsg_send ===
+* 简介
+{{{
+往txbuf_wrptr里写内容，并发mbox中断给目标子系统
+}}}
+* smsg_send处理过程
+{{{
+int smsg_send(uint8_t dst, struct smsg *msg, int timeout)
+{
+    struct smsg_ipc *ipc = smsg_ipcs[dst];
+
+    /* calc txpos and write smsg */
+    txpos = (readl(ipc->txbuf_wrptr) & (ipc->txbuf_size - 1)) *
+        sizeof(struct smsg) + ipc->txbuf_addr;
+    memcpy((void *)txpos, msg, sizeof(struct smsg));
+    
+    /* update wrptr */
+    writel(readl(ipc->txbuf_wrptr) + 1, ipc->txbuf_wrptr);
+
+    ipc->txirq_trigger();
+
+    return rval;
+}
+
+
+#define DEFINE_SIPC_TXIRQ_TRIGGER_FN(id) \
+static void sipc_txirq_trigger##id(void) \
+{ \
+    struct sipc_child_node_info *info = &sipc_dev->pdata->info_table[id];\
+    mbox_raw_sent(info->core_id, 0);\
+}
+
+
+int mbox_raw_sent(u8 target_id, u64 msg)
+{
+    __raw_writel(target_id, (void __iomem *)(REGS_SEND_MBOX_BASE + MBOX_ID));
+    __raw_writel(0x1, (void __iomem *)(REGS_SEND_MBOX_BASE + MBOX_TRI));
+
+    return 0;
+}
+}}}
+
+=== 创建过程 ===
+* smsg创建
+{{{
+int smsg_ipc_create(uint8_t dst, struct smsg_ipc *ipc)
+{
+    int rval;
+
+    if (!ipc->irq_handler) {
+        ipc->irq_handler = smsg_irq_handler;
+    }
+
+    spin_lock_init(&(ipc->txpinlock));
+
+    smsg_ipcs[dst] = ipc;
+    smsg_clear_queue(ipc);
+
+    /* explicitly call irq handler in case of missing irq on boot */
+    ipc->irq_handler(ipc->core_id, ipc);
+
+    rval = mbox_register_irq_handle(ipc->core_id, ipc->irq_handler, ipc);
+
+    return 0;
+}
+}}}
+* sipc创建
+{{{
+static int sipc_create(struct sipc_device *sipc)
+{
+    num = pdata->chd_nr;
+    inst = sipc->smsg_inst;
+    info = pdata->info_table;
+
+    for (i = 0; i < num; i++) {
+        base = (size_t)ioremap_nocache((uint32_t)info[i].ring_base, info[i].ring_size);
+
+        inst[i].txbuf_size = SMSG_TXBUF_SIZE / sizeof(struct smsg);
+        inst[i].txbuf_addr = base + SMSG_TXBUF_ADDR;
+        inst[i].txbuf_rdptr = base + SMSG_TXBUF_RDPTR;
+        inst[i].txbuf_wrptr = base + SMSG_TXBUF_WRPTR;
+
+        inst[i].rxbuf_size = SMSG_RXBUF_SIZE / sizeof(struct smsg);
+        inst[i].rxbuf_addr = base + SMSG_RXBUF_ADDR;
+        inst[i].rxbuf_rdptr = base + SMSG_RXBUF_RDPTR;
+        inst[i].rxbuf_wrptr = base + SMSG_RXBUF_WRPTR;
+
+        ret = smsg_ipc_create(inst[i].dst, &inst[i]);
+    }
+    return ret;
+}
+}}}
+* mailbox
+{{{
+static int __init mbox_init(void)
+{
+    int i;
+    int ret;
+    struct resource res;
+    struct device_node *np;
+    int vmailbox_tag_irq = SCI_IRQ(69);
+    int vmailbox_src_irq = SCI_IRQ(68);
+
+    np = of_find_compatible_node(NULL, NULL, "sprd,mailbox");
+    if (of_can_translate_address(np)) {
+        of_address_to_resource(np, 0, &res);
+        sprd_mailbox_base = ioremap_nocache(res.start,
+                resource_size(&res));
+    }
+    spin_lock_init(&mbox_lock);
+
+    /*glb enable and rst*/
+    sci_glb_set(REG_AON_APB_APB_EB1, BIT_MBOX_EB);
+
+    __raw_writel(0x1, (void __iomem *)(REGS_SEND_MBOX_BASE  + MBOX_FIFO_RST));
+    __raw_writel(0x1, (void __iomem *)(REGS_RECV_MBOX_BASE +  MBOX_FIFO_RST));
+
+    __raw_writel(0x0, (void __iomem *)(REGS_SEND_MBOX_BASE  + MBOX_FIFO_RST));
+    __raw_writel(0xffffffff, REGS_SEND_MBOX_BASE + MBOX_IRQ_MSK);
+
+    ret = request_irq(vmailbox_src_irq, mbox_src_irqhandle, IRQF_NO_SUSPEND, "sprd-mailbox_source", NULL);
+    enable_irq_wake(vmailbox_src_irq);
+    /*recv use the irq_type_1 default*/
+    __raw_writel(0x10000, (void __iomem *)(REGS_RECV_MBOX_BASE +  MBOX_FIFO_RST));
+
+    ret = request_irq(vmailbox_tag_irq, mbox_recv_irqhandle, IRQF_NO_SUSPEND, "sprd-mailbox_target", NULL);
+    enable_irq_wake(vmailbox_tag_irq);
+    /*disable recv irq*/
+    __raw_writel(0xff00, (void __iomem *)(REGS_RECV_MBOX_BASE + MBOX_IRQ_MSK));
+
+    return 0;
+}
+
+int mbox_register_irq_handle(u8 target_id, irq_handler_t irq_handler, void *priv_data)
+{
+    u32 reg_val;
+
+    mbox_chns[target_id].mbox_recv_irq_handler = irq_handler;
+    mbox_chns[target_id].mbox_priv_data = priv_data;
+
+    /*enable the irq*/
+    reg_val = __raw_readl((void __iomem *)(REGS_RECV_MBOX_BASE + MBOX_IRQ_MSK));
+    reg_val &= ~((0x1 << target_id) << 8);
+    __raw_writel(reg_val, (void __iomem *)(REGS_RECV_MBOX_BASE + MBOX_IRQ_MSK));
+
+    return 0;
 }
 }}}
 

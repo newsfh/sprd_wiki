@@ -22,6 +22,7 @@
 <li><a href="#toc_0.2.1.1">main_wake_lock</a>
 <li><a href="#toc_0.2.1.2">pm_message_wakelock</a>
 <li><a href="#toc_0.2.1.3">wake_unlock</a>
+<li><a href="#toc_0.2.1.4">wake_lock使用</a>
 </ul>
 <li><a href="#toc_0.2.2">深睡流程</a>
 <ul>
@@ -195,6 +196,18 @@ kernel/drivers/platform/sprd/pm_debug_scx35.c
 601	}
 602	spin_unlock_irqrestore(&amp;list_lock, irqflags);
 603}
+</pre>
+
+<h4 id="toc_0.2.1.4">wake_lock使用</h4>
+<pre>
+#include &lt;linux/wakelock.h&gt;
+
+static struct wake_lock messages_wakelock;
+
+wake_lock_init(&amp;messages_wakelock, WAKE_LOCK_SUSPEND, "pm_message_wakelock");
+
+wake_lock(&amp;messages_wakelock);
+wake_unlock(&amp;messages_wakelock);
 </pre>
 
 <h3 id="toc_0.2.2">深睡流程</h3>
@@ -580,10 +593,10 @@ deepsleep wakeup log
 from deep!Zret 1 not from idle
 DDR test: read times: 0
 deep sleep 3 times											;; deep sleep times
-S#:INTC0: 00000010
+S#:INTC0: 00000010                                              ;; AON INTC value
 wake up by ana eic											;; wake up reason
 ana eic 0x0000000c
-ANA INT 0x00000020
+ANA INT 0x00000020                                              ;; ANA INTC value
 Suspended for 57.805 seconds										;; deep sleep suspend time
 wakeup wake lock: event0-594
 Powerkey:116D
@@ -597,7 +610,7 @@ CPU3 is up
 PM: noirq resume of devices complete after 0.387 msecs
 PM: early resume of devices complete after 0.307 msecs
 time statisics : sleep_time=57805, core_time=0, mcu_time=0, lit_time=0, deep_sus=57795, dep_fail=0
-##: sprd_hard_irq[101] = 1.
+##: sprd_hard_irq[101] = 1.                                                 ;; INTC value
 ##: sprd_hard_irq[100] = 1.
 ##: sprd_hard_irq[99] = 1.
 ##: sprd_hard_irq[98] = 1.
@@ -605,7 +618,7 @@ time statisics : sleep_time=57805, core_time=0, mcu_time=0, lit_time=0, deep_sus
 ##: sprd_hard_irq[94] = 1.
 ##: sprd_hard_irq[93] = 1.
 ##: sprd_hard_irq[38] = 1.
-###wake up form [DEP] : 00000010
+###wake up form [DEP] : 00000010                                            ;; AON INTC value
 ###wake up form [DEP] : 00000000
 
 -------- resume &lt;dev name&gt; &lt;suspend handler&gt; with 0							;; resume devices

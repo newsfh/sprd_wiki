@@ -154,6 +154,18 @@ kernel/drivers/platform/sprd/pm_debug_scx35.c
 603}
 }}}
 
+==== wake_lock使用 ====
+{{{
+#include <linux/wakelock.h>
+
+static struct wake_lock messages_wakelock;
+
+wake_lock_init(&messages_wakelock, WAKE_LOCK_SUSPEND, "pm_message_wakelock");
+
+wake_lock(&messages_wakelock);
+wake_unlock(&messages_wakelock);
+}}}
+
 === 深睡流程 ===
 ==== 调用栈 ====
 {{{
@@ -517,10 +529,10 @@ PWR_STATUS3_DBG	0x00070000                                                      
 from deep!Zret 1 not from idle
 DDR test: read times: 0
 deep sleep 3 times											;; deep sleep times
-S#:INTC0: 00000010
+S#:INTC0: 00000010                                              ;; AON INTC value
 wake up by ana eic											;; wake up reason
 ana eic 0x0000000c
-ANA INT 0x00000020
+ANA INT 0x00000020                                              ;; ANA INTC value
 Suspended for 57.805 seconds										;; deep sleep suspend time
 wakeup wake lock: event0-594
 Powerkey:116D
@@ -534,7 +546,7 @@ CPU3 is up
 PM: noirq resume of devices complete after 0.387 msecs
 PM: early resume of devices complete after 0.307 msecs
 time statisics : sleep_time=57805, core_time=0, mcu_time=0, lit_time=0, deep_sus=57795, dep_fail=0
-##: sprd_hard_irq[101] = 1.
+##: sprd_hard_irq[101] = 1.                                                 ;; INTC value
 ##: sprd_hard_irq[100] = 1.
 ##: sprd_hard_irq[99] = 1.
 ##: sprd_hard_irq[98] = 1.
@@ -542,7 +554,7 @@ time statisics : sleep_time=57805, core_time=0, mcu_time=0, lit_time=0, deep_sus
 ##: sprd_hard_irq[94] = 1.
 ##: sprd_hard_irq[93] = 1.
 ##: sprd_hard_irq[38] = 1.
-###wake up form [DEP] : 00000010
+###wake up form [DEP] : 00000010                                            ;; AON INTC value
 ###wake up form [DEP] : 00000000
 
 -------- resume <dev name> <suspend handler> with 0							;; resume devices
