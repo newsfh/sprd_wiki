@@ -70,6 +70,7 @@ root@scx35l_coreprimelite:/sys/devices/sprd_bm.29 # lookat -l24 0x20f00000
 0x20f0005c | 0x00000000
 }}}
 
+----
 === 通过文件节点控制busmon ===
 {{{
 shell@scx35l64_ss_sharklt8:/sys/devices/30040000.sprd_bm # ll
@@ -146,6 +147,18 @@ echo 0 > /sys/devices/sprd_bm.29/panic
 >>>>>>>  没有开关设置
 }}}
 
+----
+=== 监控DDR带宽 ===
+{{{
+echo 1 > /sys/devices/30040000.sprd_bm/bandwidth
+使用手机
+echo 0 > /sys/devices/30040000.sprd_bm/bandwidth
+
+然后会在/mnt/obb里生成axi_per_log文件，把它pull出来，用bm_sharkl工具来解析
+./bm_sharkl axi_per_log > axi_per_log.csv
+}}}
+
+----
 === 修改busmonitor.c，监控DDR VALUE ===
 [[local:files/busmonitor.tar.gz|busmonitor.tar.gz]]</BR>
 
@@ -156,3 +169,4 @@ echo 0 > /sys/devices/sprd_bm.29/panic
 [[local:files/Spreadtrum Bus Monitor Training.pptx|Spreadtrum Bus Monitor Training.pptx]]</BR>
 [[local:files/busmon.sh|busmon.sh]]</BR>
 
+[[local:files/bm_sharkl|bm_sharkl]]</BR>

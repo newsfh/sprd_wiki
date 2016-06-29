@@ -10,10 +10,12 @@
 <h1>目录</h1>
 <div class="toc">
 <ul>
-<li><a href="#toc_0.0.0.1">arm7 deep后访问其iram</a>
-<li><a href="#toc_0.0.0.2">INTC中断</a>
-<li><a href="#toc_0.0.0.3">AON INTC</a>
-<li><a href="#toc_0.0.0.4">ANA INTC</a>
+<li><a href="#toc_0.0.0.1">SharkLS SPEC</a>
+<li><a href="#toc_0.0.0.2">arm7 deep后访问其iram</a>
+<li><a href="#toc_0.0.0.3">INTC中断</a>
+<li><a href="#toc_0.0.0.4">AON INTC</a>
+<li><a href="#toc_0.0.0.5">ANA INTC</a>
+<li><a href="#toc_0.0.0.6">Address Map</a>
 </ul>
 </ul>
 </ul>
@@ -21,13 +23,20 @@
 </div>
 
 <hr />
-<h4 id="toc_0.0.0.1">arm7 deep后访问其iram</h4>
+<h4 id="toc_0.0.0.1">SharkLS SPEC</h4>
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/SharkLS AP System Design Spec.doc">SharkLS AP System Design Spec.doc</a></BR>
+</p>
+
+<hr />
+<h4 id="toc_0.0.0.2">arm7 deep后访问其iram</h4>
 <pre>
 将0x402e0124设置为0，然后ap就可以访问arm7了
 但有个弊端，设置后arm7不响应任何中断
 </pre>
 
-<h4 id="toc_0.0.0.2">INTC中断</h4>
+<hr />
+<h4 id="toc_0.0.0.3">INTC中断</h4>
 <table>
 <tr>
 <td>
@@ -2224,7 +2233,7 @@ Forbidden by INTC
 </tr>
 </table>
 
-<h4 id="toc_0.0.0.3">AON INTC</h4>
+<h4 id="toc_0.0.0.4">AON INTC</h4>
 <p>
 0x4020_0000
 <table>
@@ -2407,10 +2416,9 @@ Forbidden by INTC
 </table>
 </p>
 
-<h4 id="toc_0.0.0.4">ANA INTC</h4>
+<h4 id="toc_0.0.0.5">ANA INTC</h4>
 <p>
 0x4003_8380
-</p>
 <table>
 <tr>
 <td>
@@ -2553,6 +2561,1172 @@ ADC_INT_MASK_STATUS
 </td>
 <td>
 This interrupt is masked from ADC_INT_RAW_STATUS by ADC_INT_EN
+</td>
+</tr>
+</table>
+</p>
+
+<hr />
+<h4 id="toc_0.0.0.6">Address Map</h4>
+<table>
+<tr>
+<td>
+Addr Range
+</td>
+<td>
+Addr Map Description
+</td>
+</tr>
+<tr>
+<td>
+0x0000_0000 ~ 0x0000_FFFF
+</td>
+<td>
+Internal On Chip RAM Space (8KB Avaliable)
+</td>
+</tr>
+<tr>
+<td>
+0x0001_0000 ~ 0x00FF_FFFF
+</td>
+<td>
+Reserved.
+</td>
+</tr>
+<tr>
+<td>
+0x0100_0000 ~ 0x0FFF_FFFF
+</td>
+<td>
+CoreSight STM
+</td>
+</tr>
+<tr>
+<td>
+0x1000_0000 ~ 0x103F_FFFF
+</td>
+<td>
+CoreSight Components (4MB)
+</td>
+</tr>
+<tr>
+<td>
+0x1200_0000 ~ 0x1200_1FFF
+</td>
+<td>
+Cortex A7 Peripheral Components (8KB)
+</td>
+</tr>
+<tr>
+<td>
+0x1040_2000 ~ 0x104F_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x1050_0000 ~ 0x1050_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x1051_0000 ~ 0x105F_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x1060_0000 ~ 0x106F_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x1070_0000 ~ 0x107F_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x1080_0000 ~ 0x1080_0FFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x1080_1000 ~ 0x1FFF_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x2000_0000 ~ 0x200F_FFFF
+</td>
+<td>
+Function Test Vector
+</td>
+</tr>
+<tr>
+<td>
+0x2010_0000 ~ 0x201F_FFFF
+</td>
+<td>
+DMA Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2020_0000 ~ 0x202F_FFFF
+</td>
+<td>
+USB 2.0 OTG Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2030_0000 ~ 0x203F_FFFF
+</td>
+<td>
+SDIO0 Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2040_0000 ~ 0x204F_FFFF
+</td>
+<td>
+SDIO1 Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2050_0000 ~ 0x205F_FFFF
+</td>
+<td>
+SDIO2 Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2060_0000 ~ 0x206F_FFFF
+</td>
+<td>
+eMMC Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2070_2000 ~ 0x207F_FFFF
+</td>
+<td>
+DRM Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2080_0000 ~ 0x2080_FFFF
+</td>
+<td>
+Disp0 Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2090_0000 ~ 0x209F_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x20A0_0000 ~ 0x20AF_FFFF
+</td>
+<td>
+GSP Reg
+</td>
+</tr>
+<tr>
+<td>
+0x20B0_0000 ~ 0x20BF_FFFF
+</td>
+<td>
+GSP MMU Reg
+</td>
+</tr>
+<tr>
+<td>
+0x20C0_0000 ~ 0x20CF_FFFF
+</td>
+<td>
+NFC Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x20D0_0000 ~ 0x20DF_FFFF
+</td>
+<td>
+SpinLock Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x20E0_0000 ~ 0x20EF_FFFF
+</td>
+<td>
+AHB Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x20F0_0000 ~ 0x20FF_FFFF
+</td>
+<td>
+BUSMON0 Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2100_0000 ~ 0x210F_FFFF
+</td>
+<td>
+BUSMON 1 Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2110_0000 ~ 0x211F_FFFF
+</td>
+<td>
+BUSMON 2 Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2120_0000 ~ 0x212F_FFFF
+</td>
+<td>
+ZIP Enc Reg
+</td>
+</tr>
+<tr>
+<td>
+0x2130_0000 ~ 0x213F_FFFF
+</td>
+<td>
+ZIP Dec Reg
+</td>
+</tr>
+<tr>
+<td>
+0x2140_0000 ~ 0x214F_FFFF
+</td>
+<td>
+USB HSIC Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2150_0000 ~ 0x215F_FFFF
+</td>
+<td>
+AP CKG Reg
+</td>
+</tr>
+<tr>
+<td>
+0x2160_0000 ~ 0x217F_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x2180_0000 ~ 0x218F_FFFF
+</td>
+<td>
+DSI Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x2190_0000 ~ 0x2FFF_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x3000_0000 ~ 0x3000_FFFF
+</td>
+<td>
+LPDDR2 Controller (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x3001_0000 ~ 0x3001_FFFF
+</td>
+<td>
+LPDDR2 PHY PUBL (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x3002_0000 ~ 0x3002_FFFF
+</td>
+<td>
+PUB REG (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x3003_0000 ~ 0x3003_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x3004_0000 ~ 0x3004_FFFF
+</td>
+<td>
+PUB AXI BUSMON0 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x3005_0000 ~ 0x3005_FFFF
+</td>
+<td>
+PUB AXI BUSMON1 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x3006_0000 ~ 0x3006_FFFF
+</td>
+<td>
+PUB AXI BUSMON2 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x3007_0000 ~ 0x3007_FFFF
+</td>
+<td>
+PUB AXI BUSMON3 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x3008_0000 ~ 0x3008_FFFF
+</td>
+<td>
+PUB AXI BUSMON4 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x3009_0000 ~ 0x3009_FFFF
+</td>
+<td>
+PUB AXI BUSMON5 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x300A_0000 ~ 0x300A_FFFF
+</td>
+<td>
+PUB AXI BUSMON6 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x300B_0000 ~ 0x300B_FFFF
+</td>
+<td>
+PUB AXI BUSMON7 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x300C_0000 ~ 0x300C_FFFF
+</td>
+<td>
+PUB AXI BUSMON8 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x300D_0000 ~ 0x300D_FFFF
+</td>
+<td>
+PUB AXI BUSMON9 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x300E_0000 ~ 0x3FFF_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x4000_0000 ~ 0x4000_FFFF
+</td>
+<td>
+Audio (64KB - Protected)
+</td>
+</tr>
+<tr>
+<td>
+0x4001_0000 ~ 0x4001_FFFF
+</td>
+<td>
+Audio IF (64KB Avaliable - Protected)
+</td>
+</tr>
+<tr>
+<td>
+0x4002_0000 ~ 0x4002_FFFF
+</td>
+<td>
+VBC (64KB - Protected)
+</td>
+</tr>
+<tr>
+<td>
+0x4003_0000 ~ 0x4003_FFFF
+</td>
+<td>
+ADI Master (64KB - Protected)
+</td>
+</tr>
+<tr>
+<td>
+0x4004_0000 ~ 0x4004_FFFF
+</td>
+<td>
+AON System Timer - FRT (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4005_0000 ~ 0x4005_FFFF
+</td>
+<td>
+AON Timer (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4006_0000 ~ 0x4006_FFFF
+</td>
+<td>
+SpinLock Reg (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x4007_0000 ~ 0x4007_FFFF
+</td>
+<td>
+MDAR (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x4008_0000 ~ 0x4008_FFFF
+</td>
+<td>
+I2C (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x4009_0000 ~ 0x4009_FFFF
+</td>
+<td>
+LVDS (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x400A_0000 ~ 0x400A_FFFF
+</td>
+<td>
+MBOX (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x400B_0000 ~ 0x400E_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x400F_0000 ~ 0x400F_FFFF
+</td>
+<td>
+DEF (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x4010_0000 ~ 0x4010_FFFF
+</td>
+<td>
+DMA (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x4011_0000 ~ 0x401F_FFFF
+</td>
+<td>
+AON func test
+</td>
+</tr>
+<tr>
+<td>
+0x4020_0000 ~ 0x4020_FFFF
+</td>
+<td>
+AON INT (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4021_0000 ~ 0x4021_FFFF
+</td>
+<td>
+EIC (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4022_0000 ~ 0x4022_FFFF
+</td>
+<td>
+AP Timer0 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4023_0000 ~ 0x4023_FFFF
+</td>
+<td>
+AP System Timer (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4024_0000 ~ 0x4024_FFFF
+</td>
+<td>
+UID-Efuse (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4025_0000 ~ 0x4025_FFFF
+</td>
+<td>
+Keypad (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4026_0000 ~ 0x4026_FFFF
+</td>
+<td>
+PMW (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4027_0000 ~ 0x4027_FFFF
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+0x4028_0000 ~ 0x4028_FFFF
+</td>
+<td>
+GPIO (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4029_0000 ~ 0x4029_FFFF
+</td>
+<td>
+AP WDG (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x402A_0000 ~ 0x402A_FFFF
+</td>
+<td>
+PIN Reg (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x402B_0000 ~ 0x402B_FFFF
+</td>
+<td>
+PMU (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x402C_0000 ~ 0x402C_FFFF
+</td>
+<td>
+&nbsp;
+</td>
+</tr>
+<tr>
+<td>
+0x402D_0000 ~ 0x402D_FFFF
+</td>
+<td>
+AON CKG (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x402E_0000 ~ 0x402E_FFFF
+</td>
+<td>
+AON APB Reg (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x402F_0000 ~ 0x402F_FFFF
+</td>
+<td>
+THM Reg (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x4030_0000 ~ 0x4030_FFFF
+</td>
+<td>
+AVS CA7 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4031_0000 ~ 0x4031_FFFF
+</td>
+<td>
+CA7 WDG (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x4032_0000 ~ 0x4032_FFFF
+</td>
+<td>
+AP Timer1 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4033_0000 ~ 0x4033_FFFF
+</td>
+<td>
+AP Timer2 (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4034_0000 ~ 0x4034_FFFF
+</td>
+<td>
+DJTAG (64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x4035_0000 ~ 0x403F_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x4040_0000 ~ 0x4040_FFFF
+</td>
+<td>
+CA7 TS0 Reg (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x4041_0000 ~ 0x4041_FFFF
+</td>
+<td>
+CA7 TS1 Reg (64K)
+</td>
+</tr>
+<tr>
+<td>
+0x4042_0000 ~ 0x4FFF_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x5000_0000 ~ 0x507F_FFFF
+</td>
+<td>
+Share RAM with CPs (46KB - Protected);
+</td>
+</tr>
+<tr>
+<td>
+0x5080_0000 ~ 0x5FFF_FFFF
+</td>
+<td>
+AON ARM7 System Addr Mapping
+</td>
+</tr>
+<tr>
+<td>
+0x6000_0000 ~ 0x600F_FFFF
+</td>
+<td>
+MALI Control Register(64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x6010_0000 ~ 0x601F_FFFF
+</td>
+<td>
+GPU APB REG(64KB)
+</td>
+</tr>
+<tr>
+<td>
+0x6020_0000 ~ 0x607F_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x6080_0000 ~ 0x6080_FFFF
+</td>
+<td>
+DCAM Controller Register
+</td>
+</tr>
+<tr>
+<td>
+0x6090_0000 ~ 0x609F_FFFF
+</td>
+<td>
+VSP Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x60A0_0000 ~ 0x60AF_FFFF
+</td>
+<td>
+ISP Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x60B0_0000 ~ 0x60BF_FFFF
+</td>
+<td>
+JPG Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x60C0_0000 ~ 0x60CF_FFFF
+</td>
+<td>
+CSI-2 Controller Register;
+</td>
+</tr>
+<tr>
+<td>
+0x60D0_0000 ~ 0x60DF_FFFF
+</td>
+<td>
+MM AHB Reg
+</td>
+</tr>
+<tr>
+<td>
+0x60E0_0000 ~ 0x60EF_FFFF
+</td>
+<td>
+MM CKG
+</td>
+</tr>
+<tr>
+<td>
+0x60F0_0000 ~ 0x60EF_FFFF
+</td>
+<td>
+MM MMU
+</td>
+</tr>
+<tr>
+<td>
+0x6100_0000 ~ 0x610F_FFFF
+</td>
+<td>
+VPP Control Register
+</td>
+</tr>
+<tr>
+<td>
+0x6200_0000 ~ 0x620F_FFFF
+</td>
+<td>
+CODEC AHB Reg
+</td>
+</tr>
+<tr>
+<td>
+0x6210_0000 ~ 0x621F_FFFF
+</td>
+<td>
+CODA7 Reg
+</td>
+</tr>
+<tr>
+<td>
+0x6220_0000 ~ 0x6FFF_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x7000_0000 ~ 0x700F_FFFF
+</td>
+<td>
+UART0
+</td>
+</tr>
+<tr>
+<td>
+0x7010_0000 ~ 0x701F_FFFF
+</td>
+<td>
+UART1
+</td>
+</tr>
+<tr>
+<td>
+0x7020_0000 ~ 0x702F_FFFF
+</td>
+<td>
+UART2
+</td>
+</tr>
+<tr>
+<td>
+0x7030_0000 ~ 0x703F_FFFF
+</td>
+<td>
+UART3
+</td>
+</tr>
+<tr>
+<td>
+0x7040_0000 ~ 0x704F_FFFF
+</td>
+<td>
+UART4
+</td>
+</tr>
+<tr>
+<td>
+0x7050_0000 ~ 0x705F_FFFF
+</td>
+<td>
+I2C0
+</td>
+</tr>
+<tr>
+<td>
+0x7060_0000 ~ 0x706F_FFFF
+</td>
+<td>
+I2C1
+</td>
+</tr>
+<tr>
+<td>
+0x7070_0000 ~ 0x707F_FFFF
+</td>
+<td>
+I2C2
+</td>
+</tr>
+<tr>
+<td>
+0x7080_0000 ~ 0x708F_FFFF
+</td>
+<td>
+I2C3
+</td>
+</tr>
+<tr>
+<td>
+0x7090_0000 ~ 0x709F_FFFF
+</td>
+<td>
+I2C4
+</td>
+</tr>
+<tr>
+<td>
+0x70A0_0000 ~ 0x70AF_FFFF
+</td>
+<td>
+SPI0
+</td>
+</tr>
+<tr>
+<td>
+0x70B0_0000 ~ 0x70BF_FFFF
+</td>
+<td>
+SPI1
+</td>
+</tr>
+<tr>
+<td>
+0x70C0_0000 ~ 0x70CF_FFFF
+</td>
+<td>
+SPI2
+</td>
+</tr>
+<tr>
+<td>
+0x70D0_0000 ~ 0x70DF_FFFF
+</td>
+<td>
+IIS0
+</td>
+</tr>
+<tr>
+<td>
+0x70E0_0000 ~ 0x70EF_FFFF
+</td>
+<td>
+IIS1
+</td>
+</tr>
+<tr>
+<td>
+0x70F0_0000 ~ 0x70FF_FFFF
+</td>
+<td>
+IIS2
+</td>
+</tr>
+<tr>
+<td>
+0x7100_0000 ~ 0x710F_FFFF
+</td>
+<td>
+IIS3
+</td>
+</tr>
+<tr>
+<td>
+0x7110_0000 ~ 0x711F_FFFF
+</td>
+<td>
+SIM0
+</td>
+</tr>
+<tr>
+<td>
+0x7120_0000 ~ 0x712F_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x7130_0000 ~ 0x713F_FFFF
+</td>
+<td>
+APB REG
+</td>
+</tr>
+<tr>
+<td>
+0x7140_0000 ~ 0x714F_FFFF
+</td>
+<td>
+INTC 0
+</td>
+</tr>
+<tr>
+<td>
+0x7150_0000 ~ 0x715F_FFFF
+</td>
+<td>
+INTC 1
+</td>
+</tr>
+<tr>
+<td>
+0x7160_0000 ~ 0x716F_FFFF
+</td>
+<td>
+INTC 2
+</td>
+</tr>
+<tr>
+<td>
+0x7170_0000 ~ 0x717F_FFFF
+</td>
+<td>
+INTC 3
+</td>
+</tr>
+<tr>
+<td>
+0x7180_0000 - 0x7FFF_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0x8000_0000 ~ 0x8FFF_FFFF
+</td>
+<td>
+External Memory Space (256 MB)
+</td>
+</tr>
+<tr>
+<td>
+0x9000_0000 ~ 0x9FFF_FFFF
+</td>
+<td>
+External Memory Space (256 MB)
+</td>
+</tr>
+<tr>
+<td>
+0xA000_0000 ~ 0xAFFF_FFFF
+</td>
+<td>
+External Memory Space (256 MB)
+</td>
+</tr>
+<tr>
+<td>
+0xB000_0000 ~ 0xBFFF_FFFF
+</td>
+<td>
+External Memory Space (256 MB)
+</td>
+</tr>
+<tr>
+<td>
+0xC000_0000 ~ 0xCFFF_FFFF
+</td>
+<td>
+External Memory Space (256 MB)
+</td>
+</tr>
+<tr>
+<td>
+0xD000_0000 ~ 0xDFFF_FFFF
+</td>
+<td>
+External Memory Space (256 MB)
+</td>
+</tr>
+<tr>
+<td>
+0xE000_0000 ~ 0xEFFF_FFFF
+</td>
+<td>
+External Memory Space (256 MB)
+</td>
+</tr>
+<tr>
+<td>
+0xF000_0000 ~ 0xFFDF_FFFF
+</td>
+<td>
+External Memory Space (254 MB)
+</td>
+</tr>
+<tr>
+<td>
+0xFFE0_0000 ~ 0xFFFE_FFFF
+</td>
+<td>
+Reserved
+</td>
+</tr>
+<tr>
+<td>
+0xFFFF_0000 ~ 0xFFFF_FFFF
+</td>
+<td>
+Internal On Chip ROM Space (32KB)
 </td>
 </tr>
 </table>

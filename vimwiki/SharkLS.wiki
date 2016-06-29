@@ -1,12 +1,17 @@
 %toc 目录
 
 ----
+==== SharkLS SPEC ====
+[[local:files/SharkLS AP System Design Spec.doc|SharkLS AP System Design Spec.doc]]</BR>
+
+----
 ==== arm7 deep后访问其iram ====
 {{{
 将0x402e0124设置为0，然后ap就可以访问arm7了
 但有个弊端，设置后arm7不响应任何中断
 }}}
 
+----
 ==== INTC中断 ====
 | GIC Num | INTC NO | Interrupt Controller | Interrupt Source      | Description       |
 | 127     | 31      | INT3(0x71700000)     | Reserved.             |                   |
@@ -172,3 +177,152 @@
 | RTC_INT_MASK_STATUS             | [2]                  | This interrupt is masked from RTC_INT_RAW_STATUS by RTC_INT_EN                         |
 | GPIO_INT_MASK_STATUS            | [1]                  | This interrupt is masked from GPIO_INT_RAW_STATUS by GPIO_INT_EN                       |
 | ADC_INT_MASK_STATUS             | [0]                  | This interrupt is masked from ADC_INT_RAW_STATUS by ADC_INT_EN                         |
+
+----
+==== Address Map ====
+| Addr Range                | Addr Map Description                       |
+| 0x0000_0000 ~ 0x0000_FFFF | Internal On Chip RAM Space (8KB Avaliable) |
+| 0x0001_0000 ~ 0x00FF_FFFF | Reserved.                                  |
+| 0x0100_0000 ~ 0x0FFF_FFFF | CoreSight STM                              |
+| 0x1000_0000 ~ 0x103F_FFFF | CoreSight Components (4MB)                 |
+| 0x1200_0000 ~ 0x1200_1FFF | Cortex A7 Peripheral Components (8KB)      |
+| 0x1040_2000 ~ 0x104F_FFFF | Reserved                                   |
+| 0x1050_0000 ~ 0x1050_FFFF | Reserved                                   |
+| 0x1051_0000 ~ 0x105F_FFFF | Reserved                                   |
+| 0x1060_0000 ~ 0x106F_FFFF | Reserved                                   |
+| 0x1070_0000 ~ 0x107F_FFFF | Reserved                                   |
+| 0x1080_0000 ~ 0x1080_0FFF | Reserved                                   |
+| 0x1080_1000 ~ 0x1FFF_FFFF | Reserved                                   |
+| 0x2000_0000 ~ 0x200F_FFFF | Function Test Vector                       |
+| 0x2010_0000 ~ 0x201F_FFFF | DMA Control Register                       |
+| 0x2020_0000 ~ 0x202F_FFFF | USB 2.0 OTG Control Register               |
+| 0x2030_0000 ~ 0x203F_FFFF | SDIO0 Control Register                     |
+| 0x2040_0000 ~ 0x204F_FFFF | SDIO1 Control Register                     |
+| 0x2050_0000 ~ 0x205F_FFFF | SDIO2 Control Register                     |
+| 0x2060_0000 ~ 0x206F_FFFF | eMMC Control Register                      |
+| 0x2070_2000 ~ 0x207F_FFFF | DRM Control Register                       |
+| 0x2080_0000 ~ 0x2080_FFFF | Disp0 Control Register                     |
+| 0x2090_0000 ~ 0x209F_FFFF | Reserved                                   |
+| 0x20A0_0000 ~ 0x20AF_FFFF | GSP Reg                                    |
+| 0x20B0_0000 ~ 0x20BF_FFFF | GSP MMU Reg                                |
+| 0x20C0_0000 ~ 0x20CF_FFFF | NFC Control Register                       |
+| 0x20D0_0000 ~ 0x20DF_FFFF | SpinLock Control Register                  |
+| 0x20E0_0000 ~ 0x20EF_FFFF | AHB Control Register                       |
+| 0x20F0_0000 ~ 0x20FF_FFFF | BUSMON0 Control Register                   |
+| 0x2100_0000 ~ 0x210F_FFFF | BUSMON 1 Control Register                  |
+| 0x2110_0000 ~ 0x211F_FFFF | BUSMON 2 Control Register                  |
+| 0x2120_0000 ~ 0x212F_FFFF | ZIP Enc Reg                                |
+| 0x2130_0000 ~ 0x213F_FFFF | ZIP Dec Reg                                |
+| 0x2140_0000 ~ 0x214F_FFFF | USB HSIC Control Register                  |
+| 0x2150_0000 ~ 0x215F_FFFF | AP CKG Reg                                 |
+| 0x2160_0000 ~ 0x217F_FFFF | Reserved                                   |
+| 0x2180_0000 ~ 0x218F_FFFF | DSI Control Register                       |
+| 0x2190_0000 ~ 0x2FFF_FFFF | Reserved                                   |
+| 0x3000_0000 ~ 0x3000_FFFF | LPDDR2 Controller (64KB)                   |
+| 0x3001_0000 ~ 0x3001_FFFF | LPDDR2 PHY PUBL (64KB)                     |
+| 0x3002_0000 ~ 0x3002_FFFF | PUB REG (64KB)                             |
+| 0x3003_0000 ~ 0x3003_FFFF | Reserved                                   |
+| 0x3004_0000 ~ 0x3004_FFFF | PUB AXI BUSMON0 (64KB)                     |
+| 0x3005_0000 ~ 0x3005_FFFF | PUB AXI BUSMON1 (64KB)                     |
+| 0x3006_0000 ~ 0x3006_FFFF | PUB AXI BUSMON2 (64KB)                     |
+| 0x3007_0000 ~ 0x3007_FFFF | PUB AXI BUSMON3 (64KB)                     |
+| 0x3008_0000 ~ 0x3008_FFFF | PUB AXI BUSMON4 (64KB)                     |
+| 0x3009_0000 ~ 0x3009_FFFF | PUB AXI BUSMON5 (64KB)                     |
+| 0x300A_0000 ~ 0x300A_FFFF | PUB AXI BUSMON6 (64KB)                     |
+| 0x300B_0000 ~ 0x300B_FFFF | PUB AXI BUSMON7 (64KB)                     |
+| 0x300C_0000 ~ 0x300C_FFFF | PUB AXI BUSMON8 (64KB)                     |
+| 0x300D_0000 ~ 0x300D_FFFF | PUB AXI BUSMON9 (64KB)                     |
+| 0x300E_0000 ~ 0x3FFF_FFFF | Reserved                                   |
+| 0x4000_0000 ~ 0x4000_FFFF | Audio (64KB - Protected)                   |
+| 0x4001_0000 ~ 0x4001_FFFF | Audio IF (64KB Avaliable - Protected)      |
+| 0x4002_0000 ~ 0x4002_FFFF | VBC (64KB - Protected)                     |
+| 0x4003_0000 ~ 0x4003_FFFF | ADI Master (64KB - Protected)              |
+| 0x4004_0000 ~ 0x4004_FFFF | AON System Timer - FRT (64KB)              |
+| 0x4005_0000 ~ 0x4005_FFFF | AON Timer (64KB)                           |
+| 0x4006_0000 ~ 0x4006_FFFF | SpinLock Reg (64K)                         |
+| 0x4007_0000 ~ 0x4007_FFFF | MDAR (64K)                                 |
+| 0x4008_0000 ~ 0x4008_FFFF | I2C (64K)                                  |
+| 0x4009_0000 ~ 0x4009_FFFF | LVDS (64K)                                 |
+| 0x400A_0000 ~ 0x400A_FFFF | MBOX (64K)                                 |
+| 0x400B_0000 ~ 0x400E_FFFF | Reserved                                   |
+| 0x400F_0000 ~ 0x400F_FFFF | DEF (64K)                                  |
+| 0x4010_0000 ~ 0x4010_FFFF | DMA (64K)                                  |
+| 0x4011_0000 ~ 0x401F_FFFF | AON func test                              |
+| 0x4020_0000 ~ 0x4020_FFFF | AON INT (64KB)                             |
+| 0x4021_0000 ~ 0x4021_FFFF | EIC (64KB)                                 |
+| 0x4022_0000 ~ 0x4022_FFFF | AP Timer0 (64KB)                           |
+| 0x4023_0000 ~ 0x4023_FFFF | AP System Timer (64KB)                     |
+| 0x4024_0000 ~ 0x4024_FFFF | UID-Efuse (64KB)                           |
+| 0x4025_0000 ~ 0x4025_FFFF | Keypad (64KB)                              |
+| 0x4026_0000 ~ 0x4026_FFFF | PMW (64KB)                                 |
+| 0x4027_0000 ~ 0x4027_FFFF |                                            |
+| 0x4028_0000 ~ 0x4028_FFFF | GPIO (64KB)                                |
+| 0x4029_0000 ~ 0x4029_FFFF | AP WDG (64K)                               |
+| 0x402A_0000 ~ 0x402A_FFFF | PIN Reg (64KB)                             |
+| 0x402B_0000 ~ 0x402B_FFFF | PMU (64KB)                                 |
+| 0x402C_0000 ~ 0x402C_FFFF |                                            |
+| 0x402D_0000 ~ 0x402D_FFFF | AON CKG (64K)                              |
+| 0x402E_0000 ~ 0x402E_FFFF | AON APB Reg (64K)                          |
+| 0x402F_0000 ~ 0x402F_FFFF | THM Reg (64K)                              |
+| 0x4030_0000 ~ 0x4030_FFFF | AVS CA7 (64KB)                             |
+| 0x4031_0000 ~ 0x4031_FFFF | CA7 WDG (64K)                              |
+| 0x4032_0000 ~ 0x4032_FFFF | AP Timer1 (64KB)                           |
+| 0x4033_0000 ~ 0x4033_FFFF | AP Timer2 (64KB)                           |
+| 0x4034_0000 ~ 0x4034_FFFF | DJTAG (64KB)                               |
+| 0x4035_0000 ~ 0x403F_FFFF | Reserved                                   |
+| 0x4040_0000 ~ 0x4040_FFFF | CA7 TS0 Reg (64K)                          |
+| 0x4041_0000 ~ 0x4041_FFFF | CA7 TS1 Reg (64K)                          |
+| 0x4042_0000 ~ 0x4FFF_FFFF | Reserved                                   |
+| 0x5000_0000 ~ 0x507F_FFFF | Share RAM with CPs (46KB - Protected);     |
+| 0x5080_0000 ~ 0x5FFF_FFFF | AON ARM7 System Addr Mapping               |
+| 0x6000_0000 ~ 0x600F_FFFF | MALI Control Register(64KB)                |
+| 0x6010_0000 ~ 0x601F_FFFF | GPU APB REG(64KB)                          |
+| 0x6020_0000 ~ 0x607F_FFFF | Reserved                                   |
+| 0x6080_0000 ~ 0x6080_FFFF | DCAM Controller Register                   |
+| 0x6090_0000 ~ 0x609F_FFFF | VSP Control Register                       |
+| 0x60A0_0000 ~ 0x60AF_FFFF | ISP Control Register                       |
+| 0x60B0_0000 ~ 0x60BF_FFFF | JPG Control Register                       |
+| 0x60C0_0000 ~ 0x60CF_FFFF | CSI-2 Controller Register;                 |
+| 0x60D0_0000 ~ 0x60DF_FFFF | MM AHB Reg                                 |
+| 0x60E0_0000 ~ 0x60EF_FFFF | MM CKG                                     |
+| 0x60F0_0000 ~ 0x60EF_FFFF | MM MMU                                     |
+| 0x6100_0000 ~ 0x610F_FFFF | VPP Control Register                       |
+| 0x6200_0000 ~ 0x620F_FFFF | CODEC AHB Reg                              |
+| 0x6210_0000 ~ 0x621F_FFFF | CODA7 Reg                                  |
+| 0x6220_0000 ~ 0x6FFF_FFFF | Reserved                                   |
+| 0x7000_0000 ~ 0x700F_FFFF | UART0                                      |
+| 0x7010_0000 ~ 0x701F_FFFF | UART1                                      |
+| 0x7020_0000 ~ 0x702F_FFFF | UART2                                      |
+| 0x7030_0000 ~ 0x703F_FFFF | UART3                                      |
+| 0x7040_0000 ~ 0x704F_FFFF | UART4                                      |
+| 0x7050_0000 ~ 0x705F_FFFF | I2C0                                       |
+| 0x7060_0000 ~ 0x706F_FFFF | I2C1                                       |
+| 0x7070_0000 ~ 0x707F_FFFF | I2C2                                       |
+| 0x7080_0000 ~ 0x708F_FFFF | I2C3                                       |
+| 0x7090_0000 ~ 0x709F_FFFF | I2C4                                       |
+| 0x70A0_0000 ~ 0x70AF_FFFF | SPI0                                       |
+| 0x70B0_0000 ~ 0x70BF_FFFF | SPI1                                       |
+| 0x70C0_0000 ~ 0x70CF_FFFF | SPI2                                       |
+| 0x70D0_0000 ~ 0x70DF_FFFF | IIS0                                       |
+| 0x70E0_0000 ~ 0x70EF_FFFF | IIS1                                       |
+| 0x70F0_0000 ~ 0x70FF_FFFF | IIS2                                       |
+| 0x7100_0000 ~ 0x710F_FFFF | IIS3                                       |
+| 0x7110_0000 ~ 0x711F_FFFF | SIM0                                       |
+| 0x7120_0000 ~ 0x712F_FFFF | Reserved                                   |
+| 0x7130_0000 ~ 0x713F_FFFF | APB REG                                    |
+| 0x7140_0000 ~ 0x714F_FFFF | INTC 0                                     |
+| 0x7150_0000 ~ 0x715F_FFFF | INTC 1                                     |
+| 0x7160_0000 ~ 0x716F_FFFF | INTC 2                                     |
+| 0x7170_0000 ~ 0x717F_FFFF | INTC 3                                     |
+| 0x7180_0000 - 0x7FFF_FFFF | Reserved                                   |
+| 0x8000_0000 ~ 0x8FFF_FFFF | External Memory Space (256 MB)             |
+| 0x9000_0000 ~ 0x9FFF_FFFF | External Memory Space (256 MB)             |
+| 0xA000_0000 ~ 0xAFFF_FFFF | External Memory Space (256 MB)             |
+| 0xB000_0000 ~ 0xBFFF_FFFF | External Memory Space (256 MB)             |
+| 0xC000_0000 ~ 0xCFFF_FFFF | External Memory Space (256 MB)             |
+| 0xD000_0000 ~ 0xDFFF_FFFF | External Memory Space (256 MB)             |
+| 0xE000_0000 ~ 0xEFFF_FFFF | External Memory Space (256 MB)             |
+| 0xF000_0000 ~ 0xFFDF_FFFF | External Memory Space (254 MB)             |
+| 0xFFE0_0000 ~ 0xFFFE_FFFF | Reserved                                   |
+| 0xFFFF_0000 ~ 0xFFFF_FFFF | Internal On Chip ROM Space (32KB)          |
+

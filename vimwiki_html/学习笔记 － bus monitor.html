@@ -12,8 +12,9 @@
 <ul>
 <li><a href="#toc_0.0.1">寄存器</a>
 <li><a href="#toc_0.0.2">通过文件节点控制busmon</a>
-<li><a href="#toc_0.0.3">修改busmonitor.c，监控DDR VALUE</a>
-<li><a href="#toc_0.0.4">附件</a>
+<li><a href="#toc_0.0.3">监控DDR带宽</a>
+<li><a href="#toc_0.0.4">修改busmonitor.c，监控DDR VALUE</a>
+<li><a href="#toc_0.0.5">附件</a>
 </ul>
 </ul>
 </ul>
@@ -89,6 +90,7 @@ root@scx35l_coreprimelite:/sys/devices/sprd_bm.29 # lookat -l24 0x20f00000
 0x20f0005c | 0x00000000
 </pre>
 
+<hr />
 <h3 id="toc_0.0.2">通过文件节点控制busmon</h3>
 <pre>
 shell@scx35l64_ss_sharklt8:/sys/devices/30040000.sprd_bm # ll
@@ -165,18 +167,34 @@ echo 0 &gt; /sys/devices/sprd_bm.29/panic
 &gt;&gt;&gt;&gt;&gt;&gt;&gt;  没有开关设置
 </pre>
 
-<h3 id="toc_0.0.3">修改busmonitor.c，监控DDR VALUE</h3>
+<hr />
+<h3 id="toc_0.0.3">监控DDR带宽</h3>
+<pre>
+echo 1 &gt; /sys/devices/30040000.sprd_bm/bandwidth
+使用手机
+echo 0 &gt; /sys/devices/30040000.sprd_bm/bandwidth
+
+然后会在/mnt/obb里生成axi_per_log文件，把它pull出来，用bm_sharkl工具来解析
+./bm_sharkl axi_per_log &gt; axi_per_log.csv
+</pre>
+
+<hr />
+<h3 id="toc_0.0.4">修改busmonitor.c，监控DDR VALUE</h3>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/busmonitor.tar.gz">busmonitor.tar.gz</a></BR>
 </p>
 
 <hr />
-<h3 id="toc_0.0.4">附件</h3>
+<h3 id="toc_0.0.5">附件</h3>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/AMBA&amp;BusMonitor.docx">AMBA&amp;BusMonitor.docx</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/Spreadtrum Bus Monitor training.doc">Spreadtrum Bus Monitor training.doc</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/Spreadtrum Bus Monitor Training.pptx">Spreadtrum Bus Monitor Training.pptx</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/busmon.sh">busmon.sh</a></BR>
+</p>
+
+<p>
+<a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/bm_sharkl">bm_sharkl</a></BR>
 </p>
 
 </body>
