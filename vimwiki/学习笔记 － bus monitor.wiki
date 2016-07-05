@@ -156,6 +156,9 @@ echo 0 > /sys/devices/30040000.sprd_bm/bandwidth
 
 然后会在/mnt/obb里生成axi_per_log文件，把它pull出来，用bm_sharkl工具来解析
 ./bm_sharkl axi_per_log > axi_per_log.csv
+
+然后把里面的数据拷贝到axi_per_log.xlsm里
+axi_per_log.xlsm的公式管理器，再设置数据的开始行和长度
 }}}
 
 ----
@@ -169,4 +172,6 @@ echo 0 > /sys/devices/30040000.sprd_bm/bandwidth
 [[local:files/Spreadtrum Bus Monitor Training.pptx|Spreadtrum Bus Monitor Training.pptx]]</BR>
 [[local:files/busmon.sh|busmon.sh]]</BR>
 
+分析bus monitor数据</BR>
 [[local:files/bm_sharkl|bm_sharkl]]</BR>
+[[local:files/axi_per_log.xlsm|axi_per_log.xlsm]]</BR>

@@ -2056,3 +2056,24 @@ static pinmap_t pinmap_hw00[]={
 {{{
 Developer options ==> 选中Disable hardware overlays
 }}}
+
+=== 忘记google帐户无法开机 ===
+{{{
+三星的google帐户是存在隐藏分区PERSISTENT里
+所以，可以把好的手机里的PERSISTENT分区导出来，然后烧进锁住的手机里
+当然，前提条件是两个手机都是eng版本，拥有root权限
+
+步骤：
+1. 从好手机里拷出PERSISTENT分区  (adb shell环境)
+dd if=/dev/block/platform/sdio_emmc/by-name/PERSISTENT of=/data/PERSISTENT.img
+
+2. pull到本地
+adb pull /data/PERSISTENT​.img   ~
+
+3. push到坏手机里
+adb pull ~/PERSISTENT.img /data
+
+4. 拷贝到坏手机的分区里  (adb shell环境)
+​dd if=/data/PERSISTENT.img​ of=/dev/block/platform/sdio_emmc/by-name/PERSISTENT
+}}}
+

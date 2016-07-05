@@ -15,7 +15,8 @@
 <li><a href="#toc_0.0.0.3">INTC中断</a>
 <li><a href="#toc_0.0.0.4">AON INTC</a>
 <li><a href="#toc_0.0.0.5">ANA INTC</a>
-<li><a href="#toc_0.0.0.6">Address Map</a>
+<li><a href="#toc_0.0.0.6">SharkLS Address Map</a>
+<li><a href="#toc_0.0.0.7">2723 Address Map</a>
 </ul>
 </ul>
 </ul>
@@ -2567,7 +2568,7 @@ This interrupt is masked from ADC_INT_RAW_STATUS by ADC_INT_EN
 </p>
 
 <hr />
-<h4 id="toc_0.0.0.6">Address Map</h4>
+<h4 id="toc_0.0.0.6">SharkLS Address Map</h4>
 <table>
 <tr>
 <td>
@@ -3727,6 +3728,208 @@ Reserved
 </td>
 <td>
 Internal On Chip ROM Space (32KB)
+</td>
+</tr>
+</table>
+
+<h4 id="toc_0.0.0.7">2723 Address Map</h4>
+<table>
+<tr>
+<td>
+Base Address
+</td>
+<td>
+APB Slave
+</td>
+<td>
+Description
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8000 ~ 0x4003_801F
+</td>
+<td>
+IMPD ADC
+</td>
+<td>
+impd adc
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8020 ~ 0x4003_803F
+</td>
+<td>
+PWM
+</td>
+<td>
+PWM controller
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8040 ~ 0x4003_807F
+</td>
+<td>
+WDG
+</td>
+<td>
+Watch dog controller
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8080 ~ 0x4003_80FF
+</td>
+<td>
+RTC
+</td>
+<td>
+Real time controller
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8100 ~ 0x4003_817F
+</td>
+<td>
+EIC
+</td>
+<td>
+Extra interrupt controller.
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8180 ~ 0x4003_81FF
+</td>
+<td>
+Pin reg
+</td>
+<td>
+Adie pin control register.
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8200 ~ 0x4003_827F
+</td>
+<td>
+EFS
+</td>
+<td>
+EFS
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8280 ~ 0x4003_82FF
+</td>
+<td>
+THM
+</td>
+<td>
+Thermal monitor
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8300 ~ 0x4003_837F
+</td>
+<td>
+ADC
+</td>
+<td>
+Auxiliary ADC controller.
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8380 ~ 0x4003_83BF
+</td>
+<td>
+INTC
+</td>
+<td>
+Interrupt controller.
+</td>
+</tr>
+<tr>
+<td>
+0x4003_83C0 ~ 0x4003_83FF
+</td>
+<td>
+CAL
+</td>
+<td>
+OSC calibration
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8400 ~ 0x4003_843F
+</td>
+<td>
+AUD IFA
+</td>
+<td>
+Audio interface with Shark.
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8440 ~ 0x4003_84FF
+</td>
+<td>
+BLTC
+</td>
+<td>
+Breathing light controller
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8500 ~ 0x4003_85FF
+</td>
+<td>
+FGU
+</td>
+<td>
+Coulombmeter controller
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8600 ~ 0x4003_86FF
+</td>
+<td>
+AUD CFGA
+</td>
+<td>
+Audio codec control register
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8700 ~ 0x4003_87FF
+</td>
+<td>
+HDT
+</td>
+<td>
+Audio HDT control register
+</td>
+</tr>
+<tr>
+<td>
+0x4003_8800 ~ 0x4003_8FFF
+</td>
+<td>
+GLB Reg
+</td>
+<td>
+Global Register
 </td>
 </tr>
 </table>

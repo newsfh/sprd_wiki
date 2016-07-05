@@ -179,7 +179,7 @@
 | ADC_INT_MASK_STATUS             | [0]                  | This interrupt is masked from ADC_INT_RAW_STATUS by ADC_INT_EN                         |
 
 ----
-==== Address Map ====
+==== SharkLS Address Map ====
 | Addr Range                | Addr Map Description                       |
 | 0x0000_0000 ~ 0x0000_FFFF | Internal On Chip RAM Space (8KB Avaliable) |
 | 0x0001_0000 ~ 0x00FF_FFFF | Reserved.                                  |
@@ -325,4 +325,26 @@
 | 0xF000_0000 ~ 0xFFDF_FFFF | External Memory Space (254 MB)             |
 | 0xFFE0_0000 ~ 0xFFFE_FFFF | Reserved                                   |
 | 0xFFFF_0000 ~ 0xFFFF_FFFF | Internal On Chip ROM Space (32KB)          |
+
+==== 2723 Address Map ====
+| Base Address              | APB Slave | Description                  |
+| 0x4003_8000 ~ 0x4003_801F | IMPD ADC  | impd adc                     |
+| 0x4003_8020 ~ 0x4003_803F | PWM       | PWM controller               |
+| 0x4003_8040 ~ 0x4003_807F | WDG       | Watch dog controller         |
+| 0x4003_8080 ~ 0x4003_80FF | RTC       | Real time controller         |
+| 0x4003_8100 ~ 0x4003_817F | EIC       | Extra interrupt controller.  |
+| 0x4003_8180 ~ 0x4003_81FF | Pin reg   | Adie pin control register.   |
+| 0x4003_8200 ~ 0x4003_827F | EFS       | EFS                          |
+| 0x4003_8280 ~ 0x4003_82FF | THM       | Thermal monitor              |
+| 0x4003_8300 ~ 0x4003_837F | ADC       | Auxiliary ADC controller.    |
+| 0x4003_8380 ~ 0x4003_83BF | INTC      | Interrupt controller.        |
+| 0x4003_83C0 ~ 0x4003_83FF | CAL       | OSC calibration              |
+| 0x4003_8400 ~ 0x4003_843F | AUD IFA   | Audio interface with Shark.  |
+| 0x4003_8440 ~ 0x4003_84FF | BLTC      | Breathing light controller   |
+| 0x4003_8500 ~ 0x4003_85FF | FGU       | Coulombmeter controller      |
+| 0x4003_8600 ~ 0x4003_86FF | AUD CFGA  | Audio codec control register |
+| 0x4003_8700 ~ 0x4003_87FF | HDT       | Audio HDT control register   |
+| 0x4003_8800 ~ 0x4003_8FFF | GLB Reg   | Global Register              |
+
+
 
