@@ -26,6 +26,7 @@
 [[学习笔记 － keypad]]</BR>
 [[学习笔记 － clock]]</BR>
 [[学习笔记 － timer]]</BR>
+[[学习笔记 － RTC & Alarm]]</BR>
 [[学习笔记 － bus monitor]]</BR>
 [[学习笔记 － 7s reset]]</BR>
 [[学习笔记 － DDR]]</BR>

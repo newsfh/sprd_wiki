@@ -1,0 +1,143 @@
+ %toc 目录
+
+----
+=== 代码 ===
+==== alarmtimer_fired ====
+{{{
+static enum hrtimer_restart alarmtimer_fired(struct hrtimer *timer)
+{
+    struct alarm *alarm = container_of(timer, struct alarm, timer);
+    struct alarm_base *base = &alarm_bases[alarm->type];
+    unsigned long flags;
+    struct rtc_device *rtc;
+    struct rtc_time tm;
+    int ret = HRTIMER_NORESTART;
+    int restart = ALARMTIMER_NORESTART;
+
+    alarmtimer_dequeue(base, alarm);
+
+    if (alarm->function)
+        restart = alarm->function(alarm, base->gettime());                      // 调用alarm使用者的回调函数
+
+    if (restart != ALARMTIMER_NORESTART) {                                      // 如果是周期性alarm，重设expire
+        hrtimer_set_expires(&alarm->timer, alarm->node.expires);
+        alarmtimer_enqueue(base, alarm);
+        ret = HRTIMER_RESTART;
+    }
+
+    /* show which app set this alarm */                                         // 打印信息
+    rtc = alarmtimer_get_rtcdev();
+    if (rtc && alarm->alrm_comm) {
+        if (rtc->ops && rtc->ops->read_time)
+            rtc->ops->read_time(rtc, &tm);
+
+        pr_info("alarm set by [%s], triggered at %d-%d-%d %d:%d:%d\n",
+            alarm->alrm_comm,
+            tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+            tm.tm_hour, tm.tm_min, tm.tm_sec);
+    }
+
+    return ret;
+}
+}}}
+
+==== alarmtimer_suspend ====
+{{{
+alarm在suspend时，把时间设置到RTC里，通过RTC来唤醒
+
+static int alarmtimer_suspend(struct device *dev)
+{
+    struct rtc_time tm, tm_set;
+    ktime_t min, now, set_time;
+    unsigned long flags;
+    struct rtc_device *rtc;
+    struct rtc_wkalrm alarm;
+    int i, ret;
+
+    rtc = alarmtimer_get_rtcdev();
+
+    /* Find the soonest timer to expire*/                           // 获取最近的alarm
+    for (i = 0; i < ALARM_NUMTYPE; i++) {
+        struct alarm_base *base = &alarm_bases[i];
+        struct timerqueue_node *next;
+        ktime_t delta;
+
+        next = timerqueue_getnext(&base->timerqueue);
+        if (!next)
+            continue;
+        delta = ktime_sub(next->expires, base->gettime());
+        if (!min.tv64 || (delta.tv64 < min.tv64))
+            min = delta;
+    }
+
+    /* Setup an rtc timer to fire that far in the future */         // 转换成RTC时间，并设置到RTC里
+    rtc_timer_cancel(rtc, &rtctimer);
+    rtc_read_time(rtc, &tm);
+    now = rtc_tm_to_ktime(tm);
+    set_time = ktime_add(now, min);
+    tm_set = rtc_ktime_to_tm(set_time);
+
+    alarm.time = tm_set;
+    alarm.enabled = 1;
+    if (rtc->ops && rtc->ops->set_alarm)
+        ret = rtc->ops->ioctl(rtc->dev.parent, SET_WAKE_ALARM, (unsigned long)&alarm);
+
+    return ret;
+}
+}}}
+
+=== Alarm使用 ===
+{{{
+    struct alarm polling_alarm;
+
+    alarm_init(&polling_alarm,                              // alarm
+            ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP,          // alarm类型
+            sec_bat_alarm);                                 // alarm回调
+
+    alarm_start_range(&polling_alarm,
+        next, ktime_add(next, slack));
+
+    alarm_start(&polling_alarm,                                 // alarm
+            ktime_add(last_poll_time, ktime_set(seconds, 0)));  // 闹钟时间
+
+    alarm_cancel(&polling_alarm);                           // 取消闹钟
+}}}
+
+=== 调试相关 ===
+* log
+{{{
+* alarm set by
+    在alarm时间到，被触发时打印
+
+* alarm set at
+    在alarm suspend时被打印
+}}}
+
+* alarm_bases
+{{{
+维护的alarm队列
+}}}
+
+* callback
+{{{
+alarm在高精度时钟的中断里响应
+
+[  110.291412] c0 [<c006e5e8>] (alarmtimer_fired+0x3c/0x15c) from [<c00499dc>] (__run_hrtimer+0x180/0x290)
+[  110.300781] c0 [<c00499dc>] (__run_hrtimer+0x180/0x290) from [<c004a5c8>] (hrtimer_interrupt+0x148/0x2a0)
+[  110.310363] c0 [<c004a5c8>] (hrtimer_interrupt+0x148/0x2a0) from [<c04af354>] (__gptimer_interrupt+0x15c/0x170)
+[  110.320434] c0 [<c04af354>] (__gptimer_interrupt+0x15c/0x170) from [<c0091128>] (handle_irq_event_percpu+0xe8/0x2f0)
+[  110.330963] c0 [<c0091128>] (handle_irq_event_percpu+0xe8/0x2f0) from [<c009137c>] (handle_irq_event+0x4c/0x6c)
+[  110.341033] c0 [<c009137c>] (handle_irq_event+0x4c/0x6c) from [<c0094478>] (handle_fasteoi_irq+0xc4/0x10c)
+[  110.350677] c0 [<c0094478>] (handle_fasteoi_irq+0xc4/0x10c) from [<c0090928>] (generic_handle_irq+0x30/0x40)
+[  110.360504] c0 [<c0090928>] (generic_handle_irq+0x30/0x40) from [<c00102c4>] (handle_IRQ+0x78/0xa0)
+[  110.369537] c0 [<c00102c4>] (handle_IRQ+0x78/0xa0) from [<c00093d8>] (gic_handle_irq+0xd0/0x17c)
+[  110.378326] c0 [<c00093d8>] (gic_handle_irq+0xd0/0x17c) from [<c000f444>] (__irq_svc+0x44/0x78)
+}}}
+
+=== 文件 ===
+{{{
+kernel/drivers/rtc/rtc-sprd.c
+kernel/kernel/time/alarmtimer.c
+kernel/drivers/staging/android/alarm-dev.c
+}}}
+

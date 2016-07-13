@@ -17,18 +17,19 @@
 </ul>
 <li><a href="#toc_0.2">代码解析</a>
 <ul>
-<li><a href="#toc_0.2.1">wake lock</a>
+<li><a href="#toc_0.2.1">整体流程图</a>
+<li><a href="#toc_0.2.2">wake lock</a>
 <ul>
-<li><a href="#toc_0.2.1.1">main_wake_lock</a>
-<li><a href="#toc_0.2.1.2">pm_message_wakelock</a>
-<li><a href="#toc_0.2.1.3">wake_unlock</a>
-<li><a href="#toc_0.2.1.4">wake_lock使用</a>
+<li><a href="#toc_0.2.2.1">main_wake_lock</a>
+<li><a href="#toc_0.2.2.2">pm_message_wakelock</a>
+<li><a href="#toc_0.2.2.3">wake_unlock</a>
+<li><a href="#toc_0.2.2.4">wake_lock使用</a>
 </ul>
-<li><a href="#toc_0.2.2">深睡流程</a>
+<li><a href="#toc_0.2.3">深睡流程</a>
 <ul>
-<li><a href="#toc_0.2.2.1">调用栈</a>
-<li><a href="#toc_0.2.2.2">deep_sleep</a>
-<li><a href="#toc_0.2.2.3">汇编代码</a>
+<li><a href="#toc_0.2.3.1">调用栈</a>
+<li><a href="#toc_0.2.3.2">deep_sleep</a>
+<li><a href="#toc_0.2.3.3">汇编代码</a>
 </ul>
 </ul>
 <li><a href="#toc_0.3">调试相关</a>
@@ -59,8 +60,13 @@
 
 <hr />
 <h2 id="toc_0.2">代码解析</h2>
-<h3 id="toc_0.2.1">wake lock</h3>
-<h4 id="toc_0.2.1.1">main_wake_lock</h4>
+<h3 id="toc_0.2.1">整体流程图</h3>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/sleep_suspend_workflow.png" />
+</p>
+
+<h3 id="toc_0.2.2">wake lock</h3>
+<h4 id="toc_0.2.2.1">main_wake_lock</h4>
 <pre>
 在wake_lock里，经常会看到"main"这个wake lock，这是内核的一个锁，给用户态用来请求进入suspend流程
 
@@ -134,7 +140,7 @@ sleep (0-&gt;3)代表从唤醒状态到请求睡眠状态
 
 </pre>
 
-<h4 id="toc_0.2.1.2">pm_message_wakelock</h4>
+<h4 id="toc_0.2.2.2">pm_message_wakelock</h4>
 <pre>
 这个wake lock是power manager在打印所有wake lock时用的锁，在打印前持有，打印完释放
 
@@ -155,7 +161,7 @@ kernel/drivers/platform/sprd/pm_debug_scx35.c
 833}
 </pre>
 
-<h4 id="toc_0.2.1.3">wake_unlock</h4>
+<h4 id="toc_0.2.2.3">wake_unlock</h4>
 <pre>
 565void wake_unlock(struct wake_lock *lock)
 566{
@@ -198,7 +204,7 @@ kernel/drivers/platform/sprd/pm_debug_scx35.c
 603}
 </pre>
 
-<h4 id="toc_0.2.1.4">wake_lock使用</h4>
+<h4 id="toc_0.2.2.4">wake_lock使用</h4>
 <pre>
 #include &lt;linux/wakelock.h&gt;
 
@@ -210,8 +216,11 @@ wake_lock(&amp;messages_wakelock);
 wake_unlock(&amp;messages_wakelock);
 </pre>
 
-<h3 id="toc_0.2.2">深睡流程</h3>
-<h4 id="toc_0.2.2.1">调用栈</h4>
+<h3 id="toc_0.2.3">深睡流程</h3>
+<h4 id="toc_0.2.3.1">调用栈</h4>
+<ul>
+<li>
+调用至芯片sleep
 <pre>
 -000|sc_sleep_call
 -000|deep_sleep
@@ -234,7 +243,26 @@ wake_unlock(&amp;messages_wakelock);
  ---|endless...
 </pre>
 
-<h4 id="toc_0.2.2.2">deep_sleep</h4>
+<li>
+调用到驱动suspend
+<pre>
+[   49.415924] c1 [&lt;c006e740&gt;] (alarmtimer_suspend+0x30/0x2f4) from [&lt;c02d1f2c&gt;] (platform_pm_suspend+0x3c/0x64)
+[   49.415954] c1 [&lt;c02d1f2c&gt;] (platform_pm_suspend+0x3c/0x64) from [&lt;c02d6404&gt;] (dpm_run_callback+0x38/0x60)
+[   49.415985] c1 [&lt;c02d6404&gt;] (dpm_run_callback+0x38/0x60) from [&lt;c02d7604&gt;] (__device_suspend+0x228/0x2e0)
+[   49.415985] c1 [&lt;c02d7604&gt;] (__device_suspend+0x228/0x2e0) from [&lt;c02d80d4&gt;] (dpm_suspend+0xb8/0x214)
+[   49.416015] c1 [&lt;c02d80d4&gt;] (dpm_suspend+0xb8/0x214) from [&lt;c02d848c&gt;] (dpm_suspend_start+0x6c/0x74)
+[   49.416015] c1 [&lt;c02d848c&gt;] (dpm_suspend_start+0x6c/0x74) from [&lt;c0064ebc&gt;] (suspend_devices_and_enter+0xe4/0x244)
+[   49.416046] c1 [&lt;c0064ebc&gt;] (suspend_devices_and_enter+0xe4/0x244) from [&lt;c006513c&gt;] (pm_suspend+0x120/0x254)
+[   49.416076] c1 [&lt;c006513c&gt;] (pm_suspend+0x120/0x254) from [&lt;c00662ec&gt;] (suspend+0x74/0x18c)
+[   49.416076] c1 [&lt;c00662ec&gt;] (suspend+0x74/0x18c) from [&lt;c003fbbc&gt;] (process_one_work+0x2c8/0x460)
+[   49.416107] c1 [&lt;c003fbbc&gt;] (process_one_work+0x2c8/0x460) from [&lt;c00409b0&gt;] (worker_thread+0x23c/0x370)
+[   49.416107] c1 [&lt;c00409b0&gt;] (worker_thread+0x23c/0x370) from [&lt;c00461a0&gt;] (kthread+0xbc/0xc8)
+[   49.416137] c1 [&lt;c00461a0&gt;] (kthread+0xbc/0xc8) from [&lt;c000f948&gt;] (ret_from_fork+0x14/0x20)
+</pre>
+
+</ul>
+
+<h4 id="toc_0.2.3.2">deep_sleep</h4>
 <pre>
 代码：kernel/drivers/platform/sprd/pm-scx35.c
 
@@ -257,7 +285,7 @@ static int sc_sleep_call(unsigned long flag)
 }
 </pre>
 
-<h4 id="toc_0.2.2.3">汇编代码</h4>
+<h4 id="toc_0.2.3.3">汇编代码</h4>
 <pre>
 代码：kernel/drivers/platform/sprd/standby-scx35.S
 这段代码被放在0x400处
@@ -759,6 +787,8 @@ debug_mask
 <a href="http://blog.csdn.net/g_salamander/article/details/7978772">android 休眠唤醒机制分析(一) — wake_lock</a></BR>
 <a href="http://blog.csdn.net/g_salamander/article/details/7982170">android 休眠唤醒机制分析(二) — early_suspend</a></BR>
 <a href="http://blog.csdn.net/g_salamander/article/details/7988340">android 休眠唤醒机制分析(三) — suspend</a></BR>
+</BR>
+<a href="http://blog.csdn.net/mirkerson/article/details/21401835">Android (Linux) Suspend流程</a></BR>
 </p>
 
 </body>

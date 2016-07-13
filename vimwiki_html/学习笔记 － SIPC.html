@@ -282,6 +282,11 @@ Refnotify
 <pre>
 Sbuf-x-x挂在smsg_recv，即等smsg将其唤醒,这个是非常正常的。这个THREAD会去唤醒调用sbuf_read的这个THREAD去读数据
 CP给SBUF写数据不发SMSG也是非常正常的。（现在的代码是subf为空发SMSG，满也会发一条，5分钟AP不取会发一条）
+
+SMSG在收到消息后，会从share memory里把这条msg拷贝到cache里
+发送消息，只往share memory里写数据，CP会把这条消息拷贝到它的cache里
+
+如果类型是event，则value值是对应的哪个子通道
 </pre>
 
 <h3 id="toc_0.4.1">SIPC ID</h3>

@@ -15,6 +15,9 @@
 
 ----
 == 代码解析 ==
+=== 整体流程图 ===
+{{local:images/sleep_suspend_workflow.png}}
+
 === wake lock ===
 ==== main_wake_lock ====
 {{{
@@ -168,6 +171,7 @@ wake_unlock(&messages_wakelock);
 
 === 深睡流程 ===
 ==== 调用栈 ====
+* 调用至芯片sleep
 {{{
 -000|sc_sleep_call
 -000|deep_sleep
@@ -188,6 +192,21 @@ wake_unlock(&messages_wakelock);
 -011|ret_fast_syscall
 -012|ret_fast_syscall
  ---|endless...
+}}}
+* 调用到驱动suspend
+{{{
+[   49.415924] c1 [<c006e740>] (alarmtimer_suspend+0x30/0x2f4) from [<c02d1f2c>] (platform_pm_suspend+0x3c/0x64)
+[   49.415954] c1 [<c02d1f2c>] (platform_pm_suspend+0x3c/0x64) from [<c02d6404>] (dpm_run_callback+0x38/0x60)
+[   49.415985] c1 [<c02d6404>] (dpm_run_callback+0x38/0x60) from [<c02d7604>] (__device_suspend+0x228/0x2e0)
+[   49.415985] c1 [<c02d7604>] (__device_suspend+0x228/0x2e0) from [<c02d80d4>] (dpm_suspend+0xb8/0x214)
+[   49.416015] c1 [<c02d80d4>] (dpm_suspend+0xb8/0x214) from [<c02d848c>] (dpm_suspend_start+0x6c/0x74)
+[   49.416015] c1 [<c02d848c>] (dpm_suspend_start+0x6c/0x74) from [<c0064ebc>] (suspend_devices_and_enter+0xe4/0x244)
+[   49.416046] c1 [<c0064ebc>] (suspend_devices_and_enter+0xe4/0x244) from [<c006513c>] (pm_suspend+0x120/0x254)
+[   49.416076] c1 [<c006513c>] (pm_suspend+0x120/0x254) from [<c00662ec>] (suspend+0x74/0x18c)
+[   49.416076] c1 [<c00662ec>] (suspend+0x74/0x18c) from [<c003fbbc>] (process_one_work+0x2c8/0x460)
+[   49.416107] c1 [<c003fbbc>] (process_one_work+0x2c8/0x460) from [<c00409b0>] (worker_thread+0x23c/0x370)
+[   49.416107] c1 [<c00409b0>] (worker_thread+0x23c/0x370) from [<c00461a0>] (kthread+0xbc/0xc8)
+[   49.416137] c1 [<c00461a0>] (kthread+0xbc/0xc8) from [<c000f948>] (ret_from_fork+0x14/0x20)
 }}}
 
 ==== deep_sleep ====
@@ -652,4 +671,6 @@ active wake lock main
 [[http://blog.csdn.net/g_salamander/article/details/7978772|android 休眠唤醒机制分析(一) — wake_lock]]</BR>
 [[http://blog.csdn.net/g_salamander/article/details/7982170|android 休眠唤醒机制分析(二) — early_suspend]]</BR>
 [[http://blog.csdn.net/g_salamander/article/details/7988340|android 休眠唤醒机制分析(三) — suspend]]</BR>
+</BR>
+[[http://blog.csdn.net/mirkerson/article/details/21401835|Android (Linux) Suspend流程]]</BR>
 

@@ -227,6 +227,10 @@ uart信息
 2: enable uart的打印
 3: disable uart的打印
 }}}
+==== /sys/class/graphics/fb0/dynamic_fps ====
+{{{
+LCD刷新率
+}}}
 
 ----
 === 资料 ===
