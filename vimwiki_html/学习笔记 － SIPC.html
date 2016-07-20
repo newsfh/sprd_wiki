@@ -41,8 +41,7 @@
 <li><a href="#toc_0.8.2">轮询5次CP无响应，发生Modem Blocked</a>
 </ul>
 <li><a href="#toc_0.9">调试节点</a>
-<li><a href="#toc_0.10">channel &amp; onwer</a>
-<li><a href="#toc_0.11">附件</a>
+<li><a href="#toc_0.10">附件</a>
 </ul>
 </ul>
 </div>
@@ -269,6 +268,22 @@ Refnotify
 </tr>
 </table>
 
+<ul>
+<li>
+channel &amp; onwer
+<pre>
+channel 4/value 0、1是nvitemd相关channel 4/value 2是assert相关，CP找andrew.yang，AP找zhiwei.fu
+channel 4/value 8是refnotify，找zhongping.tan
+channel 5、21 是log/diag通道，找xiaoyin.cao
+channel 6/value 0-11是AT命令，CP侧找协议栈，AP找zhiwei.fu
+channel 6/value 12 是VT通道 ，CP找shaohua.xia
+channel 7、8、9、18、19、20是网络通道，找sally.he
+channel 10-17 是audio相关，找peter.huang
+channel 22是CP信令通道 ，未来将使用
+</pre>
+
+</ul>
+
 <hr />
 <h2 id="toc_0.3">SMEM</h2>
 <p>
@@ -350,10 +365,13 @@ enum {
 /*7*/    SMSG_TYPE_SMEM_ALLOC,      /* allocate smem, flag=order */
 /*8*/    SMSG_TYPE_SMEM_FREE,       /* free smem, flag=order, value=addr */
 /*9*/    SMSG_TYPE_SMEM_DONE,       /* return of alloc/free smem */
-/*10*/    SMSG_TYPE_FUNC_CALL,      /* RPC func, value=addr */
-/*11*/    SMSG_TYPE_FUNC_RETURN,    /* return of RPC func */
-/*12*/    SMSG_TYPE_DIE,
-/*13*/    SMSG_TYPE_NR,             /* total type number */
+/*10*/   SMSG_TYPE_FUNC_CALL,       /* RPC func, value=addr */
+/*11*/   SMSG_TYPE_FUNC_RETURN,     /* return of RPC func */
+/*12*/   SMSG_TYPE_DIE,
+/*13*/   SMSG_TYPE_DFS,
+/*14*/   SMSG_TYPE_DFS_RSP,
+/*15*/   SMSG_TYPE_ASS_TRG,
+/*16*/   SMSG_TYPE_NR,              /* total type number */
 };
 </pre>
 
@@ -721,7 +739,13 @@ int mbox_register_irq_handle(u8 target_id, irq_handler_t irq_handler, void *priv
 }
 </pre>
 
+<li>
+sbuf初始化过程中的smsg消息
+
 </ul>
+<p>
+<img src="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/images/sipc_sbuf_init.png" />
+</p>
 
 <hr />
 <h2 id="toc_0.8">上层应用</h2>
@@ -834,6 +858,9 @@ vendor/sprd/proprietories-source/phoneserver/adapter.c
 
 <hr />
 <h2 id="toc_0.9">调试节点</h2>
+<ul>
+<li>
+节点
 <pre>
 root@sp9830i_j3lte:/d/sipc # ll
 -r--r--r-- root     root            0 1970-01-01 08:00 sblock
@@ -844,22 +871,272 @@ root@sp9830i_j3lte:/d/sipc # ll
 -r--r--r-- root     root            0 1970-01-01 08:00 smsg
 </pre>
 
-
-<hr />
-<h2 id="toc_0.10">channel &amp; onwer</h2>
+<li>
+smem
 <pre>
-channel 4/value 0、1是nvitemd相关channel 4/value 2是assert相关，CP找andrew.yang，AP找zhiwei.fu
-channel 4/value 8是refnotify，找zhongping.tan
-channel 5、21 是log/diag通道，找xiaoyin.cao
-channel 6/value 0-11是AT命令，CP侧找协议栈，AP找zhiwei.fu
-channel 6/value 12 是VT通道 ，CP找shaohua.xia
-channel 7、8、9、18、19、20是网络通道，找sally.he
-channel 10-17 是audio相关，找peter.huang
-channel 22是CP信令通道 ，未来将使用
+root@scx35l_sharkls_j3lte:/d/sipc # cat smem                                   
+smem pool infomation:
+phys_addr=0x87800000, total=0x500000, used=0x440000, free=0xc0000
+smem record list:
+task init: pid=1, addr=0x87800000, size=0x1f000                                 // spipe
+task init: pid=1, addr=0x8781f000, size=0x49000
+task init: pid=1, addr=0x87868000, size=0x49000
+task init: pid=1, addr=0x878b1000, size=0x21000
+task init: pid=1, addr=0x878d2000, size=0x33a000
+task saudio-5-10: pid=95, addr=0x87c0c000, size=0x1000                          // saudio
+task saudio-5-10: pid=95, addr=0x87c0d000, size=0x1000
+task saudio-5-10: pid=95, addr=0x87c0e000, size=0x1000
+task saudio-5-14: pid=98, addr=0x87c0f000, size=0x1000
+task saudio-5-10: pid=95, addr=0x87c10000, size=0x1000
+task saudio-5-14: pid=98, addr=0x87c11000, size=0x1000
+task saudio-5-10: pid=95, addr=0x87c12000, size=0x3000
+task saudio-5-10: pid=95, addr=0x87c15000, size=0x3000
+task saudio-5-14: pid=98, addr=0x87c18000, size=0x1000
+task saudio-5-14: pid=98, addr=0x87c19000, size=0x1000
+task saudio-5-14: pid=98, addr=0x87c1a000, size=0x3000
+task saudio-5-14: pid=98, addr=0x87c1d000, size=0x3000
+task kworker/u8:2: pid=104, addr=0x87c20000, size=0x4000                        // seth
+task kworker/u8:2: pid=104, addr=0x87c24000, size=0x4000
+task kworker/u8:2: pid=104, addr=0x87c28000, size=0x4000
+task kworker/u8:2: pid=104, addr=0x87c2c000, size=0x4000
+task kworker/u8:2: pid=104, addr=0x87c30000, size=0x4000
+task kworker/u8:2: pid=104, addr=0x87c34000, size=0x4000
+task kworker/u8:2: pid=104, addr=0x87c38000, size=0x4000
+task kworker/u8:2: pid=104, addr=0x87c3c000, size=0x4000
 </pre>
 
+<li>
+smsg
+<pre>
+root@scx35l_sharkls_j3lte:/d/sipc # cat smsg                                   
+sipc: sipc-lte: 
+dst: 0x5, irq: 0x0
+txbufAddr: 0xf00b0000, txbufsize: 0x80, txbufrdptr: [0xf00b0800]=187, txbufwrptr: [0xf00b0804]=187
+rxbufAddr: 0xf00b0400, rxbufsize: 0x80, rxbufrdptr: [0xf00b0808]=205, rxbufwrptr: [0xf00b080c]=205
+channel[0] states: 0
+channel[1] states: 0
+channel[2] states: 0
+channel[3] states: 0
+channel[4] states: 2
+channel[5] states: 2
+channel[6] states: 2
+channel[7] states: 2
+channel[8] states: 2
+channel[9] states: 2
+channel[10] states: 2
+channel[11] states: 2
+channel[12] states: 2
+channel[13] states: 2
+channel[14] states: 2
+channel[15] states: 2
+channel[16] states: 2
+channel[17] states: 2
+channel[18] states: 2
+channel[19] states: 2
+channel[20] states: 2
+channel[21] states: 2
+channel[22] states: 0
+channel[23] states: 0
+channel[24] states: 2
+channel[25] states: 2
+sipc: sipc-pmsys: 
+dst: 0x6, irq: 0x0
+txbufAddr: 0xf00b2000, txbufsize: 0x80, txbufrdptr: [0xf00b2800]=3, txbufwrptr: [0xf00b2804]=3
+rxbufAddr: 0xf00b2400, rxbufsize: 0x80, rxbufrdptr: [0xf00b2808]=3, rxbufwrptr: [0xf00b280c]=3
+channel[0] states: 0
+channel[1] states: 0
+channel[2] states: 0
+channel[3] states: 0
+channel[4] states: 0
+channel[5] states: 0
+channel[6] states: 0
+channel[7] states: 0
+channel[8] states: 0
+channel[9] states: 0
+channel[10] states: 0
+channel[11] states: 0
+channel[12] states: 0
+channel[13] states: 0
+channel[14] states: 0
+channel[15] states: 0
+channel[16] states: 0
+channel[17] states: 0
+channel[18] states: 0
+channel[19] states: 0
+channel[20] states: 0
+channel[21] states: 0
+channel[22] states: 2
+channel[23] states: 0
+channel[24] states: 0
+channel[25] states: 0
+</pre>
+
+<li>
+sbuf
+<pre>
+root@scx35l_sharkls_j3lte:/d/sipc # cat sbuf                                   
+sbuf dst 0x5, channel: 0x4, state: 1, smem_virt: 0xf0720000, smem_addr: 0x87800000, smem_size: 0x1e1e4, ringnr: 15          // 通道5-4
+sbuf ring[0]: rxbuf_addr :0x878011e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[0]: txbuf_addr :0x878001e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[1]: rxbuf_addr :0x878031e4, rxbuf_rdptr :0x1050, rxbuf_wrptr :0x1050, rxbuf_size :0x1000 
+sbuf ring[1]: txbuf_addr :0x878021e4, txbuf_rdptr :0x90, txbuf_wrptr :0x90, txbuf_size :0x1000 
+sbuf ring[2]: rxbuf_addr :0x878051e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[2]: txbuf_addr :0x878041e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[3]: rxbuf_addr :0x878071e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[3]: txbuf_addr :0x878061e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[4]: rxbuf_addr :0x878091e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[4]: txbuf_addr :0x878081e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[5]: rxbuf_addr :0x8780b1e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[5]: txbuf_addr :0x8780a1e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[6]: rxbuf_addr :0x8780d1e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[6]: txbuf_addr :0x8780c1e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[7]: rxbuf_addr :0x8780f1e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[7]: txbuf_addr :0x8780e1e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[8]: rxbuf_addr :0x878111e4, rxbuf_rdptr :0x1c, rxbuf_wrptr :0x1c, rxbuf_size :0x1000 
+sbuf ring[8]: txbuf_addr :0x878101e4, txbuf_rdptr :0x21, txbuf_wrptr :0x21, txbuf_size :0x1000 
+sbuf ring[9]: rxbuf_addr :0x878131e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[9]: txbuf_addr :0x878121e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[10]: rxbuf_addr :0x878151e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[10]: txbuf_addr :0x878141e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[11]: rxbuf_addr :0x878171e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[11]: txbuf_addr :0x878161e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[12]: rxbuf_addr :0x878191e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[12]: txbuf_addr :0x878181e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[13]: rxbuf_addr :0x8781b1e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[13]: txbuf_addr :0x8781a1e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf ring[14]: rxbuf_addr :0x8781d1e4, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x1000 
+sbuf ring[14]: txbuf_addr :0x8781c1e4, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x1000 
+sbuf dst 0x5, channel: 0x5, state: 1, smem_virt: 0xf0780000, smem_addr: 0x8781f000, smem_size: 0x48024, ringnr: 1           // 通道5-5
+sbuf ring[0]: rxbuf_addr :0x87827024, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x40000 
+sbuf ring[0]: txbuf_addr :0x8781f024, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x8000 
+sbuf dst 0x5, channel: 0x6, state: 1, smem_virt: 0xf0740000, smem_addr: 0x878b1000, smem_size: 0x20404, ringnr: 32          // 通道5-6
+sbuf ring[0]: rxbuf_addr :0x878b1c04, rxbuf_rdptr :0x289, rxbuf_wrptr :0x289, rxbuf_size :0x800 
+sbuf ring[0]: txbuf_addr :0x878b1404, txbuf_rdptr :0x17, txbuf_wrptr :0x17, txbuf_size :0x800 
+sbuf ring[1]: rxbuf_addr :0x878b2c04, rxbuf_rdptr :0x6da, rxbuf_wrptr :0x6da, rxbuf_size :0x800 
+sbuf ring[1]: txbuf_addr :0x878b2404, txbuf_rdptr :0x4cf, txbuf_wrptr :0x4cf, txbuf_size :0x800 
+sbuf ring[2]: rxbuf_addr :0x878b3c04, rxbuf_rdptr :0x1ad, rxbuf_wrptr :0x1ad, rxbuf_size :0x800 
+sbuf ring[2]: txbuf_addr :0x878b3404, txbuf_rdptr :0xe8, txbuf_wrptr :0xe8, txbuf_size :0x800 
+sbuf ring[3]: rxbuf_addr :0x878b4c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[3]: txbuf_addr :0x878b4404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[4]: rxbuf_addr :0x878b5c04, rxbuf_rdptr :0x22c, rxbuf_wrptr :0x22c, rxbuf_size :0x800 
+sbuf ring[4]: txbuf_addr :0x878b5404, txbuf_rdptr :0x244, txbuf_wrptr :0x244, txbuf_size :0x800 
+sbuf ring[5]: rxbuf_addr :0x878b6c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[5]: txbuf_addr :0x878b6404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[6]: rxbuf_addr :0x878b7c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[6]: txbuf_addr :0x878b7404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[7]: rxbuf_addr :0x878b8c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[7]: txbuf_addr :0x878b8404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[8]: rxbuf_addr :0x878b9c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[8]: txbuf_addr :0x878b9404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[9]: rxbuf_addr :0x878bac04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[9]: txbuf_addr :0x878ba404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[10]: rxbuf_addr :0x878bbc04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[10]: txbuf_addr :0x878bb404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[11]: rxbuf_addr :0x878bcc04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[11]: txbuf_addr :0x878bc404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[12]: rxbuf_addr :0x878bdc04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[12]: txbuf_addr :0x878bd404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[13]: rxbuf_addr :0x878bec04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[13]: txbuf_addr :0x878be404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[14]: rxbuf_addr :0x878bfc04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[14]: txbuf_addr :0x878bf404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[15]: rxbuf_addr :0x878c0c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[15]: txbuf_addr :0x878c0404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[16]: rxbuf_addr :0x878c1c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[16]: txbuf_addr :0x878c1404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[17]: rxbuf_addr :0x878c2c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[17]: txbuf_addr :0x878c2404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[18]: rxbuf_addr :0x878c3c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[18]: txbuf_addr :0x878c3404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[19]: rxbuf_addr :0x878c4c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[19]: txbuf_addr :0x878c4404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[20]: rxbuf_addr :0x878c5c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[20]: txbuf_addr :0x878c5404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[21]: rxbuf_addr :0x878c6c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[21]: txbuf_addr :0x878c6404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[22]: rxbuf_addr :0x878c7c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[22]: txbuf_addr :0x878c7404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[23]: rxbuf_addr :0x878c8c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[23]: txbuf_addr :0x878c8404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[24]: rxbuf_addr :0x878c9c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[24]: txbuf_addr :0x878c9404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[25]: rxbuf_addr :0x878cac04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[25]: txbuf_addr :0x878ca404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[26]: rxbuf_addr :0x878cbc04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[26]: txbuf_addr :0x878cb404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[27]: rxbuf_addr :0x878ccc04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[27]: txbuf_addr :0x878cc404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[28]: rxbuf_addr :0x878cdc04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[28]: txbuf_addr :0x878cd404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[29]: rxbuf_addr :0x878cec04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[29]: txbuf_addr :0x878ce404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[30]: rxbuf_addr :0x878cfc04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[30]: txbuf_addr :0x878cf404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf ring[31]: rxbuf_addr :0x878d0c04, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x800 
+sbuf ring[31]: txbuf_addr :0x878d0404, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x800 
+sbuf dst 0x5, channel: 0x15, state: 1, smem_virt: 0xf0980000, smem_addr: 0x87868000, smem_size: 0x48024, ringnr: 1          // 通道5-21
+sbuf ring[0]: rxbuf_addr :0x87870024, rxbuf_rdptr :0x0, rxbuf_wrptr :0x0, rxbuf_size :0x40000 
+sbuf ring[0]: txbuf_addr :0x87868024, txbuf_rdptr :0x0, txbuf_wrptr :0x0, txbuf_size :0x8000 
+</pre>
+
+<li>
+sblock
+<pre>
+root@scx35l_sharkls_j3lte:/d/sipc # cat sblock                                 
+sblock dst 0x5, channel: 0xa, state: 1, smem_virt: 0xf05e6000, smem_addr: 0x87c0d000, smem_size: 0x360, txblksz: 80, rxblksz: 80 
+sblock ring: txblk_virt :0xf05e6060, rxblk_virt :0xf05e61a0 
+sblock ring header: rxblk_addr :0x87c0d1a0, rxblk_rdptr :0x0, rxblk_wrptr :0x0, rxblk_size :80, rxblk_count :4, rxblk_blks: 0x87c0d300 
+sblock ring header: txblk_addr :0x87c0d060, txblk_rdptr :0x0, txblk_wrptr :0x0, txblk_size :80, txblk_count :4, txblk_blks: 0x87c0d2e0 
+sblock pool header: rxblk_addr :0x87c0d1a0, rxblk_rdptr :0x0, rxblk_wrptr :0x4, rxblk_size :80, rxpool_count :4, rxblk_blks: 0x87c0d340 
+sblock pool header: txblk_addr :0x87c0d060, txblk_rdptr :0x0, txblk_wrptr :0x4, txblk_size :80, txpool_count :4, txblk_blks: 0x87c0d320 
+sblock dst 0x5, channel: 0xb, state: 1, smem_virt: 0xf05e8000, smem_addr: 0x87c0e000, smem_size: 0x220, txblksz: 80, rxblksz: 0 
+sblock ring: txblk_virt :0xf05e8060, rxblk_virt :0xf05e81a0 
+sblock ring header: rxblk_addr :0x87c0e1a0, rxblk_rdptr :0x0, rxblk_wrptr :0x0, rxblk_size :0, rxblk_count :4, rxblk_blks: 0x87c0e1c0 
+sblock ring header: txblk_addr :0x87c0e060, txblk_rdptr :0x0, txblk_wrptr :0x0, txblk_size :80, txblk_count :4, txblk_blks: 0x87c0e1a0 
+sblock pool header: rxblk_addr :0x87c0e1a0, rxblk_rdptr :0x0, rxblk_wrptr :0x4, rxblk_size :0, rxpool_count :4, rxblk_blks: 0x87c0e200 
+sblock pool header: txblk_addr :0x87c0e060, txblk_rdptr :0x0, txblk_wrptr :0x4, txblk_size :80, txpool_count :4, txblk_blks: 0x87c0e1e0 
+sblock dst 0x5, channel: 0xc, state: 1, smem_virt: 0xf05ec000, smem_addr: 0x87c10000, smem_size: 0x220, txblksz: 80, rxblksz: 0 
+sblock ring: txblk_virt :0xf05ec060, rxblk_virt :0xf05ec1a0 
+sblock ring header: rxblk_addr :0x87c101a0, rxblk_rdptr :0x0, rxblk_wrptr :0x0, rxblk_size :0, rxblk_count :4, rxblk_blks: 0x87c101c0 
+sblock ring header: txblk_addr :0x87c10060, txblk_rdptr :0x0, txblk_wrptr :0x0, txblk_size :80, txblk_count :4, txblk_blks: 0x87c101a0 
+sblock pool header: rxblk_addr :0x87c101a0, rxblk_rdptr :0x0, rxblk_wrptr :0x4, rxblk_size :0, rxpool_count :4, rxblk_blks: 0x87c10200 
+sblock pool header: txblk_addr :0x87c10060, txblk_rdptr :0x0, txblk_wrptr :0x4, txblk_size :80, txpool_count :4, txblk_blks: 0x87c101e0 
+sblock dst 0x5, channel: 0xd, state: 1, smem_virt: 0xf05e4000, smem_addr: 0x87c0c000, smem_size: 0x1e0, txblksz: 80, rxblksz: 80 
+sblock ring: txblk_virt :0xf05e4060, rxblk_virt :0xf05e4100 
+sblock ring header: rxblk_addr :0x87c0c100, rxblk_rdptr :0x2, rxblk_wrptr :0x2, rxblk_size :80, rxblk_count :2, rxblk_blks: 0x87c0c1b0 
+sblock ring header: txblk_addr :0x87c0c060, txblk_rdptr :0x2, txblk_wrptr :0x2, txblk_size :80, txblk_count :2, txblk_blks: 0x87c0c1a0 
+sblock pool header: rxblk_addr :0x87c0c100, rxblk_rdptr :0x2, rxblk_wrptr :0x4, rxblk_size :80, rxpool_count :2, rxblk_blks: 0x87c0c1d0 
+sblock pool header: txblk_addr :0x87c0c060, txblk_rdptr :0x2, txblk_wrptr :0x4, txblk_size :80, txpool_count :2, txblk_blks: 0x87c0c1c0 
+sblock dst 0x5, channel: 0xe, state: 1, smem_virt: 0xf05ee000, smem_addr: 0x87c11000, smem_size: 0x360, txblksz: 80, rxblksz: 80 
+sblock ring: txblk_virt :0xf05ee060, rxblk_virt :0xf05ee1a0 
+sblock ring header: rxblk_addr :0x87c111a0, rxblk_rdptr :0x0, rxblk_wrptr :0x0, rxblk_size :80, rxblk_count :4, rxblk_blks: 0x87c11300 
+sblock ring header: txblk_addr :0x87c11060, txblk_rdptr :0x0, txblk_wrptr :0x0, txblk_size :80, txblk_count :4, txblk_blks: 0x87c112e0 
+sblock pool header: rxblk_addr :0x87c111a0, rxblk_rdptr :0x0, rxblk_wrptr :0x4, rxblk_size :80, rxpool_count :4, rxblk_blks: 0x87c11340 
+sblock pool header: txblk_addr :0x87c11060, txblk_rdptr :0x0, txblk_wrptr :0x4, txblk_size :80, txpool_count :4, txblk_blks: 0x87c11320 
+sblock dst 0x5, channel: 0xf, state: 1, smem_virt: 0xf05f8000, smem_addr: 0x87c18000, smem_size: 0x220, txblksz: 80, rxblksz: 0 
+sblock ring: txblk_virt :0xf05f8060, rxblk_virt :0xf05f81a0 
+sblock ring header: rxblk_addr :0x87c181a0, rxblk_rdptr :0x0, rxblk_wrptr :0x0, rxblk_size :0, rxblk_count :4, rxblk_blks: 0x87c181c0 
+sblock ring header: txblk_addr :0x87c18060, txblk_rdptr :0x0, txblk_wrptr :0x0, txblk_size :80, txblk_count :4, txblk_blks: 0x87c181a0 
+sblock pool header: rxblk_addr :0x87c181a0, rxblk_rdptr :0x0, rxblk_wrptr :0x4, rxblk_size :0, rxpool_count :4, rxblk_blks: 0x87c18200 
+sblock pool header: txblk_addr :0x87c18060, txblk_rdptr :0x0, txblk_wrptr :0x4, txblk_size :80, txpool_count :4, txblk_blks: 0x87c181e0 
+sblock dst 0x5, channel: 0x10, state: 1, smem_virt: 0xf05fa000, smem_addr: 0x87c19000, smem_size: 0x220, txblksz: 80, rxblksz: 0 
+sblock ring: txblk_virt :0xf05fa060, rxblk_virt :0xf05fa1a0 
+sblock ring header: rxblk_addr :0x87c191a0, rxblk_rdptr :0x0, rxblk_wrptr :0x0, rxblk_size :0, rxblk_count :4, rxblk_blks: 0x87c191c0 
+sblock ring header: txblk_addr :0x87c19060, txblk_rdptr :0x0, txblk_wrptr :0x0, txblk_size :80, txblk_count :4, txblk_blks: 0x87c191a0 
+sblock pool header: rxblk_addr :0x87c191a0, rxblk_rdptr :0x0, rxblk_wrptr :0x4, rxblk_size :0, rxpool_count :4, rxblk_blks: 0x87c19200 
+sblock pool header: txblk_addr :0x87c19060, txblk_rdptr :0x0, txblk_wrptr :0x4, txblk_size :80, txpool_count :4, txblk_blks: 0x87c191e0 
+sblock dst 0x5, channel: 0x11, state: 1, smem_virt: 0xf05ea000, smem_addr: 0x87c0f000, smem_size: 0x1e0, txblksz: 80, rxblksz: 80 
+sblock ring: txblk_virt :0xf05ea060, rxblk_virt :0xf05ea100 
+sblock ring header: rxblk_addr :0x87c0f100, rxblk_rdptr :0x2, rxblk_wrptr :0x2, rxblk_size :80, rxblk_count :2, rxblk_blks: 0x87c0f1b0 
+sblock ring header: txblk_addr :0x87c0f060, txblk_rdptr :0x2, txblk_wrptr :0x2, txblk_size :80, txblk_count :2, txblk_blks: 0x87c0f1a0 
+sblock pool header: rxblk_addr :0x87c0f100, rxblk_rdptr :0x2, rxblk_wrptr :0x4, rxblk_size :80, rxpool_count :2, rxblk_blks: 0x87c0f1d0 
+sblock pool header: txblk_addr :0x87c0f060, txblk_rdptr :0x2, txblk_wrptr :0x4, txblk_size :80, txpool_count :2, txblk_blks: 0x87c0f1c0 
+</pre>
+
+</ul>
+
 <hr />
-<h2 id="toc_0.11">附件</h2>
+<h2 id="toc_0.10">附件</h2>
 <p>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/multimedia_AudioHAL_ap_SIPC_introduction.ppt">multimedia_AudioHAL_ap_SIPC_introduction.ppt</a></BR>
 <a href="file:///home/likewise-open/SPREADTRUM/hua.fang/vimwiki/vimwiki/files/Spreadtrum_InterProcessor_Communication_Design.docx">Spreadtrum_InterProcessor_Communication_Design.docx</a></BR>
