@@ -477,6 +477,9 @@ int mbox_register_irq_handle(u8 target_id, irq_handler_t irq_handler, void *priv
 * sbuf初始化过程中的smsg消息
 {{local:images/sipc_sbuf_init.png}}
 
+* SIPC及sbuf内存布局
+{{local:images/sipc_sbuf_arch.png}}
+
 ----
 == 上层应用 ==
 === SIPC创建 ===
