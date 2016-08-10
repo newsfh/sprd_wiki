@@ -301,8 +301,20 @@ http://wikiserver.spreadtrum.com/Projects/SoftwareSystem/wiki/mengya_110810_visi
 ----
 === OpenGrok ===
 {{{
+网址：
 天津  http://10.5.2.45:8080/
+上海  http://10.0.1.79:8080/
 我的  http://10.0.33.7:8080/source
+      http://localhost:8080/source/
+
+命令：
+/var/opengrok/bin/OpenGrok index <src_code_dir>
+/var/opengrok/data
+
+资料：
+tomcat:     http://tomcat.apache.org/
+opengrok:   http://opengrok.github.io/OpenGrok/
+
 }}}
 
 ----
@@ -2075,5 +2087,16 @@ adb pull ~/PERSISTENT.img /data
 
 4. 拷贝到坏手机的分区里  (adb shell环境)
 ​dd if=/data/PERSISTENT.img​ of=/dev/block/platform/sdio_emmc/by-name/PERSISTENT
+}}}
+
+=== 重启framework ===
+{{{
+1.
+stop
+start
+
+2.
+ps | grep zygote
+kill对应的pid
 }}}
 

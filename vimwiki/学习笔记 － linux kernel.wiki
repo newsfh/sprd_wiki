@@ -26,5 +26,6 @@
 [[http://bbs.chinaunix.net/thread-2039668-1-1.html|arm linux kernel 从入口到start_kernel 的代码分析]]</BR>
 [[http://lli_njupt.0fees.net/index.html|Linux内核学习和研究及嵌入式(ARM)学习和研究的开放文档]]</BR>
 [[http://www.wowotech.net/|蜗窝科技]]<BR>
+[[http://liwei.life/|穷佐罗的Linux书]]<BR>
 
 

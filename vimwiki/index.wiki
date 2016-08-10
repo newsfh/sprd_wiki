@@ -23,6 +23,8 @@
 [[学习笔记 － ldo]]</BR>
 [[学习笔记 － pin & gpio]]</BR>
 [[学习笔记 － I2C]]</BR>
+[[学习笔记 － UART]]</BR>
+[[学习笔记 － SPI]]</BR>
 [[学习笔记 － keypad]]</BR>
 [[学习笔记 － clock]]</BR>
 [[学习笔记 － timer]]</BR>
