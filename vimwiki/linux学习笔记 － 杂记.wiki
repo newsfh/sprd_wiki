@@ -1,5 +1,16 @@
 %toc 目录
 
+=== 进kernel前提条件 ===
+{{{
+1. CPU必须处于SVC(supervisor)模式,并且IRQ和FIQ中断都是禁止的; 
+2. MMU(内存管理单元)必须是关闭的, 此时虚拟地址对物理地址; 
+3. 数据cache(Data cache)必须是关闭的 
+4. 指令cache(Instruction cache)可以是打开的,也可以是关闭的,这个没有强制要求; 
+5. CPU 通用寄存器0 (r0)必须是 0; 
+6. CPU 通用寄存器1 (r1)必须是 ARM Linux machine type (关于machine type, 我们后面会有讲解) 
+7. CPU 通用寄存器2 (r2) 必须是 kernel parameter list 的物理地址(parameter list 是由boot loader传递给kernel,用来描述设备信息属性的列表,详细内容可参考"Booting ARM Linux"文档).
+}}}
+
 === /proc/<pid>/节点代码 ===
 {{{
 kernel/fs/proc/base.c
