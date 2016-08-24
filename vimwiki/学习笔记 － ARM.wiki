@@ -1,5 +1,49 @@
 %toc 目录
 
+
+----
+=== 寄存器 ===
+{{local:images/arm_registers.png}}
+
+==== SPSR/CPSR ====
+{{local:images/arm_cpsr_reg.png}}<BR>
+*条件码标志*
+| 标志位 | 含义                                                                                                                                                                                                                                                                                                                                                                      |
+| N      | 当两个有符号整数运算时：<BR>N=1：表示运算的结果为负数；<BR>N=0：表示运算的结果为正数或零。                                                                                                                                                                                                                                                                                |
+| Z      | Z=1表示运算的结果为零，Z=0表示运算的结果非零。<BR>对于CMP指令，Z=1表进行比较的两个数相等                                                                                                                                                                                                                                                                                  |
+| C      | 可以有4种方法设置C的值：<BR>在加法指令中(包括比较指令CMP)，当结果产生了进位,则C=1,表示无符号运算发生上溢出；其他情况C=0.<BR>在减法指令中(包括减法指令CMP)，当运算中发生借位，则C=0，表示无符号运算数发生下溢出；其他情况下C=1。<BR>对于包含移位操作的非加碱运算指令，C中包含最后一次溢出的的位的数值<BR>对于其他非加减运算指令，C位的值通常不受影响 |
+| V      | 对于加减运算指令，当操作数和运算结果为二进制的补码表示的带符号数时，V=1表示符号为溢出；通常其他指令不影响V位。                                                                                                                                                                                                                                                            |
+*控制位*
+{{{
+CPSR的低八位I、F、T、M[4:0]统称为控制位。当异常中断发生时这些位发生变化。在特权级的处理器模式下，软件可以修改这些控制位。 
+1) I: IRQ中断禁止位：当I=1时禁止IRQ中断，
+2) F: FIQ中断禁止位：当F=1时禁止FIQ中断 
+3) T: T控制位该位反映处理器的运行状态。当该位为1时，程序运行于THUMB状态，否则运行于ARM状态。该信号反映在外部引脚TBIT上。在程序中不得修改CPSR中的TBIT位，否则处理器工作状态不能确定。
+4) 保留位：CPSR中的其余位为保留位，当改变CPSR中的条件码标志位或者控制位时，保留位不要改变，在程序中也不要用保留位存储数据。保留位将用于ARM版本的扩展。
+5) 运行模式位M[4：0]：这几位是模式位，这些位决定了处理器的运行模式。
+具体含义如下表所示：
+}}}
+| M[4:0]  | 处理器模式 | ARM模式可访问的寄存器                   | THUMB模式可访问的寄存器              |
+| 0b10000 | 用户模式   | PC,CPSR,R0~R14                          | PC,CPSR,R0~R7,LR,SP                  |
+| 0b10001 | FIQ模式    | PC,CPSR,SPSR_fiq,R14_fiq~R8_fiq,R0~R7   | PC,CPSR,SPSR_fiq,LR_fiq,SP_fiq,R0~R7 |
+| 0b10010 | IRQ模式    | PC,CPSR,SPSR_irq,R14_irq~R13_irq,R0~R12 | PC,CPSR,SPSR_irq,LR_irq,SP_irq,R0~R7 |
+| 0b10011 | 管理模式   | PC,CPSR,SPSR_svc,R14_svc~R13_svc,R0~R12 | PC,CPSR,SPSR_svc,LR_svc,SP_svc,R0~R7 |
+| 0b10111 | 中止模式   | PC,CPSR,SPSR_abt,R14_abt~R13_abt,R0~R12 | PC,CPSR,SPSR_abt,LR_abt,SP_abt,R0~R7 |
+| 0b11011 | 未定义模式 | PC,CPSR,SPSR_und,R14_und~R13_und,R0~R12 | PC,CPSR,SPSR_und,LR_und,SP_und,R0~R  |
+| 0b11111 | 系统模式   | PC,CPSR,R0~R14                          | PC,CPSR,LR,SP,R0~R74                 |
+
+----
+=== 中断向量表 ===
+|*地址*|*异常种类*|
+|FFFF0000|复位|
+|FFFF0004|未定义指令|
+|FFFF0008|软中断（swi）|
+|FFFF000C|Prefetch abort|
+|FFFF0010|Data abort|
+|FFFF0014|保留|
+|FFFF0018|IRQ|
+|FFFF001C|FIQ|
+
 ----
 === 指令 ===
 ==== MRS/MSR ====
@@ -70,35 +114,6 @@ D开头的，寄存器列表的顺序是从右到左。
   如:ldmdb sp,{r0 - lr}^;表示sp栈中的数据回复到User分组寄存器r0-lr中,而不是恢复到当前模式寄存器r0-lr
   当然对于User,System,IRQ,SVC,Abort,Undefined这6种模式来说[gliethttp]r0-r12是共用的,只是r13和r14为分别独有,对于FIQ模式,仅仅r0-r7是和前6中模式的r0-r7共用,r8-r14都是FIQ模式下专有.
 }}}
-
-----
-=== 寄存器 ===
-==== SPSR/CPSR ====
-{{local:images/arm_cpsr_reg.png}}<BR>
-*条件码标志*
-| 标志位 | 含义                                                                                                                                                                                                                                                                                                                                                                      |
-| N      | 当两个有符号整数运算时：<BR>N=1：表示运算的结果为负数；<BR>N=0：表示运算的结果为正数或零。                                                                                                                                                                                                                                                                                |
-| Z      | Z=1表示运算的结果为零，Z=0表示运算的结果非零。<BR>对于CMP指令，Z=1表进行比较的两个数相等                                                                                                                                                                                                                                                                                  |
-| C      | 可以有4种方法设置C的值：<BR>在加法指令中(包括比较指令CMP)，当结果产生了进位,则C=1,表示无符号运算发生上溢出；其他情况C=0.<BR>在减法指令中(包括减法指令CMP)，当运算中发生借位，则C=0，表示无符号运算数发生下溢出；其他情况下C=1。<BR>对于包含移位操作的非加碱运算指令，C中包含最后一次溢出的的位的数值<BR>对于其他非加减运算指令，C位的值通常不受影响 |
-| V      | 对于加减运算指令，当操作数和运算结果为二进制的补码表示的带符号数时，V=1表示符号为溢出；通常其他指令不影响V位。                                                                                                                                                                                                                                                            |
-*控制位*
-{{{
-CPSR的低八位I、F、T、M[4:0]统称为控制位。当异常中断发生时这些位发生变化。在特权级的处理器模式下，软件可以修改这些控制位。 
-1) I: IRQ中断禁止位：当I=1时禁止IRQ中断，
-2) F: FIQ中断禁止位：当F=1时禁止FIQ中断 
-3) T: T控制位该位反映处理器的运行状态。当该位为1时，程序运行于THUMB状态，否则运行于ARM状态。该信号反映在外部引脚TBIT上。在程序中不得修改CPSR中的TBIT位，否则处理器工作状态不能确定。
-4) 保留位：CPSR中的其余位为保留位，当改变CPSR中的条件码标志位或者控制位时，保留位不要改变，在程序中也不要用保留位存储数据。保留位将用于ARM版本的扩展。
-5) 运行模式位M[4：0]：这几位是模式位，这些位决定了处理器的运行模式。
-具体含义如下表所示：
-}}}
-| M[4:0]  | 处理器模式 | ARM模式可访问的寄存器                   | THUMB模式可访问的寄存器              |
-| 0b10000 | 用户模式   | PC,CPSR,R0~R14                          | PC,CPSR,R0~R7,LR,SP                  |
-| 0b10001 | FIQ模式    | PC,CPSR,SPSR_fiq,R14_fiq~R8_fiq,R0~R7   | PC,CPSR,SPSR_fiq,LR_fiq,SP_fiq,R0~R7 |
-| 0b10010 | IRQ模式    | PC,CPSR,SPSR_irq,R14_irq~R13_irq,R0~R12 | PC,CPSR,SPSR_irq,LR_irq,SP_irq,R0~R7 |
-| 0b10011 | 管理模式   | PC,CPSR,SPSR_svc,R14_svc~R13_svc,R0~R12 | PC,CPSR,SPSR_svc,LR_svc,SP_svc,R0~R7 |
-| 0b10111 | 中止模式   | PC,CPSR,SPSR_abt,R14_abt~R13_abt,R0~R12 | PC,CPSR,SPSR_abt,LR_abt,SP_abt,R0~R7 |
-| 0b11011 | 未定义模式 | PC,CPSR,SPSR_und,R14_und~R13_und,R0~R12 | PC,CPSR,SPSR_und,LR_und,SP_und,R0~R  |
-| 0b11111 | 系统模式   | PC,CPSR,R0~R14                          | PC,CPSR,LR,SP,R0~R74                 |
 
 ----
 === gcc内联汇编 ===

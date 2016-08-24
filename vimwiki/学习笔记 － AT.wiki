@@ -14,6 +14,18 @@ device/sprd/scx35l_sharkls_j1mini/scx35l_sharkls_j1mini.mk
 69         persist.radio.ssda.testmode1=254 \
 }}}
 
+==== 获取基带版本号 ====
+{{{
+shell@scx35l_sharkls_j3lte:/ # echo "AT+CGMR\r" > /dev/stty_lte29              
+Platform Version: MOCORTM_W15.7.2_Debug
+Project Version:   sharkl_cp1_5mod_ss
+BASE  Version:    FM_BASE_15C_W15.53.1
+HW Version:        sc9630_modem
+06-21-2016 17:18:31
+
+OK
+}}}
+
 ----
 === 附件 ===
 [[local:files/AT Command User Guide_1216.pdf|AT Command User Guide_1216.pdf]]<BR>

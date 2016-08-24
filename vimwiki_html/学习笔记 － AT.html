@@ -13,6 +13,7 @@
 <li><a href="#toc_0.0.1">常用AT命令</a>
 <ul>
 <li><a href="#toc_0.0.1.1">设置单卡</a>
+<li><a href="#toc_0.0.1.2">获取基带版本号</a>
 </ul>
 <li><a href="#toc_0.0.2">附件</a>
 </ul>
@@ -32,6 +33,18 @@ AT+SFUN=4 重新开启协议栈
 device/sprd/scx35l_sharkls_j1mini/scx35l_sharkls_j1mini.mk
 68         persist.radio.ssda.testmode=6 \
 69         persist.radio.ssda.testmode1=254 \
+</pre>
+
+<h4 id="toc_0.0.1.2">获取基带版本号</h4>
+<pre>
+shell@scx35l_sharkls_j3lte:/ # echo "AT+CGMR\r" &gt; /dev/stty_lte29              
+Platform Version: MOCORTM_W15.7.2_Debug
+Project Version:   sharkl_cp1_5mod_ss
+BASE  Version:    FM_BASE_15C_W15.53.1
+HW Version:        sc9630_modem
+06-21-2016 17:18:31
+
+OK
 </pre>
 
 <hr />
