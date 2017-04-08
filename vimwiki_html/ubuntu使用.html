@@ -11,8 +11,9 @@
 <div class="toc">
 <ul>
 <li><a href="#toc_0.0.1">快捷键</a>
-<li><a href="#toc_0.0.2">命令</a>
-<li><a href="#toc_0.0.3">查看各种设备和资源的命令汇总</a>
+<li><a href="#toc_0.0.2">常用工具</a>
+<li><a href="#toc_0.0.3">命令</a>
+<li><a href="#toc_0.0.4">查看各种设备和资源的命令汇总</a>
 </ul>
 </ul>
 </ul>
@@ -103,7 +104,7 @@ Ctrl+q 重新启用挂起的shell <BR>
 </p>
 <pre>
 在~/.bashrc文件中添加下列語句：
-    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;31m\]\u@\t\[\033[00m\]:\[\033[01;34m\]\n\[\033[00m\]\$ '
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;31m\]\u@\t\[\033[00m\]:\[\033[01;34m\]\w\n\[\033[00m\]\$ '
 其中01;31m代表红色的riusksk@ubuntu，01;34m代表目录为蓝色。
 \n 回车
 \t 时间
@@ -113,7 +114,16 @@ Ctrl+q 重新启用挂起的shell <BR>
 </pre>
 
 <hr />
-<h3 id="toc_0.0.2">命令</h3>
+<h3 id="toc_0.0.2">常用工具</h3>
+<pre>
+terminator
+Alt + 上/下/左/右 ：移动窗口焦点
+Ctrl + Shift + O ：垂直分窗口
+Ctrl + Shift + E ：水平分窗口
+</pre>
+
+<hr />
+<h3 id="toc_0.0.3">命令</h3>
 <ul>
 <li>
 nautilus
@@ -204,7 +214,7 @@ split
 </ul>
 
 <hr />
-<h3 id="toc_0.0.3">查看各种设备和资源的命令汇总</h3>
+<h3 id="toc_0.0.4">查看各种设备和资源的命令汇总</h3>
 <pre>
 
 一、系统信息

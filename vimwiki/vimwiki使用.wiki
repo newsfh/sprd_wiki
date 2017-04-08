@@ -29,6 +29,11 @@
 配置路径：
 let g:vimwiki_list = [{'path': '~/vimwiki/vimwiki/', 'path_html': '~/vimwiki/vimwiki_html/'}]
 }}}
+安装：
+{{{
+用vimwiki打开vimwiki-2-1.vba
+运行命令:so %
+}}}
 
 === 资料 ===
 [[http://code.google.com/p/vim-script-cn/source/browse/trunk/doc/vimwiki.cnx]]
